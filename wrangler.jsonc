@@ -1,0 +1,11 @@
+{
+  // Environments (dev / staging / prod) and bindings land with the
+  // deployment and platform-core phases — see ADR-0010.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cf-core-kit",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-10-10",
+  "observability": {
+    "enabled": true,
+  },
+}

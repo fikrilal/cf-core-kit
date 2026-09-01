@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Wrangler local state
+.wrangler/
+
+# Local secrets
+.dev.vars
+.dev.vars.*
+
+# Test / coverage artifacts
+coverage/
+*.tsbuildinfo
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
