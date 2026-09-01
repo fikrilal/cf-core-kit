@@ -15,6 +15,7 @@ These docs are the source of truth for architecture, standards, and workflow; co
   - `docs/adr/README.md`
 - Execution plans
   - `docs/exec-plans/README.md`
+  - `docs/exec-plans/roadmap.md` — high-level phases and task tracking
 - Contract
   - `docs/openapi/openapi.yaml` — generated snapshot (lands with the contract pipeline)
   - `tools/parity/coverage.json` — parity manifest: implemented / pending / descoped operations

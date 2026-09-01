@@ -16,7 +16,7 @@ Decided 2026-10-10 and recorded per-topic in `docs/adr/`. Changing a decision re
 - **Time**: injected `Clock`; no wall-clock reads in services. See ADR-0008.
 - **Observability**: Workers Logs + `X-Request-Id` / `traceId` propagation; OTLP export is an optional hook, off by default. See ADR-0005.
 - **Testing**: `vitest` with `@cloudflare/vitest-plugin` — tests run inside the Workers runtime via Miniflare (D1/KV/R2/Queues/DO simulated).
-- **Lint / format**: eslint (flat config, type-aware) + Prettier; budget checks join the gate per ADR-0008.
+- **Lint / format**: eslint flat config, type-aware, strict baseline (import hygiene, size budgets, `no-console`) per ADR-0011 + Prettier; budget checks join the gate per ADR-0008.
 - **CLI**: `tools/cfkit` — scaffold / remove / verify profiles / budget:check / contract:check / doctor (M1). See ADR-0009.
 - **Delivery**: wrangler environments dev/staging/prod; version-based rollback; expand → migrate → contract schema safety. See ADR-0010.
 

@@ -18,3 +18,4 @@ ADRs record durable decisions. Proposals in `_WIP/` are input; once accepted, de
 | [0008](./0008-boundaries-and-budget-as-executable-rules.md)    | Boundaries and budget guardrails as executable rules | Accepted |
 | [0009](./0009-cfkit-cli-and-verify-gate.md)                    | cfkit CLI and the verify gate                        | Accepted |
 | [0010](./0010-deployment-environments-and-rollback.md)         | Deployment environments and rollback                 | Accepted |
+| [0011](./0011-strict-quality-baseline-and-gate-honesty.md)     | Strict quality baseline and gate honesty             | Accepted |
