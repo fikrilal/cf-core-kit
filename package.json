@@ -13,13 +13,13 @@
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "types": "wrangler types",
     "test": "vitest run",
     "build": "wrangler deploy --dry-run --outdir dist",
     "verify": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.4.0",
-    "@cloudflare/workers-types": "^5.20261010.1",
     "@eslint/js": "^10.0.1",
     "eslint": "^10.12.0",
     "eslint-config-prettier": "^10.1.8",
@@ -35,5 +35,8 @@
     "esbuild": true,
     "workerd": true,
     "unrs-resolver": true
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
   }
 }

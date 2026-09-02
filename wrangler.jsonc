@@ -8,4 +8,8 @@
   "observability": {
     "enabled": true,
   },
+  "vars": {
+    "APP_ENV": "dev",
+    "LOG_LEVEL": "info",
+  },
 }

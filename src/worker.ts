@@ -1,13 +1,21 @@
+import { getConfig } from "./platform/config/config";
 import { commit, version } from "./version";
 
 export default {
-  fetch(request: Request): Response {
+  fetch(request: Request, env: Env): Response {
     const url = new URL(request.url);
 
     if (url.pathname === "/") {
-      return Response.json({ name: "cf-core-kit", version, commit });
+      const config = getConfig(env);
+
+      return Response.json({
+        name: "cf-core-kit",
+        version,
+        commit,
+        appEnv: config.appEnv,
+      });
     }
 
     return new Response("Not Found", { status: 404 });
   },
-} satisfies ExportedHandler;
+} satisfies ExportedHandler<Env>;

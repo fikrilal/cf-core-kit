@@ -3,7 +3,7 @@
 Decided 2026-10-10 and recorded per-topic in `docs/adr/`. Changing a decision requires a superseding ADR.
 
 - **Runtime**: Cloudflare Workers — one script per deployment (fetch / queue / scheduled / DO classes). See ADR-0001.
-- **Language / tooling**: TypeScript strict; Node >= 22 pinned via `.nvmrc`; npm.
+- **Language / tooling**: TypeScript strict; Node >= 22 pinned via `.nvmrc`; npm; Worker `Env` typed from `wrangler types` (`npm run types`, committed as `worker-configuration.d.ts`).
 - **HTTP**: Hono with a fixed middleware pipeline; zod (>= 4.5) for runtime validation and schemas. See ADR-0003.
 - **Contract**: generated `docs/openapi/openapi.yaml` (committed) + Spectral lint; parity manifest `tools/parity/coverage.json` (implemented / pending / descoped). See ADR-0002.
 - **Data**: D1 + Drizzle; drizzle-kit generates migrations applied via `wrangler d1 migrations`. See ADR-0004.

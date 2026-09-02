@@ -19,7 +19,7 @@ The harness keeps quality golden; it is mandatory, not optional. Layers, in land
 1. **Strict lint/format baseline** (landed, 1.0): type-aware eslint (`strictTypeChecked` + `stylisticTypeChecked`), import hygiene (`import-x`: first, newline-after-import, no-cycle, no-duplicates, no-mutable-exports), budgets (complexity 12, max-lines 350, max-lines-per-function 80), `no-console`, `eqeqeq`, Prettier. Violation probes confirmed the gates fail with their expected markers.
 2. **Budget checks** (1.10): the free-tier guardrails become real checks (ADR-0005, ADR-0008) — bundle size, crypto allowlist, `env` confinement, KV-write allowlist, cron count — wired into the verify gate.
 3. **cfkit v0** (1.11): typed command layer, `verify --profile fast|full`, `doctor`, `budget:check`; `npm run verify` delegates to the fast profile; CI calls the same profile.
-4. **Drift & docs checks** (1.12): project map (AGENTS.md tree ↔ dirs), markdown link integrity, ADR index completeness.
+4. **Drift & docs checks** (1.12): project map (AGENTS.md tree ↔ dirs), markdown link integrity, `wrangler types` drift, ADR index completeness.
 5. **Contract gates** (2.x): snapshot pin + provenance, emitted OpenAPI + drift gate, parity manifest check, Spectral family rules, and the contract suite — each gate carrying a gate-honesty meta-test.
 6. **Feature-level enforcement** (3.x–5.x): boundary lint rules as the directories exist (platform ↛ features, `env` confinement in code, crypto allowlist), scaffold output smoke-tested against `npm run verify`, `remove feature` unwiring; duplication policy and runtime evidence later.
 
@@ -27,7 +27,7 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Phase 1 — Platform core** (in progress): 1.0 (strict quality baseline) landed; next up 1.1 (config), with budget checks (1.10) and cfkit v0 (1.11) alongside.
+**Phase 1 — Platform core** (in progress): 1.0 (strict quality baseline) and 1.1 (config) landed; next up 1.2 (clock + errors), with budget checks (1.10) and cfkit v0 (1.11) alongside.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -43,7 +43,7 @@ Evidence: commits `eeb5fae` (docs) and `ed2f2c5` (scaffold); `npm run verify` gr
 Objective: the platform layer every feature consumes — config, errors, HTTP behavior, validation, list query, the D1 seam, idempotency, caching, health, and a bootable worker — plus harness v0.
 
 - [x] 1.0 Strict quality baseline: type-aware eslint, import hygiene, size/complexity budgets, `no-console`, `eqeqeq`, Prettier (landed 2026-10-10; violation probes confirmed the gates fail)
-- [ ] 1.1 Config: zod env/bindings schema, typed config, fail-fast invariants; the only place `env.*` is read (`src/platform/config`)
+- [x] 1.1 Config: zod env schema, typed config, fail-fast invariants; the only place `env.*` is read (`src/platform/config`) — landed 2026-10-10; generated `Env` via `wrangler types`; 8 tests green
 - [ ] 1.2 Clock + errors: injected `Clock`; `ErrorCode` enum + `AppErrorCode` union; typed `AppError` (`src/platform/clock`, `src/platform/errors`, `src/shared/error-codes`)
 - [ ] 1.3 HTTP foundation: Hono app + fixed middleware order (request-id → logging → auth → validation), envelope helpers (`data` / `list` / `created` / `noContent`), central problem mapper (`src/platform/http`)
 - [ ] 1.4 Request validation: zod decode → `errors[] {field, message}` + `VALIDATION_FAILED`
@@ -54,7 +54,7 @@ Objective: the platform layer every feature consumes — config, errors, HTTP be
 - [ ] 1.9 Health + boot: `/health` + `/ready` (envelope-skipped), composition root `src/app.ts` wired through `src/worker.ts`
 - [ ] 1.10 Budget checks: bundle size, crypto allowlist, `env` confinement, KV-write allowlist, cron count — checks wired into the gate (ADR-0005, ADR-0008)
 - [ ] 1.11 cfkit v0: typed command layer + `verify --profile fast|full` + `doctor` + `budget:check`; `npm run verify` delegates to the fast profile; CI calls the same profile
-- [ ] 1.12 Drift & docs checks: project map (AGENTS.md tree ↔ dirs), markdown link integrity, ADR index completeness
+- [ ] 1.12 Drift & docs checks: project map (AGENTS.md tree ↔ dirs), markdown link integrity, `wrangler types` drift, ADR index completeness
 - [ ] 1.13 Dev deployment: wrangler `dev` environment, first deploy, smoke `/health` + `/ready`, measured CPU per route class recorded as evidence
 
 Exit gate: `npm run verify` green; worker boots and serves `/health` + `/ready` with `X-Request-Id` echo; envelope, problem, and validation paths covered by tests; budget checks run in the gate; cfkit v0 profiles work locally and in CI; first dev-deployment evidence recorded.
