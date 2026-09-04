@@ -27,7 +27,7 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Phase 1 — Platform core** (in progress): 1.0 (strict quality baseline), 1.1 (config), and 1.2 (clock + errors) landed; next up 1.3 (HTTP foundation), with budget checks (1.10) and cfkit v0 (1.11) alongside.
+**Phase 1 — Platform core** (in progress): 1.0 (strict quality baseline), 1.1 (config), 1.2 (clock + errors), and 1.3 (HTTP foundation) landed; next up 1.4 (request validation), with budget checks (1.10) and cfkit v0 (1.11) alongside.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -45,7 +45,7 @@ Objective: the platform layer every feature consumes — config, errors, HTTP be
 - [x] 1.0 Strict quality baseline: type-aware eslint, import hygiene, size/complexity budgets, `no-console`, `eqeqeq`, Prettier (landed 2026-10-10; violation probes confirmed the gates fail)
 - [x] 1.1 Config: zod env schema, typed config, fail-fast invariants; the only place `env.*` is read (`src/platform/config`) — landed 2026-10-10; generated `Env` via `wrangler types`; 8 tests green
 - [x] 1.2 Clock + errors: injected `Clock`; `ErrorCode` enum + `AppErrorCode` union; typed `AppError` (`src/platform/clock`, `src/platform/errors`, `src/shared/error-codes`) — landed 2026-10-10; 5 tests green; codes mirror the family dialect
-- [ ] 1.3 HTTP foundation: Hono app + fixed middleware order (request-id → logging → auth → validation), envelope helpers (`data` / `list` / `created` / `noContent`), central problem mapper (`src/platform/http`)
+- [x] 1.3 HTTP foundation: Hono app + fixed middleware order (request-id → logging → auth → validation), envelope helpers (`data` / `list` / `created` / `noContent`), central problem mapper (`src/platform/http`) — landed 2026-10-10; dialect constants mirrored; 25 tests added
 - [ ] 1.4 Request validation: zod decode → `errors[] {field, message}` + `VALIDATION_FAILED`
 - [ ] 1.5 List query: cursor codec + parse/sort/filter helpers with per-endpoint allowlists (`src/shared/list-query`)
 - [ ] 1.6 DB seam: D1 binding + Drizzle root + drizzle-kit → `wrangler d1 migrations` pipeline + batch helper (`src/platform/db`)
