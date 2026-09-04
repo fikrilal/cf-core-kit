@@ -27,7 +27,7 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Phase 1 — Platform core** (in progress): 1.0 (strict quality baseline), 1.1 (config), 1.2 (clock + errors), 1.3 (HTTP foundation), and 1.4 (request validation) landed; next up 1.5 (list query), with budget checks (1.10) and cfkit v0 (1.11) alongside.
+**Phase 1 — Platform core** (in progress): 1.0 (strict quality baseline), 1.1 (config), 1.2 (clock + errors), 1.3 (HTTP foundation), 1.4 (request validation), and 1.5 (list query) landed; next up 1.6 (DB seam), with budget checks (1.10) and cfkit v0 (1.11) alongside.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -47,7 +47,7 @@ Objective: the platform layer every feature consumes — config, errors, HTTP be
 - [x] 1.2 Clock + errors: injected `Clock`; `ErrorCode` enum + `AppErrorCode` union; typed `AppError` (`src/platform/clock`, `src/platform/errors`, `src/shared/error-codes`) — landed 2026-10-10; 5 tests green; codes mirror the family dialect
 - [x] 1.3 HTTP foundation: Hono app + fixed middleware order (request-id → logging → auth → validation), envelope helpers (`data` / `list` / `created` / `noContent`), central problem mapper (`src/platform/http`) — landed 2026-10-10; dialect constants mirrored; 25 tests added
 - [x] 1.4 Request validation: zod decode → `errors[] {field, message}` + `VALIDATION_FAILED` — landed 2026-10-10; `errors[]` shape verified against backend; 8 tests added
-- [ ] 1.5 List query: cursor codec + parse/sort/filter helpers with per-endpoint allowlists (`src/shared/list-query`)
+- [x] 1.5 List query: cursor codec + parse/sort/filter helpers with per-endpoint allowlists (`src/shared/list-query`) — landed 2026-10-10; semantics, where-algebra, and test matrix ported from backend (parity pass closed unknown-param strictness); 50 tests added
 - [ ] 1.6 DB seam: D1 binding + Drizzle root + drizzle-kit → `wrangler d1 migrations` pipeline + batch helper (`src/platform/db`)
 - [ ] 1.7 Idempotency: D1-backed records (`in_progress` → `completed`, TTL) + `Idempotency-Replayed` replay (needs 1.6)
 - [ ] 1.8 Cache + logging: in-isolate memoizer (JWKS/config, single-flight), CDN caching policy helper; structured logs + redaction (`src/platform/cache`, `src/platform/logging`)
