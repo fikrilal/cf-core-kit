@@ -29,4 +29,15 @@ describe("AppError", () => {
 
     expect(error.retryAfterSeconds).toBe(5);
   });
+
+  it("carries issues and defaults the message to empty", () => {
+    const error = new AppError({
+      status: 400,
+      code: ErrorCode.VALIDATION_FAILED,
+      issues: [{ field: "email", message: "Required" }],
+    });
+
+    expect(error.message).toBe("");
+    expect(error.issues).toEqual([{ field: "email", message: "Required" }]);
+  });
 });

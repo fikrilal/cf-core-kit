@@ -82,6 +82,30 @@ describe("problemResponse", () => {
     });
   });
 
+  it("renders issues as errors[] without detail", async () => {
+    const response = problemResponse(
+      new AppError({
+        status: 400,
+        code: ErrorCode.VALIDATION_FAILED,
+        issues: [
+          { field: "email", message: "Required" },
+          { message: "Invalid" },
+        ],
+      }),
+      undefined,
+    );
+
+    await expect(response.json()).resolves.toEqual({
+      type: "about:blank",
+      title: "Validation Failed",
+      status: 400,
+      code: "VALIDATION_FAILED",
+      errors: [{ field: "email", message: "Required" }, { message: "Invalid" }],
+    });
+  });
+});
+
+describe("problemResponse retry and fallback", () => {
   it("sets Retry-After from retryAfterSeconds", () => {
     const response = problemResponse(
       new AppError({

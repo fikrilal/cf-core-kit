@@ -1,5 +1,5 @@
 import { ErrorCode, type AppErrorCode } from "../../shared/error-codes";
-import { AppError } from "../errors/app-error";
+import { AppError, type AppErrorIssue } from "../errors/app-error";
 
 const STATUS_TITLES: Readonly<Record<number, string>> = {
   400: "Bad Request",
@@ -38,6 +38,7 @@ export type ProblemDetails = Readonly<{
   title: string;
   status: number;
   detail?: string;
+  errors?: readonly AppErrorIssue[];
   code: AppErrorCode;
   traceId?: string;
 }>;
@@ -46,6 +47,7 @@ type ProblemInput = Readonly<{
   status: number;
   code: AppErrorCode;
   detail?: string;
+  issues?: readonly AppErrorIssue[];
   retryAfterSeconds?: number;
 }>;
 
@@ -58,6 +60,9 @@ function buildProblemResponse(
     title: resolveProblemTitle({ status: input.status, code: input.code }),
     status: input.status,
     ...(input.detail === undefined ? {} : { detail: input.detail }),
+    ...(input.issues === undefined || input.issues.length === 0
+      ? {}
+      : { errors: input.issues }),
     code: input.code,
     ...(requestId === undefined ? {} : { traceId: requestId }),
   };
@@ -88,6 +93,9 @@ export function problemResponse(
         status: error.status,
         code: error.code,
         ...(error.message.length === 0 ? {} : { detail: error.message }),
+        ...(error.issues === undefined || error.issues.length === 0
+          ? {}
+          : { issues: error.issues }),
         ...(error.retryAfterSeconds === undefined
           ? {}
           : { retryAfterSeconds: error.retryAfterSeconds }),

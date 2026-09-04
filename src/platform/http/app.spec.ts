@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 
 import { ErrorCode } from "../../shared/error-codes";
 import { AppError } from "../errors/app-error";
 import { createApp } from "./app";
 import { data } from "./envelope";
+import { readJson } from "./validation";
 
 function createTestApp() {
   const app = createApp();
@@ -18,6 +20,11 @@ function createTestApp() {
   });
   app.get("/crash", () => {
     throw new Error("internal details");
+  });
+  app.post("/validate", async (context) => {
+    const body = await readJson(context, z.object({ name: z.string().min(1) }));
+
+    return data({ greeting: `hello ${body.name}` });
   });
 
   return app;
@@ -97,6 +104,74 @@ describe("createApp", () => {
       status: 404,
       code: "NOT_FOUND",
       title: "Not Found",
+    });
+  });
+});
+
+describe("createApp request validation", () => {
+  it("accepts valid JSON bodies through readJson", async () => {
+    const response = await createTestApp().request(
+      "https://example.com/validate",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "ada" }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      data: { greeting: "hello ada" },
+    });
+  });
+
+  it("renders schema violations as validation problems with errors[]", async () => {
+    const response = await createTestApp().request(
+      "https://example.com/validate",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-request-id": "req-validate",
+        },
+        body: JSON.stringify({ name: "" }),
+      },
+    );
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get("Content-Type")).toBe(
+      "application/problem+json",
+    );
+    await expect(response.clone().json()).resolves.toMatchObject({
+      type: "about:blank",
+      title: "Validation Failed",
+      status: 400,
+      code: "VALIDATION_FAILED",
+      traceId: "req-validate",
+    });
+    await expect(response.json()).resolves.toMatchObject({
+      errors: [{ field: "name" }],
+    });
+  });
+
+  it("renders malformed JSON bodies as validation problems without errors[]", async () => {
+    const response = await createTestApp().request(
+      "https://example.com/validate",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{not json",
+      },
+    );
+    const requestId = response.headers.get("X-Request-Id");
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      type: "about:blank",
+      title: "Validation Failed",
+      status: 400,
+      code: "VALIDATION_FAILED",
+      traceId: requestId,
     });
   });
 });
