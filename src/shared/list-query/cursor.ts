@@ -1,3 +1,4 @@
+import { decodeBase64Url, encodeBase64Url } from "../base64url";
 import { ListQueryValidationError, type ListQueryIssue } from "./errors";
 import { hasOwnField, isPlainObject } from "./object";
 import { parseScalar } from "./scalars";
@@ -5,33 +6,10 @@ import type { CursorPayloadV1, Scalar, SortAllowlist } from "./types";
 
 const MAX_CURSOR_LENGTH = 4096;
 
-function base64UrlEncode(input: string): string {
-  const bytes = new TextEncoder().encode(input);
-  let binary = "";
-
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-
-  return btoa(binary)
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replace(/=+$/, "");
-}
-
-function base64UrlDecode(input: string): string {
-  const base64 = input.replaceAll("-", "+").replaceAll("_", "/");
-  const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
-  const binary = atob(padded);
-  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-
-  return new TextDecoder().decode(bytes);
-}
-
 export function encodeCursorV1<Field extends string>(
   payload: CursorPayloadV1<Field>,
 ): string {
-  return base64UrlEncode(JSON.stringify(payload));
+  return encodeBase64Url(JSON.stringify(payload));
 }
 
 export type DecodeCursorV1Options<Field extends string> = Readonly<{
@@ -43,7 +21,7 @@ export type DecodeCursorV1Options<Field extends string> = Readonly<{
 function parseCursorJson(cursor: string): Record<string, unknown> {
   let decoded: string;
   try {
-    decoded = base64UrlDecode(cursor);
+    decoded = decodeBase64Url(cursor);
   } catch {
     throw new ListQueryValidationError([
       { field: "cursor", message: "Invalid cursor encoding" },

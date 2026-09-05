@@ -1,5 +1,6 @@
 export interface HttpVariables {
   requestId: string;
+  principalId?: string;
 }
 
 export interface AppEnv {

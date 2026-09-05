@@ -27,7 +27,7 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Phase 1 — Platform core** (in progress): 1.0–1.6 landed (baseline, config, clock + errors, HTTP foundation, validation, list query, DB seam); next up 1.7 (idempotency), with budget checks (1.10) and cfkit v0 (1.11) alongside.
+**Phase 1 — Platform core** (in progress): 1.0–1.7 landed (baseline, config, clock + errors, HTTP foundation, validation, list query, DB seam, idempotency); next up 1.8 (cache + logging), with budget checks (1.10) and cfkit v0 (1.11) alongside.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -49,12 +49,12 @@ Objective: the platform layer every feature consumes — config, errors, HTTP be
 - [x] 1.4 Request validation: zod decode → `errors[] {field, message}` + `VALIDATION_FAILED` — landed 2026-10-10; `errors[]` shape verified against backend; 8 tests added
 - [x] 1.5 List query: cursor codec + parse/sort/filter helpers with per-endpoint allowlists (`src/shared/list-query`) — landed 2026-10-10; semantics, where-algebra, and test matrix ported from backend (parity pass closed unknown-param strictness); 50 tests added
 - [x] 1.6 DB seam: D1 binding + Drizzle root + drizzle-kit → `wrangler d1 migrations` pipeline + batch helper (`src/platform/db`) — landed 2026-10-10; `Env.DB` wired; CRUD + batch-atomicity tests on local D1; pipeline proven locally (first migration lands with 1.7)
-- [ ] 1.7 Idempotency: D1-backed records (`in_progress` → `completed`, TTL) + `Idempotency-Replayed` replay (needs 1.6)
+- [x] 1.7 Idempotency: D1-backed records (`in_progress` → `completed`, TTL) + `Idempotency-Replayed` replay (needs 1.6) — landed 2026-10-10; first migration + pipeline E2E in tests; 19 tests added
 - [ ] 1.8 Cache + logging: in-isolate memoizer (JWKS/config, single-flight), CDN caching policy helper; structured logs + redaction (`src/platform/cache`, `src/platform/logging`)
 - [ ] 1.9 Health + boot: `/health` + `/ready` (envelope-skipped), composition root `src/app.ts` wired through `src/worker.ts`
 - [ ] 1.10 Budget checks: bundle size, crypto allowlist, `env` confinement, KV-write allowlist, cron count — checks wired into the gate (ADR-0005, ADR-0008)
 - [ ] 1.11 cfkit v0: typed command layer + `verify --profile fast|full` + `doctor` + `budget:check`; `npm run verify` delegates to the fast profile; CI calls the same profile
-- [ ] 1.12 Drift & docs checks: project map (AGENTS.md tree ↔ dirs), markdown link integrity, `wrangler types` drift, ADR index completeness
+- [ ] 1.12 Drift & docs checks: project map (AGENTS.md tree ↔ dirs), markdown link integrity, `wrangler types` + drizzle migrations drift, ADR index completeness
 - [ ] 1.13 Dev deployment: wrangler `dev` environment, first deploy, smoke `/health` + `/ready`, measured CPU per route class recorded as evidence
 
 Exit gate: `npm run verify` green; worker boots and serves `/health` + `/ready` with `X-Request-Id` echo; envelope, problem, and validation paths covered by tests; budget checks run in the gate; cfkit v0 profiles work locally and in CI; first dev-deployment evidence recorded.
