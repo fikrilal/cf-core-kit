@@ -12,5 +12,10 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "vitest.config.ts", "worker-configuration.d.ts"]
+  "include": [
+    "src/**/*.ts",
+    "vitest.config.ts",
+    "drizzle.config.ts",
+    "worker-configuration.d.ts"
+  ]
 }
