@@ -1,23 +1,6 @@
-import { getConfig } from "./platform/config/config";
-import { createApp } from "./platform/http/app";
-import { data } from "./platform/http/envelope";
-import { requestLogging } from "./platform/http/request-logging";
-import { commit, version } from "./version";
+import { createWorkerApp } from "./app";
 
-const app = createApp();
-
-app.use(requestLogging());
-
-app.get("/", (context) => {
-  const config = getConfig(context.env);
-
-  return data({
-    name: "cf-core-kit",
-    version,
-    commit,
-    appEnv: config.appEnv,
-  });
-});
+const app = createWorkerApp();
 
 export default {
   fetch: (request: Request, env: Env) => app.fetch(request, env),

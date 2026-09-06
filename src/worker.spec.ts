@@ -34,4 +34,20 @@ describe("worker", () => {
       status: 404,
     });
   });
+
+  it("serves health and readiness through the composition", async () => {
+    const health = await worker.fetch(
+      new Request("https://example.com/health"),
+      env,
+    );
+    const ready = await worker.fetch(
+      new Request("https://example.com/ready"),
+      env,
+    );
+
+    expect(health.status).toBe(200);
+    await expect(health.json()).resolves.toEqual({ status: "ok" });
+    expect(ready.status).toBe(200);
+    await expect(ready.json()).resolves.toEqual({ status: "ok" });
+  });
 });
