@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
+import { send } from "../../../test/app-request";
+
 import { ErrorCode } from "../../shared/error-codes";
 import { AppError } from "../errors/app-error";
 import { createApp } from "./app";
@@ -32,7 +34,7 @@ function createTestApp() {
 
 describe("createApp", () => {
   it("echoes a valid inbound request id on success", async () => {
-    const response = await createTestApp().request("https://example.com/ok", {
+    const response = await send(createTestApp(), "https://example.com/ok", {
       headers: { "x-request-id": "abc-123" },
     });
 
@@ -42,13 +44,13 @@ describe("createApp", () => {
   });
 
   it("generates a request id when absent", async () => {
-    const response = await createTestApp().request("https://example.com/ok");
+    const response = await send(createTestApp(), "https://example.com/ok");
 
     expect(response.headers.get("X-Request-Id")).toMatch(/^[A-Za-z0-9._-]+$/);
   });
 
   it("replaces an invalid request id", async () => {
-    const response = await createTestApp().request("https://example.com/ok", {
+    const response = await send(createTestApp(), "https://example.com/ok", {
       headers: { "x-request-id": "bad id" },
     });
 
@@ -57,7 +59,7 @@ describe("createApp", () => {
   });
 
   it("renders thrown AppErrors as problems with the echoed id", async () => {
-    const response = await createTestApp().request("https://example.com/boom", {
+    const response = await send(createTestApp(), "https://example.com/boom", {
       headers: { "x-request-id": "req-boom" },
     });
 
@@ -77,7 +79,7 @@ describe("createApp", () => {
   });
 
   it("renders unknown errors as a generic internal problem", async () => {
-    const response = await createTestApp().request("https://example.com/crash");
+    const response = await send(createTestApp(), "https://example.com/crash");
     const requestId = response.headers.get("X-Request-Id");
 
     expect(response.status).toBe(500);
@@ -94,9 +96,7 @@ describe("createApp", () => {
   });
 
   it("renders unmatched routes as not-found problems", async () => {
-    const response = await createTestApp().request(
-      "https://example.com/missing",
-    );
+    const response = await send(createTestApp(), "https://example.com/missing");
 
     expect(response.status).toBe(404);
     expect(response.headers.get("X-Request-Id")).toBeTruthy();
@@ -110,7 +110,8 @@ describe("createApp", () => {
 
 describe("createApp request validation", () => {
   it("accepts valid JSON bodies through readJson", async () => {
-    const response = await createTestApp().request(
+    const response = await send(
+      createTestApp(),
       "https://example.com/validate",
       {
         method: "POST",
@@ -126,7 +127,8 @@ describe("createApp request validation", () => {
   });
 
   it("renders schema violations as validation problems with errors[]", async () => {
-    const response = await createTestApp().request(
+    const response = await send(
+      createTestApp(),
       "https://example.com/validate",
       {
         method: "POST",
@@ -155,7 +157,8 @@ describe("createApp request validation", () => {
   });
 
   it("renders malformed JSON bodies as validation problems without errors[]", async () => {
-    const response = await createTestApp().request(
+    const response = await send(
+      createTestApp(),
       "https://example.com/validate",
       {
         method: "POST",

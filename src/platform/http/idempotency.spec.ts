@@ -1,7 +1,8 @@
 import { env } from "cloudflare:workers";
 import { sql } from "drizzle-orm";
-import type { Hono } from "hono";
 import { describe, expect, it } from "vitest";
+
+import { send } from "../../../test/app-request";
 
 import { ErrorCode } from "../../shared/error-codes";
 import { createDb } from "../db/db";
@@ -11,11 +12,6 @@ import { created, data } from "./envelope";
 import { computeRequestHash, hashScopeKey } from "./idempotency.core";
 import { idempotent, type IdempotencyOptions } from "./idempotency";
 import { deleteExpiredIdempotencyRecords } from "./idempotency.service";
-import type { AppEnv } from "./types";
-
-async function send(app: Hono<AppEnv>, request: Request): Promise<Response> {
-  return app.request(request, undefined, env);
-}
 
 function createTestApp(
   options: { middleware?: IdempotencyOptions; withPrincipal?: boolean } = {},

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { send } from "../../../test/app-request";
+
 import { encodeCursorV1 } from "../../shared/list-query";
 import { createApp } from "./app";
 import { data } from "./envelope";
@@ -41,7 +43,7 @@ function createListApp() {
 
 describe("readListQuery", () => {
   it("applies defaults when no query params are present", async () => {
-    const response = await createListApp().request("https://example.com/items");
+    const response = await send(createListApp(), "https://example.com/items");
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
@@ -58,7 +60,8 @@ describe("readListQuery", () => {
   });
 
   it("parses sort, limit, and bracket filters", async () => {
-    const response = await createListApp().request(
+    const response = await send(
+      createListApp(),
       "https://example.com/items?limit=5&sort=createdAt&filter[status][in]=ACTIVE,SUSPENDED&filter[createdAt][gte]=2026-01-01T00:00:00.000Z",
     );
 
@@ -86,7 +89,8 @@ describe("readListQuery", () => {
       after: { createdAt: "2026-01-01T00:00:00.000Z", id: UUID },
     });
 
-    const response = await createListApp().request(
+    const response = await send(
+      createListApp(),
       `https://example.com/items?cursor=${encodeURIComponent(cursor)}`,
     );
 
@@ -99,7 +103,8 @@ describe("readListQuery", () => {
 
 describe("readListQuery validation", () => {
   it("rejects an unsupported filter field with a field-scoped issue", async () => {
-    const response = await createListApp().request(
+    const response = await send(
+      createListApp(),
       "https://example.com/items?filter[unknown]=x",
     );
 
@@ -115,7 +120,8 @@ describe("readListQuery validation", () => {
   });
 
   it("rejects limits beyond the endpoint maximum", async () => {
-    const response = await createListApp().request(
+    const response = await send(
+      createListApp(),
       "https://example.com/items?limit=999",
     );
 
@@ -128,7 +134,8 @@ describe("readListQuery validation", () => {
   });
 
   it("rejects unsupported sort fields", async () => {
-    const response = await createListApp().request(
+    const response = await send(
+      createListApp(),
       "https://example.com/items?sort=-email",
     );
 
@@ -150,7 +157,7 @@ describe("readListQuery bounds and strictness", () => {
       ),
     );
 
-    const response = await app.request("https://example.com/wide?limit=300");
+    const response = await send(app, "https://example.com/wide?limit=300");
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
@@ -159,7 +166,8 @@ describe("readListQuery bounds and strictness", () => {
   });
 
   it("rejects unknown query parameters", async () => {
-    const response = await createListApp().request(
+    const response = await send(
+      createListApp(),
       "https://example.com/items?page=2",
     );
 
@@ -172,7 +180,8 @@ describe("readListQuery bounds and strictness", () => {
   });
 
   it("rejects malformed filter keys as unknown parameters", async () => {
-    const response = await createListApp().request(
+    const response = await send(
+      createListApp(),
       "https://example.com/items?filter[status=x",
     );
 
@@ -186,7 +195,8 @@ describe("readListQuery bounds and strictness", () => {
   });
 
   it("rejects a non-object filter value", async () => {
-    const response = await createListApp().request(
+    const response = await send(
+      createListApp(),
       "https://example.com/items?filter=status",
     );
 

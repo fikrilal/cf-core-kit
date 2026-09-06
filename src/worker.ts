@@ -1,9 +1,12 @@
 import { getConfig } from "./platform/config/config";
 import { createApp } from "./platform/http/app";
 import { data } from "./platform/http/envelope";
+import { requestLogging } from "./platform/http/request-logging";
 import { commit, version } from "./version";
 
 const app = createApp();
+
+app.use(requestLogging());
 
 app.get("/", (context) => {
   const config = getConfig(context.env);

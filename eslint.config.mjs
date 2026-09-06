@@ -52,6 +52,10 @@ export default tseslint.config(
     },
   },
   {
+    files: ["src/platform/logging/**"],
+    rules: { "no-console": "off" },
+  },
+  {
     files: ["**/*.{js,mjs,cjs}"],
     extends: [tseslint.configs.disableTypeChecked],
   },
