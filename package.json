@@ -17,8 +17,10 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply cf-core-kit --local",
     "test": "vitest run",
+    "test:scripts": "node --test scripts/budget/check.test.mjs",
+    "budget:check": "node scripts/budget/check.mjs",
     "build": "wrangler deploy --dry-run --outdir dist",
-    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build"
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run test:scripts && npm run budget:check && npm run build"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.4.0",
