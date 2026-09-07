@@ -52,8 +52,21 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/platform/logging/**"],
+    files: ["src/platform/logging/**", "tools/cfkit/**"],
     rules: { "no-console": "off" },
+  },
+  {
+    files: ["tools/cfkit/**/*.test.ts"],
+    rules: {
+      "@typescript-eslint/no-floating-promises": [
+        "error",
+        {
+          allowForKnownSafeCalls: [
+            { from: "package", package: "node:test", name: "test" },
+          ],
+        },
+      ],
+    },
   },
   {
     files: ["**/*.{js,mjs,cjs}"],

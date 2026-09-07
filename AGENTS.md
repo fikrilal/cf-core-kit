@@ -64,8 +64,8 @@ Dependency direction:
 
 Use the repo scripts; do not claim a check passed unless it was actually run.
 
-- `npm run verify` — format check + lint + typecheck + tests (vitest + scripts) + budget checks + dry-run build. CI runs the same target.
-- Once `cfkit` lands: `cfkit verify --profile fast|full|runtime|ci` and `cfkit budget:check` / `contract:check`.
+- `npm run verify` — delegates to `cfkit verify --profile fast` (format, lint, typecheck, vitest, script fixtures, budget checks). CI runs `npm run verify:ci` (the full profile, adds the dry-run build).
+- `npm run cfkit -- doctor` / `budget:check` / `verify --profile fast|full`. (`contract:check`, `scaffold`/`remove feature`, and `runtime`/`ci` profiles land in later phases.)
 - Record exact verification commands and outcomes for auth/session, queue, idempotency, contract-surface, and budget-relevant changes; include measured CPU / rows-written where a change affects them.
 
 ## Delivery Notes

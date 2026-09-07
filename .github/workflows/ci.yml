@@ -16,4 +16,4 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Verify
-        run: npm run verify
+        run: npm run verify:ci

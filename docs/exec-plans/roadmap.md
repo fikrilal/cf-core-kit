@@ -27,7 +27,7 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Phase 1 — Platform core** (in progress): 1.0–1.10 landed — platform layer complete plus the budget guardrails as real gate checks; next up 1.11 (cfkit v0), with 1.12 (drift checks) and 1.13 (dev deployment) closing Phase 1.
+**Phase 1 — Platform core** (in progress): 1.0–1.11 landed — platform layer complete, budget guardrails and the cfkit harness v0 in place; next up 1.12 (drift checks), with 1.13 (dev deployment) closing Phase 1.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -53,7 +53,7 @@ Objective: the platform layer every feature consumes — config, errors, HTTP be
 - [x] 1.8 Cache + logging: in-isolate memoizer (JWKS/config, single-flight), CDN caching policy helper; structured logs + redaction (`src/platform/cache`, `src/platform/logging`) — landed 2026-10-10; one log line per request; 19 tests added
 - [x] 1.9 Health + boot: `/health` + `/ready` (envelope-skipped), composition root `src/app.ts` wired through `src/worker.ts` — landed 2026-10-10; backend-shaped readiness 503; 6 tests added
 - [x] 1.10 Budget checks: bundle size, crypto allowlist, `env` confinement, KV-write allowlist, cron count — checks wired into the gate (ADR-0005, ADR-0008) — landed 2026-10-10; live probe failed on injected violations; 6 node:test fixtures
-- [ ] 1.11 cfkit v0: typed command layer + `verify --profile fast|full` + `doctor` + `budget:check`; `npm run verify` delegates to the fast profile; CI calls the same profile
+- [x] 1.11 cfkit v0: typed command layer + `verify --profile fast|full` + `doctor` + `budget:check`; `npm run verify` delegates to the fast profile; CI runs `verify:ci` (full) — landed 2026-10-10; typed TS on Node native type stripping; 7 node:test fixtures
 - [ ] 1.12 Drift & docs checks: project map (AGENTS.md tree ↔ dirs), markdown link integrity, `wrangler types` + drizzle migrations drift, ADR index completeness
 - [ ] 1.13 Dev deployment: wrangler `dev` environment, first deploy, smoke `/health` + `/ready`, measured CPU per route class recorded as evidence
 
