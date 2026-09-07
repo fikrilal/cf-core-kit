@@ -19,7 +19,7 @@ The harness keeps quality golden; it is mandatory, not optional. Layers, in land
 1. **Strict lint/format baseline** (landed, 1.0): type-aware eslint (`strictTypeChecked` + `stylisticTypeChecked`), import hygiene (`import-x`: first, newline-after-import, no-cycle, no-duplicates, no-mutable-exports), budgets (complexity 12, max-lines 350, max-lines-per-function 80), `no-console`, `eqeqeq`, Prettier. Violation probes confirmed the gates fail with their expected markers.
 2. **Budget checks** (1.10): the free-tier guardrails become real checks (ADR-0005, ADR-0008) — bundle size, crypto allowlist, `env` confinement, KV-write allowlist, cron count — wired into the verify gate.
 3. **cfkit v0** (1.11): typed command layer, `verify --profile fast|full`, `doctor`, `budget:check`; `npm run verify` delegates to the fast profile; CI calls the same profile.
-4. **Drift & docs checks** (1.12): project map (AGENTS.md tree ↔ dirs), markdown link integrity, `wrangler types` drift, ADR index completeness.
+4. **Drift & docs checks** (1.12): project map (AGENTS.md tree ↔ dirs), markdown link integrity, `wrangler types` + drizzle migrations drift, ADR index completeness.
 5. **Contract gates** (2.x): snapshot pin + provenance, emitted OpenAPI + drift gate, parity manifest check, Spectral family rules, and the contract suite — each gate carrying a gate-honesty meta-test.
 6. **Feature-level enforcement** (3.x–5.x): boundary lint rules as the directories exist (platform ↛ features, `env` confinement in code, crypto allowlist), scaffold output smoke-tested against `npm run verify`, `remove feature` unwiring; duplication policy and runtime evidence later.
 
@@ -27,7 +27,7 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Phase 1 — Platform core** (in progress): 1.0–1.11 landed — platform layer complete, budget guardrails and the cfkit harness v0 in place; next up 1.12 (drift checks), with 1.13 (dev deployment) closing Phase 1.
+**Phase 1 — Platform core** (in progress): 1.0–1.12 landed — platform layer complete, budget guardrails, the cfkit harness v0, and drift checks in place; next up 1.13 (dev deployment) closing Phase 1.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -54,7 +54,7 @@ Objective: the platform layer every feature consumes — config, errors, HTTP be
 - [x] 1.9 Health + boot: `/health` + `/ready` (envelope-skipped), composition root `src/app.ts` wired through `src/worker.ts` — landed 2026-10-10; backend-shaped readiness 503; 6 tests added
 - [x] 1.10 Budget checks: bundle size, crypto allowlist, `env` confinement, KV-write allowlist, cron count — checks wired into the gate (ADR-0005, ADR-0008) — landed 2026-10-10; live probe failed on injected violations; 6 node:test fixtures
 - [x] 1.11 cfkit v0: typed command layer + `verify --profile fast|full` + `doctor` + `budget:check`; `npm run verify` delegates to the fast profile; CI runs `verify:ci` (full) — landed 2026-10-10; typed TS on Node native type stripping; 7 node:test fixtures
-- [ ] 1.12 Drift & docs checks: project map (AGENTS.md tree ↔ dirs), markdown link integrity, `wrangler types` + drizzle migrations drift, ADR index completeness
+- [x] 1.12 Drift & docs checks: project map (AGENTS.md tree ↔ dirs), markdown link integrity, `wrangler types` + drizzle migrations drift, ADR index completeness — landed 2026-10-10; live probes for types + migrations (exit 1, restored); map truthed with (planned) markers; 10 new fixtures
 - [ ] 1.13 Dev deployment: wrangler `dev` environment, first deploy, smoke `/health` + `/ready`, measured CPU per route class recorded as evidence
 
 Exit gate: `npm run verify` green; worker boots and serves `/health` + `/ready` with `X-Request-Id` echo; envelope, problem, and validation paths covered by tests; budget checks run in the gate; cfkit v0 profiles work locally and in CI; first dev-deployment evidence recorded.

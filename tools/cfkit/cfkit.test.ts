@@ -18,6 +18,7 @@ test("profiles: fast and full compose as documented", () => {
     "test",
     "test:scripts",
     "budget:check",
+    "drift:check",
   ]);
   assert.deepEqual(VERIFY_PROFILES.full.steps, [
     ...VERIFY_PROFILES.fast.steps,

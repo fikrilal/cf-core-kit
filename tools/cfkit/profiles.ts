@@ -13,6 +13,7 @@ const FAST_STEPS: readonly string[] = [
   "test",
   "test:scripts",
   "budget:check",
+  "drift:check",
 ];
 
 export const VERIFY_PROFILES: Readonly<
