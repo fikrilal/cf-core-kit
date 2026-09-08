@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "wrangler deploy --env dev",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
@@ -16,7 +16,7 @@
     "typecheck:cfkit": "tsc -p tools/cfkit/tsconfig.json --noEmit",
     "types": "wrangler types",
     "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 migrations apply cf-core-kit --local",
+    "db:migrate:local": "wrangler d1 migrations apply cf-core-kit-dev --local",
     "test": "vitest run",
     "test:scripts": "node --test scripts/budget/check.test.mjs scripts/drift/check.test.mjs tools/cfkit/cfkit.test.ts",
     "budget:check": "node scripts/budget/check.mjs",

@@ -16,6 +16,14 @@ describe("evaluateReadiness", () => {
       evaluateReadiness(() => Promise.reject(new Error("down"))),
     ).resolves.toBe(false);
   });
+
+  it("returns false when the check throws synchronously", async () => {
+    await expect(
+      evaluateReadiness(() => {
+        throw new Error("binding missing");
+      }),
+    ).resolves.toBe(false);
+  });
 });
 
 describe("registerHealthRoutes", () => {

@@ -1,6 +1,9 @@
 {
-  // Environments (dev / staging / prod) and bindings land with the
-  // deployment and platform-core phases — see ADR-0010.
+  // Local dev base, mirroring env.dev. Deploys always select an environment:
+  // `npm run deploy` (dev) or `wrangler deploy --env staging|prod`, each with
+  // its own Worker name, vars, and D1 database (ADR-0010). Database ids are
+  // placeholders until `wrangler d1 create` runs against a real account and
+  // the returned ids are pasted here — see the README deploy section.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "cf-core-kit",
   "main": "src/worker.ts",
@@ -14,12 +17,57 @@
   },
   "d1_databases": [
     {
-      // Local/dev placeholder id (zero UUID); the real id is set in the
-      // deployment phase — see ADR-0010.
       "binding": "DB",
-      "database_name": "cf-core-kit",
+      "database_name": "cf-core-kit-dev",
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "db/migrations",
     },
   ],
+  "env": {
+    "dev": {
+      "name": "cf-core-kit-dev",
+      "vars": {
+        "APP_ENV": "dev",
+        "LOG_LEVEL": "info",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "cf-core-kit-dev",
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "db/migrations",
+        },
+      ],
+    },
+    "staging": {
+      "name": "cf-core-kit-staging",
+      "vars": {
+        "APP_ENV": "staging",
+        "LOG_LEVEL": "info",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "cf-core-kit-staging",
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "db/migrations",
+        },
+      ],
+    },
+    "prod": {
+      "name": "cf-core-kit-prod",
+      "vars": {
+        "APP_ENV": "prod",
+        "LOG_LEVEL": "info",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "cf-core-kit-prod",
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "db/migrations",
+        },
+      ],
+    },
+  },
 }

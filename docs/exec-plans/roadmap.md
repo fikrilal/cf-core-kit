@@ -27,7 +27,7 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Phase 1 — Platform core** (in progress): 1.0–1.12 landed — platform layer complete, budget guardrails, the cfkit harness v0, and drift checks in place; next up 1.13 (dev deployment) closing Phase 1.
+**Phase 2 — Contract pipeline** (next): pin the backend snapshot, emit and lint the contract, land the contract suite and parity manifest (2.1–2.5). Phase 1 closed 2026-10-11 — platform core, budget guardrails, cfkit v0, drift checks, and first-deployment evidence (local end-to-end + temporary preview lane) in place.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -38,7 +38,7 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 Evidence: commits `eeb5fae` (docs) and `ed2f2c5` (scaffold); `npm run verify` green.
 
-## Phase 1 — Platform core
+## Phase 1 — Platform core (complete, 2026-10-11)
 
 Objective: the platform layer every feature consumes — config, errors, HTTP behavior, validation, list query, the D1 seam, idempotency, caching, health, and a bootable worker — plus harness v0.
 
@@ -55,7 +55,7 @@ Objective: the platform layer every feature consumes — config, errors, HTTP be
 - [x] 1.10 Budget checks: bundle size, crypto allowlist, `env` confinement, KV-write allowlist, cron count — checks wired into the gate (ADR-0005, ADR-0008) — landed 2026-10-10; live probe failed on injected violations; 6 node:test fixtures
 - [x] 1.11 cfkit v0: typed command layer + `verify --profile fast|full` + `doctor` + `budget:check`; `npm run verify` delegates to the fast profile; CI runs `verify:ci` (full) — landed 2026-10-10; typed TS on Node native type stripping; 7 node:test fixtures
 - [x] 1.12 Drift & docs checks: project map (AGENTS.md tree ↔ dirs), markdown link integrity, `wrangler types` + drizzle migrations drift, ADR index completeness — landed 2026-10-10; live probes for types + migrations (exit 1, restored); map truthed with (planned) markers; 10 new fixtures
-- [ ] 1.13 Dev deployment: wrangler `dev` environment, first deploy, smoke `/health` + `/ready`, measured CPU per route class recorded as evidence
+- [x] 1.13 Dev deployment: wrangler `dev` environment, first deploy, smoke `/health` + `/ready`, measured CPU per route class recorded as evidence — landed 2026-10-11; dev/staging/prod env blocks + README runbook; local end-to-end green; live temporary-preview deploy (842 KiB upload, 17 ms startup, `/health` 200, `/ready` 503 path); credentialed D1 deploy + dashboard CPU per route tracked as follow-up
 
 Exit gate: `npm run verify` green; worker boots and serves `/health` + `/ready` with `X-Request-Id` echo; envelope, problem, and validation paths covered by tests; budget checks run in the gate; cfkit v0 profiles work locally and in CI; first dev-deployment evidence recorded.
 
@@ -135,5 +135,5 @@ Deferred until a product needs it: `admin`, `merchant-onboarding`. The parity ma
 
 - `auth.password.*` descoped — declared in the parity manifest; revival path is the backlog
 - M0 spike deferred with the password backlog item
-- Runtime evidence (CPU, rows written) pending the first dev deployment (1.13)
+- Runtime evidence (CPU, rows written): preview-lane startup (17 ms) + local wall-clock proxies recorded (1.13); dashboard CPU per route class pending the credentialed D1 deploy
 - The `pending` / `descoped` operation inventory must stay explicit in `tools/parity/coverage.json` from Phase 2 on
