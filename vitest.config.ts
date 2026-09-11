@@ -5,7 +5,7 @@ const testMigrations = await readD1Migrations("./db/migrations");
 
 export default defineConfig({
   test: {
-    include: ["src/**/*.spec.ts"],
+    include: ["src/**/*.spec.ts", "test/**/*.spec.ts"],
     setupFiles: ["./test/apply-migrations.ts"],
   },
   plugins: [

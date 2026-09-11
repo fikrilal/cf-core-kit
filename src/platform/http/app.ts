@@ -1,12 +1,12 @@
-import { Hono } from "hono";
+import { OpenAPIHono } from "@hono/zod-openapi";
 
 import { notFoundResponse, problemResponse } from "./problem";
 import { getRequestId, requestIdMiddleware } from "./request-id";
 import { logRequestError } from "./request-logging";
 import type { AppEnv } from "./types";
 
-export function createApp(): Hono<AppEnv> {
-  const app = new Hono<AppEnv>();
+export function createApp(): OpenAPIHono<AppEnv> {
+  const app = new OpenAPIHono<AppEnv>();
 
   app.use(requestIdMiddleware);
 

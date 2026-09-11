@@ -1,0 +1,12 @@
+extends: ["spectral:oas"]
+rules:
+  operation-operationId: error
+  operation-tags: error
+  x-error-codes-required:
+    description: Every operation must declare x-error-codes.
+    message: "Missing x-error-codes on operation."
+    given: "$.paths[*]['get','put','post','delete','options','head','patch','trace']"
+    severity: error
+    then:
+      field: x-error-codes
+      function: truthy

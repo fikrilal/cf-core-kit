@@ -27,7 +27,7 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Phase 2 — Contract pipeline** (next): pin the backend snapshot, emit and lint the contract, land the contract suite and parity manifest (2.1–2.5). Phase 1 closed 2026-10-11 — platform core, budget guardrails, cfkit v0, drift checks, and first-deployment evidence (local end-to-end + temporary preview lane) in place.
+**Phase 3 — Auth slice** (next): OIDC-first auth — users/oidc/sessions schema + migrations, Ed25519 JWT + JWKS, token lifecycle with rotation and reuse detection, then the users/me surface (3.1–3.8). Phase 2 closed 2026-10-11 — pinned snapshot, emitted spec with a byte-exact drift gate, parity manifest covering all 34 operations, dialect contract suite, and Spectral family rules; every gate proven by injected drift.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -59,15 +59,15 @@ Objective: the platform layer every feature consumes — config, errors, HTTP be
 
 Exit gate: `npm run verify` green; worker boots and serves `/health` + `/ready` with `X-Request-Id` echo; envelope, problem, and validation paths covered by tests; budget checks run in the gate; cfkit v0 profiles work locally and in CI; first dev-deployment evidence recorded.
 
-## Phase 2 — Contract pipeline
+## Phase 2 — Contract pipeline (complete, 2026-10-11)
 
 Objective: the pinned contract and the machinery that proves client parity (ADR-0002, ADR-0003).
 
-- [ ] 2.1 Pin backend snapshot: `contracts/backend.openapi.yaml` + `provenance.json` (source commit + SHA-256)
-- [ ] 2.2 Emit `docs/openapi/openapi.yaml` from route definitions (zod-openapi) + drift gate
-- [ ] 2.3 Parity manifest `tools/parity/coverage.json` (implemented / pending / descoped) + coverage check in the gate
-- [ ] 2.4 Contract suite: dialect invariants on live responses — envelope, RFC7807 (`code` + `traceId`), `X-Request-Id` echo, 204 semantics, validation shape
-- [ ] 2.5 Spectral lint with family rules (operationId, tags, `x-error-codes`) + gate-honesty meta-test (inject drift; the check must fail)
+- [x] 2.1 Pin backend snapshot: `contracts/backend.openapi.yaml` + `provenance.json` (source commit + SHA-256) — landed 2026-10-11; byte-identical pin at `670d9bc` (61,571 bytes); provenance check wired into the gate; tamper probe failed as expected
+- [x] 2.2 Emit `docs/openapi/openapi.yaml` from route definitions (zod-openapi) + drift gate — landed 2026-10-11; OpenAPIHono + createRoute + typed operation metadata; esbuild-bundled emitter; hand-edit and route-change probes both fail; deterministic emit
+- [x] 2.3 Parity manifest `tools/parity/coverage.json` (implemented / pending / descoped) + coverage check in the gate — landed 2026-10-11; 34 operations classified exactly once; `$ref`-aware shape parity; live probes for reclassification, descope metadata, and unclassified operations
+- [x] 2.4 Contract suite: dialect invariants on live responses — envelope, RFC7807 (`code` + `traceId`), `X-Request-Id` echo, 204 semantics, validation shape — landed 2026-10-11; `test/contract/dialect.spec.ts` (13 tests) on the composed app in-pool; mutation probe failed exactly the broken invariant
+- [x] 2.5 Spectral lint with family rules (operationId, tags, `x-error-codes`) + gate-honesty meta-test (inject drift; the check must fail) — landed 2026-10-11; rules mirrored from backend; meta-tests spawn the CLI on temp copies; first run caught and fixed info/global-tag gaps
 
 Exit gate: checks fail on injected drift; downstream retarget documented (provenance swap for frontend/mobile kits).
 

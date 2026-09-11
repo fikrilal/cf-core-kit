@@ -9,6 +9,8 @@ const USAGE = `cfkit <command>
 Commands:
   verify [--profile fast|full]   Run a verify profile (default: fast)
   budget:check                   Delegate to scripts/budget/check.mjs
+  contract:check                 Delegate to scripts/contract/check.mjs
+  contract:lint                  Delegate to scripts/contract/lint.mjs
   doctor                         Read-only repository readiness check
 `;
 
@@ -47,10 +49,8 @@ function runVerify(args: readonly string[]): number {
   return 0;
 }
 
-function runBudgetCheck(): number {
-  const result = spawnSync("node", ["scripts/budget/check.mjs"], {
-    stdio: "inherit",
-  });
+function runScript(script: string): number {
+  const result = spawnSync("node", [script], { stdio: "inherit" });
 
   return result.status ?? 1;
 }
@@ -75,7 +75,11 @@ function main(args: readonly string[]): number {
   }
 
   if (command === "verify") return runVerify(args.slice(1));
-  if (command === "budget:check") return runBudgetCheck();
+  if (command === "budget:check") return runScript("scripts/budget/check.mjs");
+  if (command === "contract:check")
+    return runScript("scripts/contract/check.mjs");
+  if (command === "contract:lint")
+    return runScript("scripts/contract/lint.mjs");
   if (command === "doctor") return runDoctor();
 
   console.error(`[cfkit] unknown command "${command}"`);

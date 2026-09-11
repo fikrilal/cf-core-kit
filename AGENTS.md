@@ -46,12 +46,15 @@ src/app.ts          composition root (middleware + feature mounting)
 src/platform/       cross-cutting: config, http, auth, db, cache, queue, storage, ...
 src/features/       vertical slices (progressive tiers) (planned)
 src/shared/         framework-free cross-feature contracts and utilities
+contracts/          pinned backend snapshot + provenance (drift-checked)
 db/migrations/      Drizzle migrations (generated; drift-checked)
 scripts/budget/     free-tier budget checks (node:test fixtures)
+scripts/contract/   contract checks: provenance, emit drift, parity
 scripts/drift/      drift checks: map, links, ADR index, types, migrations
 test/               integration and contract suites
 tools/cfkit/        cfkit CLI: verify profiles, doctor, budget delegate
-tools/parity/       parity manifest + checker scripts (planned)
+tools/contract/     OpenAPI emit entry (contract:emit / contract:check)
+tools/parity/       parity manifest (implemented / pending / descoped)
 docs/               standards, ADRs, exec plans
 _WIP/               proposals (historical)
 ```
@@ -67,8 +70,8 @@ Dependency direction:
 
 Use the repo scripts; do not claim a check passed unless it was actually run.
 
-- `npm run verify` — delegates to `cfkit verify --profile fast` (format, lint, typecheck, vitest, script fixtures, budget and drift checks). CI runs `npm run verify:ci` (the full profile, adds the dry-run build).
-- `npm run cfkit -- doctor` / `budget:check` / `verify --profile fast|full`. (`contract:check`, `scaffold`/`remove feature`, and `runtime`/`ci` profiles land in later phases.)
+- `npm run verify` — delegates to `cfkit verify --profile fast` (format, lint, typecheck, vitest, script fixtures, budget, drift, and contract checks). CI runs `npm run verify:ci` (the full profile, adds the dry-run build).
+- `npm run cfkit -- doctor` / `budget:check` / `contract:check` / `contract:lint` / `verify --profile fast|full`. (`scaffold`/`remove feature` and `runtime`/`ci` profiles land in later phases.)
 - Record exact verification commands and outcomes for auth/session, queue, idempotency, contract-surface, and budget-relevant changes; include measured CPU / rows-written where a change affects them.
 
 ## Delivery Notes

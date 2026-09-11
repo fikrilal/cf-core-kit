@@ -1,0 +1,46 @@
+{
+  "source": {
+    "repo": "backend-core-kit",
+    "path": "contracts/backend.openapi.yaml",
+    "commit": "670d9bc62e6ac3c0a5d1dc5dec3a9900b1840aa1",
+    "sha256": "6ae079adec93303ae3db3dee3ec13c2d1999f6b3367e800688469d4a780cff8c"
+  },
+  "implemented": ["health.get", "ready.get"],
+  "pending": [
+    "auth.oidc.exchange",
+    "auth.oidc.connect",
+    "auth.email.verify",
+    "auth.email.verification.resend",
+    "auth.jwks.get",
+    "auth.refresh",
+    "auth.logout",
+    "users.me.sessions.list",
+    "users.me.sessions.revoke",
+    "users.me.pushToken.upsert",
+    "users.me.pushToken.revoke",
+    "users.me.get",
+    "users.me.patch",
+    "users.me.profileImage.upload",
+    "users.me.profileImage.complete",
+    "users.me.profileImage.clear",
+    "users.me.profileImage.url",
+    "users.me.accountDeletion.request",
+    "users.me.accountDeletion.cancel",
+    "admin.whoami.get",
+    "admin.users.list",
+    "admin.users.role.patch",
+    "admin.users.status.patch",
+    "admin.audit.userRoleChanges.list",
+    "admin.audit.userAccountDeletions.list",
+    "merchantOnboarding.referenceData.get",
+    "merchantOnboarding.applications.submit"
+  ],
+  "descoped": [
+    {
+      "operations": ["auth.password.*"],
+      "reason": "Password authentication is intentionally out of cf-core-kit scope; OIDC is the v1 sign-in method and no password material is stored (ADR-0006).",
+      "revisit": "Backlog order: magic link, then password revival gated on the deferred password-KDF spike, then passkeys.",
+      "adr": "0006"
+    }
+  ]
+}

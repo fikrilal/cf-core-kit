@@ -5,3 +5,5 @@ coverage/
 package-lock.json
 worker-configuration.d.ts
 db/migrations/meta/
+contracts/backend.openapi.yaml
+docs/openapi/openapi.yaml

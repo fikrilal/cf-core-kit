@@ -17,8 +17,10 @@ These docs are the source of truth for architecture, standards, and workflow; co
   - `docs/exec-plans/README.md`
   - `docs/exec-plans/roadmap.md` — high-level phases and task tracking
 - Contract
-  - `docs/openapi/openapi.yaml` — generated snapshot (lands with the contract pipeline)
+  - `contracts/backend.openapi.yaml` + `contracts/provenance.json` — the pinned backend snapshot (repo, commits, SHA-256)
+  - `docs/openapi/openapi.yaml` — emitted from route definitions (`npm run contract:emit`); drift-, parity-, and lint-gated
   - `tools/parity/coverage.json` — parity manifest: implemented / pending / descoped operations
+  - `npm run contract:check` / `contract:lint` — provenance + emit drift + parity / family Spectral rules
 - Proposals (historical, not source of truth)
   - `_WIP/2026-10-10_cf-core-kit-architecture-proposal.md`
 

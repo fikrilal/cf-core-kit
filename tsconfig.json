@@ -16,6 +16,7 @@
   "include": [
     "src/**/*.ts",
     "test/**/*.ts",
+    "tools/contract/**/*.ts",
     "vitest.config.ts",
     "drizzle.config.ts",
     "worker-configuration.d.ts"

@@ -1,0 +1,15 @@
+{
+  "artifact": "contracts/backend.openapi.yaml",
+  "sha256": "6ae079adec93303ae3db3dee3ec13c2d1999f6b3367e800688469d4a780cff8c",
+  "bytes": 61571,
+  "pinnedAt": "2026-10-11",
+  "source": {
+    "repo": "backend-core-kit",
+    "url": "https://github.com/fikrilal/backend-core-kit",
+    "branch": "development",
+    "commit": "670d9bc62e6ac3c0a5d1dc5dec3a9900b1840aa1",
+    "fileCommit": "4a8c63cff941bcb7480d55a163f2ed8585592a2c",
+    "path": "docs/openapi/openapi.yaml",
+    "version": "0.1.0"
+  }
+}
