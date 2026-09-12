@@ -8,6 +8,13 @@
       "when": 1791648807334,
       "tag": "0000_futuristic_colossus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1791695465835,
+      "tag": "0001_first_thena",
+      "breakpoints": true
     }
   ]
 }
