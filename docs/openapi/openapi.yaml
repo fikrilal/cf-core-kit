@@ -7,11 +7,149 @@ info:
 tags:
   - name: Health
     description: Service health and readiness endpoints.
+  - name: Auth
+    description: Authentication and session endpoints.
 servers:
   - url: /
 components:
-  schemas: {}
+  schemas:
+    AuthResultWithMeEnvelopeDto:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/AuthResultWithMeDto"
+      required:
+        - data
+    AuthResultWithMeDto:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/MeDto"
+        accessToken:
+          type: string
+          example: <access-token>
+        refreshToken:
+          type: string
+          example: <refresh-token>
+      required:
+        - user
+        - accessToken
+        - refreshToken
+    MeDto:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
+        email:
+          type: string
+          example: user@example.com
+        emailVerified:
+          type: boolean
+          example: false
+        roles:
+          type: array
+          items:
+            type: string
+          example:
+            - USER
+        authMethods:
+          type: array
+          items:
+            type: string
+            enum:
+              - PASSWORD
+              - GOOGLE
+          example:
+            - PASSWORD
+          description: Linked authentication methods on this account.
+        profile:
+          $ref: "#/components/schemas/MeProfileDto"
+        accountDeletion:
+          type: object
+          nullable: true
+          properties:
+            requestedAt:
+              type: string
+              format: date-time
+              example: 2026-01-10T12:34:56.789Z
+            scheduledFor:
+              type: string
+              format: date-time
+              example: 2026-02-09T12:34:56.789Z
+          required:
+            - requestedAt
+            - scheduledFor
+          description: When set, the account is scheduled for deletion. The request can be
+            canceled until scheduledFor.
+      required:
+        - id
+        - email
+        - emailVerified
+        - roles
+        - authMethods
+        - profile
+    MeProfileDto:
+      type: object
+      properties:
+        profileImageFileId:
+          type: string
+          nullable: true
+          example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
+          description: Current profile image stored file ID. Use `GET
+            /v1/me/profile-image/url` to get a short-lived URL for rendering.
+        displayName:
+          type: string
+          nullable: true
+          example: Dante
+        givenName:
+          type: string
+          nullable: true
+          example: Dante
+        familyName:
+          type: string
+          nullable: true
+          example: Alighieri
+    OidcExchangeRequestDto:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum:
+            - GOOGLE
+          example: GOOGLE
+        idToken:
+          type: string
+          example: <oidc-id-token>
+        deviceId:
+          type: string
+          description: Stable per-device identifier (recommended).
+        deviceName:
+          type: string
+          description: Human-friendly device name (optional).
+      required:
+        - provider
+        - idToken
+    OidcConnectRequestDto:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum:
+            - GOOGLE
+          example: GOOGLE
+        idToken:
+          type: string
+          example: <oidc-id-token>
+      required:
+        - provider
+        - idToken
   parameters: {}
+  securitySchemes:
+    access-token:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 paths:
   /health:
     get:
@@ -56,4 +194,75 @@ paths:
                 required:
                   - status
       x-error-codes:
+        - INTERNAL
+  /v1/auth/oidc/exchange:
+    post:
+      operationId: auth.oidc.exchange
+      tags:
+        - Auth
+      summary: Exchange OIDC id_token
+      description: Verifies an OIDC id_token (e.g., Google) and issues first-party
+        access + refresh tokens. Does not auto-link to an existing password
+        account purely by email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OidcExchangeRequestDto"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResultWithMeEnvelopeDto"
+      x-error-codes:
+        - VALIDATION_FAILED
+        - AUTH_OIDC_NOT_CONFIGURED
+        - AUTH_OIDC_TOKEN_INVALID
+        - AUTH_OIDC_EMAIL_NOT_VERIFIED
+        - AUTH_OIDC_LINK_REQUIRED
+        - AUTH_USER_SUSPENDED
+        - INTERNAL
+  /v1/auth/oidc/connect:
+    post:
+      operationId: auth.oidc.connect
+      tags:
+        - Auth
+      summary: Connect OIDC identity (current user)
+      description: Links an OIDC identity (e.g., Google) to the authenticated user. If
+        the OIDC email matches the user email, the user email is marked
+        verified.
+      security:
+        - access-token: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+            description: Idempotency key for safe retries of write requests.
+          required: false
+          description: Idempotency key for safe retries of write requests.
+          name: Idempotency-Key
+          in: header
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OidcConnectRequestDto"
+      responses:
+        "204":
+          description: ""
+      x-error-codes:
+        - VALIDATION_FAILED
+        - UNAUTHORIZED
+        - IDEMPOTENCY_IN_PROGRESS
+        - CONFLICT
+        - AUTH_OIDC_NOT_CONFIGURED
+        - AUTH_OIDC_TOKEN_INVALID
+        - AUTH_OIDC_EMAIL_NOT_VERIFIED
+        - AUTH_OIDC_IDENTITY_ALREADY_LINKED
+        - AUTH_OIDC_PROVIDER_ALREADY_LINKED
         - INTERNAL

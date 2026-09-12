@@ -27,7 +27,7 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Phase 3 — Auth slice** (next): OIDC-first auth — users/oidc/sessions schema + migrations, Ed25519 JWT + JWKS, token lifecycle with rotation and reuse detection, then the users/me surface (3.1–3.8). Phase 2 closed 2026-10-11 — pinned snapshot, emitted spec with a byte-exact drift gate, parity manifest covering all 34 operations, dialect contract suite, and Spectral family rules; every gate proven by injected drift.
+**Phase 3 — Auth slice** (in progress): 3.1 (schema) and 3.2 (OIDC sign-in end to end, contract-green) landed; next 3.3 (sessions: rotation, reuse detection, logout), then 3.4 (JWKS endpoint + keyring rotation), 3.5 (DO auth rate limiting + boundary lint zones), 3.6–3.8.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -75,8 +75,8 @@ Exit gate: checks fail on injected drift; downstream retarget documented (proven
 
 Objective: the OIDC-first auth surface, contract-green (ADR-0006).
 
-- [ ] 3.1 Schema + migrations: users, oidc_identities, sessions, refresh_tokens, idempotency_records
-- [ ] 3.2 OIDC sign-in: authorize redirect + callback (`state`/PKCE), code exchange, ID-token verification against cached JWKS, user upsert + provider link
+- [x] 3.1 Schema + migrations: users, oidc_identities, sessions, refresh_tokens, idempotency_records — landed 2026-10-11; migration 0001 generated and applied; 5 constraint tests against real D1
+- [x] 3.2 OIDC sign-in: ID-token exchange, verification against cached JWKS, user upsert + provider link — landed 2026-10-11; `auth.oidc.exchange` + `auth.oidc.connect` contract-green; platform crypto/auth modules; 61 new tests across 3.1+3.2 (34 spec files, 55 fixtures); review round 1 fixes applied (error-code vocabulary tripwire, keygen script, race + boundary + redaction fixes); client-side authorize/callback stays out of the server contract
 - [ ] 3.3 Sessions: refresh rotation + reuse detection + logout/revocation
 - [ ] 3.4 Access tokens: Ed25519 keyring + JWKS endpoint
 - [ ] 3.5 Auth rate limiting: DO memory-first counters (ADR-0007); boundary lint rules land with the first feature

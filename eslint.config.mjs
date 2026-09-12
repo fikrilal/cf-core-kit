@@ -74,8 +74,10 @@ export default tseslint.config(
       globals: {
         Buffer: "readonly",
         console: "readonly",
+        crypto: "readonly",
         process: "readonly",
         structuredClone: "readonly",
+        TextEncoder: "readonly",
       },
     },
     extends: [tseslint.configs.disableTypeChecked],

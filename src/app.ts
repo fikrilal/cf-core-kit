@@ -1,8 +1,9 @@
-import { getConfig } from "./platform/config/config";
+import { configFrom } from "./platform/config/request";
 import { createApp } from "./platform/http/app";
 import { data } from "./platform/http/envelope";
 import { requestLogging } from "./platform/http/request-logging";
 import { registerHealthRoutes } from "./platform/health/health";
+import { registerAuthRoutes } from "./features/auth/auth.routes";
 import { commit, version } from "./version";
 
 export function createWorkerApp(): ReturnType<typeof createApp> {
@@ -10,9 +11,10 @@ export function createWorkerApp(): ReturnType<typeof createApp> {
 
   app.use(requestLogging());
   registerHealthRoutes(app);
+  registerAuthRoutes(app);
 
   app.get("/", (context) => {
-    const config = getConfig(context.env);
+    const config = configFrom(context);
 
     return data({
       name: "cf-core-kit",

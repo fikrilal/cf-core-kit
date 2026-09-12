@@ -5,10 +5,13 @@
     "commit": "670d9bc62e6ac3c0a5d1dc5dec3a9900b1840aa1",
     "sha256": "6ae079adec93303ae3db3dee3ec13c2d1999f6b3367e800688469d4a780cff8c"
   },
-  "implemented": ["health.get", "ready.get"],
-  "pending": [
+  "implemented": [
+    "health.get",
+    "ready.get",
     "auth.oidc.exchange",
-    "auth.oidc.connect",
+    "auth.oidc.connect"
+  ],
+  "pending": [
     "auth.email.verify",
     "auth.email.verification.resend",
     "auth.jwks.get",

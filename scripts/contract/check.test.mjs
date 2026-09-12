@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   checkClassification,
   checkEmitDrift,
+  checkErrorCodeVocabulary,
   checkParity,
   collectOperations,
   compareOperationShapes,
@@ -254,6 +255,65 @@ test("parity: response schema drift fails", () => {
     violations.some((entry) => /response schema drift/.test(entry.detail)),
     true,
   );
+});
+
+test("parity: cosmetic copy and single-branch allOf do not fail", () => {
+  const restyled = structuredClone(EMITTED_DOCUMENT);
+  restyled.paths["/thing"].get.responses["200"].content[
+    "application/json"
+  ].schema = {
+    description: "A different description",
+    allOf: [
+      {
+        type: "object",
+        properties: { id: { type: "string", example: "renamed-example" } },
+        required: ["id"],
+      },
+    ],
+  };
+
+  const violations = checkParity({
+    snapshotDocument: SNAPSHOT_DOCUMENT,
+    emittedDocument: restyled,
+    manifest: MANIFEST,
+  });
+
+  assert.deepEqual(violations, []);
+});
+
+test("parity: nullable remains structural", () => {
+  const drifted = structuredClone(EMITTED_DOCUMENT);
+  drifted.paths["/thing"].get.responses["200"].content[
+    "application/json"
+  ].schema.nullable = true;
+
+  const violations = checkParity({
+    snapshotDocument: SNAPSHOT_DOCUMENT,
+    emittedDocument: drifted,
+    manifest: MANIFEST,
+  });
+
+  assert.equal(
+    violations.some((entry) => /response schema drift/.test(entry.detail)),
+    true,
+  );
+});
+
+test("vocabulary: declared codes pass the snapshot check", () => {
+  const source = 'INTERNAL = "INTERNAL";';
+
+  assert.deepEqual(checkErrorCodeVocabulary(SNAPSHOT_DOCUMENT, source), []);
+});
+
+test("vocabulary: undeclared codes fail with the file named", () => {
+  const violations = checkErrorCodeVocabulary(
+    SNAPSHOT_DOCUMENT,
+    'GHOST_CODE = "GHOST_CODE";',
+  );
+
+  assert.equal(violations.length, 1);
+  assert.match(violations[0].detail, /GHOST_CODE/);
+  assert.equal(violations[0].file, "src/shared/error-codes.ts");
 });
 
 test("parity: error-code drift fails", () => {

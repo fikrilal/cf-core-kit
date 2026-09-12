@@ -4,14 +4,38 @@ import { getConfig, parseConfig } from "./config";
 
 describe("parseConfig", () => {
   it("applies defaults for an empty input", () => {
-    expect(parseConfig({})).toEqual({ appEnv: "dev", logLevel: "info" });
+    expect(parseConfig({})).toMatchObject({ appEnv: "dev", logLevel: "info" });
   });
 
   it("parses explicit values", () => {
-    expect(parseConfig({ APP_ENV: "staging", LOG_LEVEL: "warn" })).toEqual({
+    expect(
+      parseConfig({ APP_ENV: "staging", LOG_LEVEL: "warn" }),
+    ).toMatchObject({
       appEnv: "staging",
       logLevel: "warn",
     });
+  });
+
+  it("parses auth defaults and client id lists", () => {
+    const config = parseConfig({
+      AUTH_OIDC_GOOGLE_CLIENT_IDS: "client-a, client-b ,, client-c",
+    });
+
+    expect(config.authAccessTokenTtlSeconds).toBe(900);
+    expect(config.authRefreshTokenTtlSeconds).toBe(2592000);
+    expect(config.authOidcGoogleClientIds).toEqual([
+      "client-a",
+      "client-b",
+      "client-c",
+    ]);
+    expect(config.authSigningKeysJson).toBeUndefined();
+    expect(config.authIssuer).toBeUndefined();
+  });
+
+  it("rejects a non-numeric auth TTL", () => {
+    expect(() =>
+      parseConfig({ AUTH_ACCESS_TOKEN_TTL_SECONDS: "soon" }),
+    ).toThrow(/AUTH_ACCESS_TOKEN_TTL_SECONDS/);
   });
 
   it("rejects an unknown APP_ENV", () => {

@@ -3,10 +3,19 @@ import { z } from "zod";
 const appEnvSchema = z.enum(["dev", "staging", "prod"]);
 const logLevelSchema = z.enum(["debug", "info", "warn", "error"]);
 
+const ttlSecondsSchema = z.coerce.number().int().positive();
+
 const configSchema = z
   .object({
     APP_ENV: appEnvSchema.default("dev"),
     LOG_LEVEL: logLevelSchema.default("info"),
+    AUTH_ACCESS_TOKEN_TTL_SECONDS: ttlSecondsSchema.default(900),
+    AUTH_REFRESH_TOKEN_TTL_SECONDS: ttlSecondsSchema.default(2592000),
+    AUTH_SIGNING_KEYS_JSON: z.string().optional(),
+    AUTH_SIGNING_KEYS_JSON_BASE64: z.string().optional(),
+    AUTH_OIDC_GOOGLE_CLIENT_IDS: z.string().optional(),
+    AUTH_ISSUER: z.string().optional(),
+    AUTH_AUDIENCE: z.string().optional(),
   })
   .superRefine((value, context) => {
     if (value.APP_ENV === "prod" && value.LOG_LEVEL === "debug") {
@@ -24,11 +33,36 @@ export type LogLevel = z.infer<typeof logLevelSchema>;
 export type AppConfig = Readonly<{
   appEnv: AppEnv;
   logLevel: LogLevel;
+  authAccessTokenTtlSeconds: number;
+  authRefreshTokenTtlSeconds: number;
+  authSigningKeysJson: string | undefined;
+  authSigningKeysJsonBase64: string | undefined;
+  authOidcGoogleClientIds: readonly string[];
+  authIssuer: string | undefined;
+  authAudience: string | undefined;
 }>;
 
-type ConfigKey = "APP_ENV" | "LOG_LEVEL";
+type ConfigKey =
+  | "APP_ENV"
+  | "LOG_LEVEL"
+  | "AUTH_ACCESS_TOKEN_TTL_SECONDS"
+  | "AUTH_REFRESH_TOKEN_TTL_SECONDS"
+  | "AUTH_SIGNING_KEYS_JSON"
+  | "AUTH_SIGNING_KEYS_JSON_BASE64"
+  | "AUTH_OIDC_GOOGLE_CLIENT_IDS"
+  | "AUTH_ISSUER"
+  | "AUTH_AUDIENCE";
 
 export type ConfigInput = Readonly<Partial<Record<ConfigKey, string>>>;
+
+function parseClientIds(value: string | undefined): readonly string[] {
+  if (value === undefined) return [];
+
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== "");
+}
 
 function formatIssues(error: z.ZodError): string {
   return error.issues
@@ -46,6 +80,15 @@ export function parseConfig(input: ConfigInput): AppConfig {
   return Object.freeze({
     appEnv: result.data.APP_ENV,
     logLevel: result.data.LOG_LEVEL,
+    authAccessTokenTtlSeconds: result.data.AUTH_ACCESS_TOKEN_TTL_SECONDS,
+    authRefreshTokenTtlSeconds: result.data.AUTH_REFRESH_TOKEN_TTL_SECONDS,
+    authSigningKeysJson: result.data.AUTH_SIGNING_KEYS_JSON,
+    authSigningKeysJsonBase64: result.data.AUTH_SIGNING_KEYS_JSON_BASE64,
+    authOidcGoogleClientIds: parseClientIds(
+      result.data.AUTH_OIDC_GOOGLE_CLIENT_IDS,
+    ),
+    authIssuer: result.data.AUTH_ISSUER,
+    authAudience: result.data.AUTH_AUDIENCE,
   });
 }
 

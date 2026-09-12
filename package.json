@@ -18,7 +18,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply cf-core-kit-dev --local",
     "test": "vitest run",
-    "test:scripts": "node --test scripts/budget/check.test.mjs scripts/drift/check.test.mjs scripts/contract/check.test.mjs scripts/contract/lint.test.mjs tools/cfkit/cfkit.test.ts",
+    "test:scripts": "node --test scripts/auth/generate-keys.test.mjs scripts/budget/check.test.mjs scripts/drift/check.test.mjs scripts/contract/check.test.mjs scripts/contract/lint.test.mjs tools/cfkit/cfkit.test.ts",
     "budget:check": "node scripts/budget/check.mjs",
     "drift:check": "node scripts/drift/check.mjs",
     "contract:check": "node scripts/contract/check.mjs",

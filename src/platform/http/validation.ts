@@ -5,7 +5,7 @@ import { ErrorCode } from "../../shared/error-codes";
 import { AppError, type AppErrorIssue } from "../errors/app-error";
 import type { AppEnv } from "./types";
 
-function toIssues(error: z.ZodError): AppErrorIssue[] {
+export function zodErrorToIssues(error: z.ZodError): AppErrorIssue[] {
   return error.issues.map((issue) => ({
     ...(issue.path.length === 0 ? {} : { field: issue.path.join(".") }),
     message: issue.message,
@@ -19,7 +19,7 @@ export function decode<T>(schema: z.ZodType<T>, input: unknown): T {
     throw new AppError({
       status: 400,
       code: ErrorCode.VALIDATION_FAILED,
-      issues: toIssues(result.error),
+      issues: zodErrorToIssues(result.error),
     });
   }
 

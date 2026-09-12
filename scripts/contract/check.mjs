@@ -28,8 +28,8 @@ function violation(detail, file = PROVENANCE_PATH) {
   return { file, rule: "provenance", detail };
 }
 
-function parityViolation(detail) {
-  return { file: MANIFEST_PATH, rule: "parity", detail };
+function parityViolation(detail, file = MANIFEST_PATH) {
+  return { file, rule: "parity", detail };
 }
 
 export function sha256(content) {
@@ -97,6 +97,41 @@ function isPlainRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+const COSMETIC_SCHEMA_KEYS = new Set(["description", "example"]);
+
+function normalizeForCompare(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeForCompare(item));
+  }
+
+  if (!isPlainRecord(value)) return value;
+
+  const flattened =
+    Array.isArray(value.allOf) &&
+    value.allOf.length === 1 &&
+    isPlainRecord(value.allOf[0])
+      ? { ...value.allOf[0], ...omitKey(value, "allOf") }
+      : value;
+
+  const normalized = {};
+  for (const [key, item] of Object.entries(flattened)) {
+    if (COSMETIC_SCHEMA_KEYS.has(key)) continue;
+    normalized[key] = normalizeForCompare(item);
+  }
+
+  return normalized;
+}
+
+function omitKey(record, key) {
+  const result = {};
+  for (const [entryKey, item] of Object.entries(record)) {
+    if (entryKey === key) continue;
+    result[entryKey] = item;
+  }
+
+  return result;
+}
+
 function stableStringify(value) {
   if (Array.isArray(value)) {
     return `[${value.map((item) => stableStringify(item)).join(",")}]`;
@@ -129,7 +164,7 @@ function lookupPointer(document, pointer) {
 }
 
 export function resolveRefs(value, document, depth = 0) {
-  if (depth > 12) return value;
+  if (depth > 64) return value;
 
   if (Array.isArray(value)) {
     return value.map((item) => resolveRefs(item, document, depth + 1));
@@ -292,8 +327,12 @@ export function compareOperationShapes(context) {
     );
   }
 
-  const snapshotParameters = snapshotOperation.operation.parameters ?? [];
-  const emittedParameters = emittedOperation.operation.parameters ?? [];
+  const snapshotParameters = normalizeForCompare(
+    snapshotOperation.operation.parameters ?? [],
+  );
+  const emittedParameters = normalizeForCompare(
+    emittedOperation.operation.parameters ?? [],
+  );
   if (
     stableStringify(snapshotParameters) !== stableStringify(emittedParameters)
   ) {
@@ -316,13 +355,11 @@ export function compareOperationShapes(context) {
   for (const status of snapshotStatuses) {
     if (!(status in emittedResponses)) continue;
 
-    const snapshotContent = resolveRefs(
-      snapshotResponses[status]?.content,
-      snapshotDocument,
+    const snapshotContent = normalizeForCompare(
+      resolveRefs(snapshotResponses[status]?.content, snapshotDocument),
     );
-    const emittedContent = resolveRefs(
-      emittedResponses[status]?.content,
-      emittedDocument,
+    const emittedContent = normalizeForCompare(
+      resolveRefs(emittedResponses[status]?.content, emittedDocument),
     );
 
     if (stableStringify(snapshotContent) !== stableStringify(emittedContent)) {
@@ -386,6 +423,36 @@ export function checkParity(context) {
       violations.push(
         parityViolation(
           `emitted operation is not declared implemented: ${operation.operationId}`,
+        ),
+      );
+    }
+  }
+
+  return violations;
+}
+
+export function checkErrorCodeVocabulary(snapshotDocument, errorCodesSource) {
+  const declared = new Set();
+
+  for (const operation of collectOperations(snapshotDocument)) {
+    const codes = operation.operation["x-error-codes"];
+    if (!Array.isArray(codes)) continue;
+
+    for (const code of codes) {
+      if (typeof code === "string") declared.add(code);
+    }
+  }
+
+  const violations = [];
+  const file = "src/shared/error-codes.ts";
+
+  for (const match of errorCodesSource.matchAll(/=\s*"([A-Z0-9_]+)"/g)) {
+    const value = match[1];
+    if (value !== undefined && !declared.has(value)) {
+      violations.push(
+        parityViolation(
+          `error code not in the pinned snapshot vocabulary: ${value}`,
+          file,
         ),
       );
     }
@@ -494,8 +561,15 @@ export async function runChecks(root) {
         emittedDocument,
         manifest,
       });
-      violations.push(...parityViolations);
-      parity = parityViolations.length === 0 ? "ok" : "violations";
+      const vocabularyViolations = checkErrorCodeVocabulary(
+        snapshotDocument,
+        readFileSync(join(root, "src", "shared", "error-codes.ts"), "utf8"),
+      );
+      violations.push(...parityViolations, ...vocabularyViolations);
+      parity =
+        parityViolations.length === 0 && vocabularyViolations.length === 0
+          ? "ok"
+          : "violations";
     } catch (error) {
       violations.push(parityViolation(`parity check failed: ${String(error)}`));
       parity = "failed";

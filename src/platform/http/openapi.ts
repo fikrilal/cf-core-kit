@@ -1,4 +1,9 @@
-import type { AppErrorCode } from "../../shared/error-codes";
+import type { Hook } from "@hono/zod-openapi";
+
+import { ErrorCode, type AppErrorCode } from "../../shared/error-codes";
+import { AppError } from "../errors/app-error";
+import type { AppEnv } from "./types";
+import { zodErrorToIssues } from "./validation";
 
 export type OperationMethod =
   "get" | "post" | "put" | "patch" | "delete" | "options" | "head";
@@ -12,6 +17,17 @@ export type OperationMetadata = Readonly<{
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+export function applySecuritySchemes(
+  document: unknown,
+  schemes: Readonly<Record<string, unknown>>,
+): void {
+  if (!isRecord(document)) throw new Error("openapi document is not an object");
+
+  const components = isRecord(document.components) ? document.components : {};
+
+  document.components = { ...components, securitySchemes: schemes };
 }
 
 export function applyErrorCodeExtensions(
@@ -47,3 +63,15 @@ export function applyErrorCodeExtensions(
     operationObject["x-error-codes"] = [...operation.errorCodes];
   }
 }
+
+export const openApiValidationHook: Hook<unknown, AppEnv, string, undefined> = (
+  result,
+) => {
+  if (!result.success) {
+    throw new AppError({
+      status: 400,
+      code: ErrorCode.VALIDATION_FAILED,
+      issues: zodErrorToIssues(result.error),
+    });
+  }
+};

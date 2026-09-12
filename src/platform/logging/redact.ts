@@ -13,6 +13,7 @@ export const SENSITIVE_KEYS: ReadonlySet<string> = new Set([
   "refreshtoken",
   "apikey",
   "auth_signing_keys_json",
+  "auth_signing_keys_json_base64",
   "otel_exporter_otlp_headers",
 ]);
 

@@ -1,7 +1,14 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { stringify } from "yaml";
 
-import { applyErrorCodeExtensions } from "../../src/platform/http/openapi";
+import {
+  authOperations,
+  registerAuthRoutes,
+} from "../../src/features/auth/auth.routes";
+import {
+  applyErrorCodeExtensions,
+  applySecuritySchemes,
+} from "../../src/platform/http/openapi";
 import type { AppEnv } from "../../src/platform/http/types";
 import {
   healthOperations,
@@ -10,10 +17,20 @@ import {
 
 export type EmitOptions = Readonly<{ title: string; version: string }>;
 
+const TAG_REGISTRY = [
+  { name: "Health", description: "Service health and readiness endpoints." },
+  { name: "Auth", description: "Authentication and session endpoints." },
+];
+
+const SECURITY_SCHEMES = {
+  "access-token": { type: "http", scheme: "bearer", bearerFormat: "JWT" },
+};
+
 export function renderOpenApiYaml(options: EmitOptions): string {
   const app = new OpenAPIHono<AppEnv>();
 
   registerHealthRoutes(app);
+  registerAuthRoutes(app);
 
   const document: unknown = app.getOpenAPIDocument({
     openapi: "3.0.0",
@@ -23,16 +40,12 @@ export function renderOpenApiYaml(options: EmitOptions): string {
       version: options.version,
       contact: {},
     },
-    tags: [
-      {
-        name: "Health",
-        description: "Service health and readiness endpoints.",
-      },
-    ],
+    tags: TAG_REGISTRY,
     servers: [{ url: "/" }],
   });
 
-  applyErrorCodeExtensions(document, healthOperations);
+  applySecuritySchemes(document, SECURITY_SCHEMES);
+  applyErrorCodeExtensions(document, [...healthOperations, ...authOperations]);
 
   return stringify(document, { indent: 2 });
 }

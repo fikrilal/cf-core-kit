@@ -35,6 +35,10 @@ First deploy (dev):
 
 Secrets: `npx wrangler secret put NAME --env dev`; local secrets live in `.dev.vars` (never committed).
 
+## Local auth keys
+
+`node scripts/auth/generate-keys.mjs` prints an Ed25519 signing key set (`AUTH_SIGNING_KEYS_JSON` and its base64 form). Put it in `.dev.vars` for local development and set it with `npx wrangler secret put AUTH_SIGNING_KEYS_JSON` for deployed environments (staging/production require it; there is deliberately no ephemeral dev key because Workers isolates rotate). OIDC sign-in additionally needs `AUTH_OIDC_GOOGLE_CLIENT_IDS` (comma-separated).
+
 ## Pointers
 
 - Docs index: `docs/README.md`
