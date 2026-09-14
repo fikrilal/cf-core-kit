@@ -6,6 +6,7 @@ import {
   authEnv,
   cleanAuthTables,
   fakeVerifier,
+  permissiveLimiterFactory,
   TEST_GOOGLE_SUBJECT,
   TEST_SIGNING_KEYS_JSON,
   TEST_USER_EMAIL,
@@ -92,7 +93,10 @@ function connectRequest(
 ): Response | Promise<Response> {
   const app = createApp();
 
-  registerAuthRoutes(app, { verifier: options.verifier ?? fakeVerifier() });
+  registerAuthRoutes(app, {
+    verifier: options.verifier ?? fakeVerifier(),
+    rateLimiterFactory: permissiveLimiterFactory(),
+  });
 
   const headers: Record<string, string> = {
     "content-type": "application/json",

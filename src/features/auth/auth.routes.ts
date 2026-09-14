@@ -10,6 +10,14 @@ import { configFrom } from "../../platform/config/request";
 import { databaseFrom } from "../../platform/db/request";
 import { requireAuth } from "../../platform/auth/guard";
 import { getKeyRing } from "../../platform/auth/keys";
+import {
+  durableObjectLimiterFactory,
+  type LimiterFactory,
+} from "../../platform/rate-limit/require-rate-limit";
+import {
+  registerAuthRateLimits,
+  type AuthRateLimits,
+} from "./auth.rate-limits";
 import { noContent } from "../../platform/http/envelope";
 import { idempotent } from "../../platform/http/idempotency";
 import type { OperationMetadata } from "../../platform/http/openapi";
@@ -18,6 +26,7 @@ import { AppError } from "../../platform/errors/app-error";
 import {
   authResultEnvelopeSchema,
   authResultWithMeEnvelopeSchema,
+  jwksResponseSchema,
   logoutRequestSchema,
   oidcConnectRequestSchema,
   oidcExchangeRequestSchema,
@@ -120,6 +129,21 @@ const logoutRoute = createRoute({
   },
 });
 
+const jwksRoute = createRoute({
+  method: "get",
+  path: "/.well-known/jwks.json",
+  operationId: "auth.jwks.get",
+  tags: ["Auth"],
+  summary: "JWKS",
+  description: "Publishes public keys used to verify access tokens.",
+  responses: {
+    200: {
+      description: "",
+      content: { "application/json": { schema: jwksResponseSchema } },
+    },
+  },
+});
+
 export const authOperations: readonly OperationMetadata[] = [
   {
     method: "post",
@@ -176,11 +200,19 @@ export const authOperations: readonly OperationMetadata[] = [
       ErrorCode.INTERNAL,
     ],
   },
+  {
+    method: "get",
+    path: "/.well-known/jwks.json",
+    operationId: "auth.jwks.get",
+    errorCodes: [ErrorCode.INTERNAL],
+  },
 ];
 
 export type AuthRouteDependencies = Readonly<{
   verifier?: IdTokenVerifier;
   clock?: Clock;
+  rateLimiterFactory?: LimiterFactory;
+  rateLimits?: Partial<AuthRateLimits>;
 }>;
 
 function createExchangeHandler(
@@ -234,6 +266,15 @@ function createConnectHandler(
   };
 }
 
+function createJwksHandler(): RouteHandler<typeof jwksRoute, AppEnv> {
+  return async (context) => {
+    const keyRing = await getKeyRing(configFrom(context));
+    const keys = keyRing.publicKeys.map((entry) => entry.jwk);
+
+    return context.json({ keys }, 200);
+  };
+}
+
 function createRefreshHandler(
   clock: Clock,
 ): RouteHandler<typeof refreshRoute, AppEnv> {
@@ -276,6 +317,9 @@ export function registerAuthRoutes(
 ): void {
   const verifier = dependencies.verifier ?? createDefaultIdTokenVerifier();
   const clock = dependencies.clock ?? systemClock;
+  const limiterFactory =
+    dependencies.rateLimiterFactory ?? durableObjectLimiterFactory();
+  registerAuthRateLimits(app, dependencies.rateLimits, limiterFactory);
 
   app.openapi(exchangeRoute, createExchangeHandler(verifier, clock));
 
@@ -287,4 +331,5 @@ export function registerAuthRoutes(
   app.openapi(connectRoute, createConnectHandler(verifier, clock));
   app.openapi(refreshRoute, createRefreshHandler(clock));
   app.openapi(logoutRoute, createLogoutHandler(clock));
+  app.openapi(jwksRoute, createJwksHandler());
 }

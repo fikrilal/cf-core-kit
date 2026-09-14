@@ -5,6 +5,7 @@ import type {
   IdTokenVerification,
   IdTokenVerifier,
 } from "../src/features/auth/oidc";
+import type { LimiterFactory } from "../src/platform/rate-limit/require-rate-limit";
 import {
   exportPublicJwk,
   randomBase64Url,
@@ -285,4 +286,36 @@ export async function seedSessionWithRefreshToken(
   });
 
   return { userId, sessionId, tokenId, refreshToken };
+}
+
+export type GeneratedEd25519Key = Readonly<{
+  privateJwk: JsonWebKey & { kid: string };
+  publicJwk: JsonWebKey & { kid: string };
+}>;
+
+export async function generateEd25519Key(
+  kid: string,
+): Promise<GeneratedEd25519Key> {
+  const pair = await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
+    "sign",
+    "verify",
+  ]);
+  if (!("privateKey" in pair)) throw new Error("expected an Ed25519 key pair");
+
+  const exported = await crypto.subtle.exportKey("jwk", pair.privateKey);
+  if (!("kty" in exported)) throw new Error("expected a private JWK");
+
+  return {
+    privateJwk: { ...exported, kid },
+    publicJwk: {
+      kty: exported.kty,
+      crv: exported.crv,
+      x: exported.x,
+      kid,
+    },
+  };
+}
+
+export function permissiveLimiterFactory(): LimiterFactory {
+  return () => () => Promise.resolve({ allowed: true, retryAfterSeconds: 0 });
 }

@@ -52,7 +52,7 @@ scripts/budget/     free-tier budget checks (node:test fixtures)
 scripts/contract/   contract checks: provenance, emit drift, parity
 scripts/drift/      drift checks: map, links, ADR index, types, migrations
 test/               integration and contract suites
-tools/cfkit/        cfkit CLI: verify profiles, doctor, budget delegate
+tools/cfkit/        cfkit CLI: verify profiles, doctor, budget + contract delegates
 tools/contract/     OpenAPI emit entry (contract:emit / contract:check)
 tools/parity/       parity manifest (implemented / pending / descoped)
 docs/               standards, ADRs, exec plans

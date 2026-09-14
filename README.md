@@ -39,6 +39,10 @@ Secrets: `npx wrangler secret put NAME --env dev`; local secrets live in `.dev.v
 
 `node scripts/auth/generate-keys.mjs` prints an Ed25519 signing key set (`AUTH_SIGNING_KEYS_JSON` and its base64 form). Put it in `.dev.vars` for local development and set it with `npx wrangler secret put AUTH_SIGNING_KEYS_JSON` for deployed environments (staging/production require it; there is deliberately no ephemeral dev key because Workers isolates rotate). OIDC sign-in additionally needs `AUTH_OIDC_GOOGLE_CLIENT_IDS` (comma-separated).
 
+Key rotation: add the new key at the **front** of the `AUTH_SIGNING_KEYS_JSON` array (it becomes the signer), deploy, keep the previous keys published until every outstanding access token has expired plus the verifier's 60-second clock skew (16 minutes with the default 900-second TTL; scale with `AUTH_ACCESS_TOKEN_TTL_SECONDS`), then remove them. `GET /.well-known/jwks.json` publishes every configured public key with its `kid`.
+
+Auth endpoints are rate-limited per client address by a memory-first Durable Object (ADR-0012): exceeding a window returns `429` with `Retry-After`; counters are not persisted (an eviction resets them) and limiter failures fail open.
+
 ## Pointers
 
 - Docs index: `docs/README.md`

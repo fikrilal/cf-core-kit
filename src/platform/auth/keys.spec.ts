@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  generateEd25519Key,
   TEST_SIGNING_KID,
   TEST_SIGNING_KEYS_JSON,
 } from "../../../test/auth-fixtures";
@@ -101,5 +102,42 @@ describe("buildKeyRing", () => {
     const second = getKeyRing(config(TEST_SIGNING_KEYS_JSON));
 
     expect(first).toBe(second);
+  });
+});
+
+describe("buildKeyRing source resolution", () => {
+  it("falls back to base64 when the JSON variable is empty or blank", async () => {
+    const json = JSON.stringify([singleJwkJson()]);
+    const base64 = encodeBase64Url(json);
+
+    await expect(buildKeyRing(config("", base64))).resolves.toBeDefined();
+    await expect(buildKeyRing(config("   ", base64))).resolves.toBeDefined();
+  });
+
+  it("prefers private material when a kid appears twice", async () => {
+    const key = await generateEd25519Key("dup-key");
+    const ring = await buildKeyRing(
+      config(JSON.stringify([key.publicJwk, key.privateJwk])),
+    );
+
+    expect(ring.signer?.kid).toBe("dup-key");
+    expect(ring.publicKeys).toHaveLength(1);
+  });
+});
+
+describe("buildKeyRing rotation sets", () => {
+  it("signs with the first private key and publishes retired public keys", async () => {
+    const retired = await generateEd25519Key("retired-key");
+    const active = await generateEd25519Key("active-key");
+
+    const ring = await buildKeyRing(
+      config(JSON.stringify([retired.publicJwk, active.privateJwk])),
+    );
+
+    expect(ring.signer?.kid).toBe("active-key");
+    expect(ring.publicKeys.map((entry) => entry.kid)).toEqual([
+      "retired-key",
+      "active-key",
+    ]);
   });
 });

@@ -380,3 +380,27 @@ paths:
         - VALIDATION_FAILED
         - AUTH_REFRESH_TOKEN_INVALID
         - INTERNAL
+  /.well-known/jwks.json:
+    get:
+      operationId: auth.jwks.get
+      tags:
+        - Auth
+      summary: JWKS
+      description: Publishes public keys used to verify access tokens.
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      type: object
+                      properties: {}
+                required:
+                  - keys
+      x-error-codes:
+        - INTERNAL

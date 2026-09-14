@@ -4,6 +4,8 @@
   // its own Worker name, vars, and D1 database (ADR-0010). Database ids are
   // placeholders until `wrangler d1 create` runs against a real account and
   // the returned ids are pasted here — see the README deploy section.
+  // Auth rate limiting uses the memory-first AuthRateLimiter Durable Object
+  // (ADR-0012); bindings are re-declared per environment on purpose.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "cf-core-kit",
   "main": "src/worker.ts",
@@ -15,6 +17,20 @@
     "APP_ENV": "dev",
     "LOG_LEVEL": "info",
   },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "AUTH_RATE_LIMITER",
+        "class_name": "AuthRateLimiter",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["AuthRateLimiter"],
+    },
+  ],
   "d1_databases": [
     {
       "binding": "DB",
@@ -30,6 +46,20 @@
         "APP_ENV": "dev",
         "LOG_LEVEL": "info",
       },
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "AUTH_RATE_LIMITER",
+            "class_name": "AuthRateLimiter",
+          },
+        ],
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["AuthRateLimiter"],
+        },
+      ],
       "d1_databases": [
         {
           "binding": "DB",
@@ -45,6 +75,20 @@
         "APP_ENV": "staging",
         "LOG_LEVEL": "info",
       },
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "AUTH_RATE_LIMITER",
+            "class_name": "AuthRateLimiter",
+          },
+        ],
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["AuthRateLimiter"],
+        },
+      ],
       "d1_databases": [
         {
           "binding": "DB",
@@ -60,6 +104,20 @@
         "APP_ENV": "prod",
         "LOG_LEVEL": "info",
       },
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "AUTH_RATE_LIMITER",
+            "class_name": "AuthRateLimiter",
+          },
+        ],
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["AuthRateLimiter"],
+        },
+      ],
       "d1_databases": [
         {
           "binding": "DB",

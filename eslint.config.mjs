@@ -49,6 +49,43 @@ export default tseslint.config(
       "import-x/no-cycle": "error",
       "import-x/no-duplicates": "error",
       "import-x/no-mutable-exports": "error",
+      "import-x/no-restricted-paths": [
+        "error",
+        {
+          basePath: "src",
+          zones: [
+            {
+              target: "./platform",
+              from: "./features",
+              message: "platform must not import features (ADR-0008)",
+            },
+            {
+              target: "./features",
+              from: ["./app.ts", "./worker.ts"],
+              message: "features must not import app entry modules (ADR-0008)",
+            },
+            {
+              target: "./shared",
+              from: ["./platform", "./features"],
+              message: "src/shared stays framework-free (ADR-0008)",
+            },
+            {
+              target: "./features/auth",
+              from: "./features/users",
+              except: ["./index.ts"],
+              message:
+                "cross-feature imports go through the feature's index.ts (ADR-0008)",
+            },
+            {
+              target: "./features/users",
+              from: "./features/auth",
+              except: ["./index.ts"],
+              message:
+                "cross-feature imports go through the feature's index.ts (ADR-0008)",
+            },
+          ],
+        },
+      ],
     },
   },
   {

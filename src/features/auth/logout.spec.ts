@@ -6,6 +6,7 @@ import {
   authEnv,
   cleanAuthTables,
   fakeVerifier,
+  permissiveLimiterFactory,
   seedSessionWithRefreshToken,
   TEST_TOKEN_INSTANT,
 } from "../../../test/auth-fixtures";
@@ -29,7 +30,11 @@ function request(
 ): Response | Promise<Response> {
   const app = createApp();
 
-  registerAuthRoutes(app, { verifier: fakeVerifier(), clock: CLOCK });
+  registerAuthRoutes(app, {
+    verifier: fakeVerifier(),
+    clock: CLOCK,
+    rateLimiterFactory: permissiveLimiterFactory(),
+  });
 
   return send(
     app,

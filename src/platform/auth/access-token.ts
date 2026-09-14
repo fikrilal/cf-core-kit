@@ -49,6 +49,7 @@ function findVerificationKey(
   const kid = readString(header.kid);
   const alg = readString(header.alg);
   if (kid === undefined || alg === undefined) return undefined;
+  if (alg !== "EdDSA") return undefined;
 
   const entry = keyRing.publicKeys.find((candidate) => candidate.kid === kid);
   if (entry?.alg !== alg) return undefined;

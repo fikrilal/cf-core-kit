@@ -316,6 +316,44 @@ test("vocabulary: undeclared codes fail with the file named", () => {
   assert.equal(violations[0].file, "src/shared/error-codes.ts");
 });
 
+test("parity: empty containers normalize away", () => {
+  const operation = (items) => ({
+    paths: {
+      "/x": {
+        get: {
+          operationId: "x.get",
+          responses: {
+            200: {
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: { keys: { type: "array", items } },
+                    required: ["keys"],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  const manifest = { implemented: ["x.get"], pending: [], descoped: [] };
+
+  const violations = checkParity({
+    snapshotDocument: operation({ type: "object" }),
+    emittedDocument: operation({
+      type: "object",
+      properties: {},
+      required: [],
+    }),
+    manifest,
+  });
+
+  assert.deepEqual(violations, []);
+});
+
 test("parity: error-code drift fails", () => {
   const drifted = structuredClone(EMITTED_DOCUMENT);
   drifted.paths["/thing"].get["x-error-codes"] = ["NOT_FOUND"];

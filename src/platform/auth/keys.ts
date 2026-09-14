@@ -123,16 +123,22 @@ async function buildEntry(
   return { entry: { kid: item.kid, alg, key, jwk }, privateKey };
 }
 
+function resolveSource(config: SigningKeysConfig): string | undefined {
+  const json = config.authSigningKeysJson?.trim();
+  if (json !== undefined && json !== "") return json;
+
+  const base64 = config.authSigningKeysJsonBase64?.trim();
+  if (base64 === undefined || base64 === "") return undefined;
+
+  return decodeBase64Url(base64);
+}
+
 export async function buildKeyRing(
   config: SigningKeysConfig,
 ): Promise<KeyRing> {
-  const source =
-    config.authSigningKeysJson ??
-    (config.authSigningKeysJsonBase64 === undefined
-      ? undefined
-      : decodeBase64Url(config.authSigningKeysJsonBase64));
+  const source = resolveSource(config);
 
-  if (source === undefined || source.trim() === "") {
+  if (source === undefined) {
     throw new Error("AUTH_SIGNING_KEYS_JSON is not configured");
   }
 
@@ -140,7 +146,22 @@ export async function buildKeyRing(
   let signer: KeyRing["signer"];
 
   for (const item of parseKeyItems(source)) {
-    if (publicKeys.some((entry) => entry.kid === item.kid)) continue;
+    const duplicate = publicKeys.some((entry) => entry.kid === item.kid);
+
+    if (duplicate) {
+      if (signer === undefined && typeof item.d === "string") {
+        const alg = inferAlg(item);
+        if (alg === "EdDSA") {
+          signer = {
+            kid: item.kid,
+            alg,
+            key: await importEd25519PrivateKey(item),
+          };
+        }
+      }
+
+      continue;
+    }
 
     const built = await buildEntry(item);
     if (built === undefined) continue;
@@ -172,8 +193,7 @@ export async function buildKeyRing(
 const keyRingCache = new Map<string, Promise<KeyRing>>();
 
 export function getKeyRing(config: SigningKeysConfig): Promise<KeyRing> {
-  const cacheKey =
-    config.authSigningKeysJson ?? config.authSigningKeysJsonBase64 ?? "";
+  const cacheKey = resolveSource(config) ?? "";
 
   const cached = keyRingCache.get(cacheKey);
   if (cached !== undefined) return cached;

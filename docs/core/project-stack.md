@@ -7,7 +7,7 @@ Decided 2026-10-10 and recorded per-topic in `docs/adr/`. Changing a decision re
 - **HTTP**: Hono with a fixed middleware pipeline; zod (>= 4.5) for runtime validation and schemas. See ADR-0003.
 - **Contract**: generated `docs/openapi/openapi.yaml` (committed) + Spectral lint; parity manifest `tools/parity/coverage.json` (implemented / pending / descoped). See ADR-0002.
 - **Data**: D1 + Drizzle; drizzle-kit generates migrations applied via `wrangler d1 migrations`. See ADR-0004.
-- **Background**: Cloudflare Queues for jobs; one fan-out cron; DO memory-first counters. See ADR-0007.
+- **Background**: Cloudflare Queues for jobs; one fan-out cron; DO memory-first rate-limit counters with fail-open behavior (one DO request per auth operation). See ADR-0007, ADR-0012.
 - **Cache**: in-isolate memoizer first; KV for cold-start reads only, never on write paths. See ADR-0005, ADR-0007.
 - **Objects**: R2 with presigned direct transfers. See ADR-0007.
 - **Auth**: OIDC sign-in; sessions (opaque rotating refresh tokens) in D1; Ed25519 access JWT + JWKS. No password material — `auth.password.*` descoped. See ADR-0006.

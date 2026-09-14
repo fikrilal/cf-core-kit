@@ -11,12 +11,12 @@
     "auth.oidc.exchange",
     "auth.oidc.connect",
     "auth.refresh",
-    "auth.logout"
+    "auth.logout",
+    "auth.jwks.get"
   ],
   "pending": [
     "auth.email.verify",
     "auth.email.verification.resend",
-    "auth.jwks.get",
     "users.me.sessions.list",
     "users.me.sessions.revoke",
     "users.me.pushToken.upsert",

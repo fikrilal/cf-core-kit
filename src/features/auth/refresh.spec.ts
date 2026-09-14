@@ -7,6 +7,7 @@ import {
   cleanAuthTables,
   fakeVerifier,
   jsonRecord,
+  permissiveLimiterFactory,
   pick,
   pickString,
   seedSessionWithRefreshToken,
@@ -33,7 +34,11 @@ function db() {
 function refreshRequest(refreshToken: string): Response | Promise<Response> {
   const app = createApp();
 
-  registerAuthRoutes(app, { verifier: fakeVerifier(), clock: CLOCK });
+  registerAuthRoutes(app, {
+    verifier: fakeVerifier(),
+    clock: CLOCK,
+    rateLimiterFactory: permissiveLimiterFactory(),
+  });
 
   return send(
     app,

@@ -116,6 +116,15 @@ function normalizeForCompare(value) {
   const normalized = {};
   for (const [key, item] of Object.entries(flattened)) {
     if (COSMETIC_SCHEMA_KEYS.has(key)) continue;
+    if (
+      key === "properties" &&
+      isPlainRecord(item) &&
+      Object.keys(item).length === 0
+    ) {
+      continue;
+    }
+    if (key === "required" && Array.isArray(item) && item.length === 0)
+      continue;
     normalized[key] = normalizeForCompare(item);
   }
 

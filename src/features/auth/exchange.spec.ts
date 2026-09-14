@@ -10,6 +10,7 @@ import {
   googleClaims,
   jwksFor,
   jsonRecord,
+  permissiveLimiterFactory,
   pick,
   pickString,
   signIdToken,
@@ -55,7 +56,10 @@ async function signIn(
 ): Promise<Response> {
   const app = createApp();
 
-  registerAuthRoutes(app, { verifier });
+  registerAuthRoutes(app, {
+    verifier,
+    rateLimiterFactory: permissiveLimiterFactory(),
+  });
 
   return send(
     app,

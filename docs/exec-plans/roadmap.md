@@ -21,13 +21,13 @@ The harness keeps quality golden; it is mandatory, not optional. Layers, in land
 3. **cfkit v0** (landed, 1.11): typed command layer, `verify --profile fast|full`, `doctor`, `budget:check`; `npm run verify` delegates to the fast profile; CI calls the same profile.
 4. **Drift & docs checks** (landed, 1.12): project map (AGENTS.md tree ↔ dirs), markdown link integrity, `wrangler types` + drizzle migrations drift, ADR index completeness.
 5. **Contract gates** (landed, 2.1–2.5): snapshot pin + provenance, emitted OpenAPI + drift gate, parity manifest check, Spectral family rules, and the contract suite — each gate carrying a gate-honesty meta-test.
-6. **Feature-level enforcement** (in progress, 3.x–5.x): `env` confinement and the crypto allowlist already gate through budget checks (1.10); boundary lint rules land with 3.5 (platform ↛ features, shared purity, cross-feature surfaces); scaffold output smoke-tested against `npm run verify` and `remove feature` unwiring land with Phase 5; duplication policy and runtime evidence later.
+6. **Feature-level enforcement** (in progress, 3.x–5.x): `env` confinement and the crypto allowlist already gate through budget checks (1.10); boundary lint rules landed with 3.5 (platform ↛ features, `src/shared` purity, cross-feature surfaces — each proven by violation probes); scaffold output smoke-tested against `npm run verify` and `remove feature` unwiring land with Phase 5; duplication policy and runtime evidence later.
 
 Rules: findings gate on **new vs baseline**, and baseline updates require explicit approval (never silent). Profiles are defined once (fast/full/runtime/ci), fail-fast with stable step ids and advisory duration budgets. A gate that cannot fail is not a gate — every new gate ships with a violation probe or a meta-test.
 
 ## Current Focus
 
-**Phase 3 — Auth slice** (in progress): 3.1–3.3 landed (schema, OIDC sign-in, session rotation/reuse detection/logout — all contract-green); next: 3.4 (JWKS endpoint + keyring rotation), then 3.5 (DO auth rate limiting + boundary lint zones), 3.6–3.8.
+**Phase 3 — Auth slice** (in progress): 3.1–3.5 landed (schema, OIDC sign-in, session rotation/reuse detection/logout, JWKS endpoint, auth rate limiting + boundary lint zones — all contract-green); next: 3.6 (`users/me` GET/PATCH), 3.7 (session list/revoke), 3.8 (runtime evidence).
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -78,8 +78,8 @@ Objective: the OIDC-first auth surface, contract-green (ADR-0006).
 - [x] 3.1 Schema + migrations: users, oidc_identities, sessions, refresh_tokens, idempotency_records — landed 2026-10-11; migration 0001 generated and applied; 5 constraint tests against real D1
 - [x] 3.2 OIDC sign-in: ID-token exchange, verification against cached JWKS, user upsert + provider link — landed 2026-10-11; `auth.oidc.exchange` + `auth.oidc.connect` contract-green; platform crypto/auth modules; 61 new tests across 3.1+3.2 (34 spec files, 55 fixtures); review round 1 fixes applied (error-code vocabulary tripwire, keygen script, race + boundary + redaction fixes); client-side authorize/callback stays out of the server contract
 - [x] 3.3 Sessions: refresh rotation + reuse detection + logout/revocation — landed 2026-10-11; `auth.refresh` + `auth.logout` contract-green; single-use rotation via a conditional D1 batch (replay or lost race revokes the session family), idempotent logout; 12 new tests (229 total, 36 files); clock-injected deterministic specs
-- [ ] 3.4 Access tokens: Ed25519 keyring + JWKS endpoint — exec plan written (queued, committed `dd6ef9e`); issuance + keyring already landed with 3.2
-- [ ] 3.5 Auth rate limiting: DO memory-first counters (ADR-0007); boundary lint rules land with the first feature — exec plan written (queued, committed `dd6ef9e`)
+- [x] 3.4 Access tokens: Ed25519 keyring + JWKS endpoint — landed 2026-10-11; `auth.jwks.get` contract-green (five auth operations emitted); rotation-ready multi-key ring (first private key signs, retired keys stay published); pre-rotation tokens verify after rotation; 5 new tests (234 total, 37 files)
+- [x] 3.5 Auth rate limiting: DO memory-first counters (ADR-0007); boundary lint rules land with the first feature — landed 2026-10-11; ADR-0012; hibernating memory-first `AuthRateLimiter` (one DO request per auth op, fail-open, no storage writes); 429 dialect with `Retry-After` (undeclared by design, parity preserved); boundary lint zones with committed meta-test probes; review round 2 applied (per-bucket DO objects, headerless skip, pure window tests); 252 tests across 39 files + 60 fixtures
 - [ ] 3.6 `users/me`: GET / PATCH
 - [ ] 3.7 `users/me/sessions`: list / revoke
 - [ ] 3.8 Runtime evidence: auth flows measured within the CPU budget on the dev deployment; rows-written recorded

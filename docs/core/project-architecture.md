@@ -19,19 +19,20 @@ cf-core-kit/
 │  ├─ worker.ts              # fetch / queue / scheduled handlers + DO class exports
 │  ├─ app.ts                 # composition root (middleware + feature mounting)
 │  ├─ platform/              # cross-cutting concerns; never imports features
-│  │  ├─ config/             # zod-validated env + bindings; the only place env.* is read
-│  │  ├─ http/               # envelope, problem details, request id, validation, idempotency, rate limiting, list query
-│  │  ├─ auth/               # OIDC flows, sessions, JWT/JWKS, principal context
+│  │  ├─ config/             # zod-validated env; raw env access stays inside src/platform
+│  │  ├─ http/               # envelope, problem details, request id, validation, idempotency, list query
+│  │  ├─ auth/               # signing keyring, access-token issue/verify, principal guard
+│  │  ├─ rate-limit/         # DO-backed rate limiting (AuthRateLimiter + middleware)
 │  │  ├─ db/                 # D1 client + Drizzle schema root; batch/transaction helpers
 │  │  ├─ cache/              # in-isolate memoizer; CDN caching policy helpers
-│  │  ├─ queue/              # producer/consumer helpers, job envelope, retry defaults
+│  │  ├─ queue/              # producer/consumer helpers, job envelope, retry defaults (Phase 4)
 │  │  ├─ storage/            # R2 presign
 │  │  ├─ email/              # Resend adapter behind a port (lands with email-dependent features)
 │  │  ├─ push/               # FCM adapter behind a port (optional)
 │  │  ├─ logging/            # structured logs + redaction
 │  │  ├─ clock/              # Clock interface + SystemClock
 │  │  ├─ errors/             # ErrorCode enum, AppErrorCode union, problem mapping
-│  │  ├─ crypto/             # algorithm allowlist, timing-safe compare
+│  │  ├─ crypto/             # WebCrypto primitives (Ed25519/RS256 verify, SHA-256, tokens)
 │  │  └─ ids/                # UUIDv7-style sortable IDs
 │  ├─ features/              # vertical slices (progressive tiers)
 │  └─ shared/                # framework-free: error codes, list-query, time
@@ -53,12 +54,12 @@ Client ──► Cloudflare edge (CDN cache when eligible)
         ├── fetch handler ........ HTTP API (Hono + middleware pipeline)
         ├── queue handler ........ background job consumer
         ├── scheduled handler .... one fan-out cron per project
-        └── DO classes ........... rate-limit counters; future CredentialKeeper
+        └── DO classes ........... AuthRateLimiter (rate-limit counters); future CredentialKeeper
 Bindings ─────── D1 · KV (read cache) · R2 · Queues · Durable Objects
 External ─────── OIDC providers (v1 auth) · Resend (email, deferred) · FCM (push, optional)
 ```
 
-- Middleware order is fixed: request-id → logging → auth → validation → handler → envelope/problem.
+- Middleware order is fixed: request-id → logging → per-route gates (rate limit → auth → idempotency) → handler → envelope/problem.
 - Requests and subrequests are budgeted per ADR-0005; new routes declare their write/subrequest profile.
 
 ## Feature Tiers
@@ -92,7 +93,7 @@ A service exists only when the operation has logic worth isolating: a final vali
 
 ```text
 HTTP request
-  → middleware: request id → logging → (auth | public) → (idempotency if opted in) → (rate limit if opted in)
+  → middleware: request id → logging → (rate limit if opted in) → (auth | public) → (idempotency if opted in)
   → Hono route
   → handler: decode + validate → [service] → repository (Drizzle) → D1
   → envelope / list / created / no-content helpers
@@ -106,8 +107,9 @@ Executable rules, not review memory (ADR-0008):
 
 - `src/platform/**` must not import `src/features/**`;
 - `src/features/**` must not import `src/worker.ts` or app entry modules;
+- cross-feature imports only through a feature's `index.ts`, allowlisted per pair;
 - `src/shared/**` stays framework-free;
-- raw `env.*` only in `src/platform/config` and platform modules;
+- raw `env.*` only in `src/platform/**` (plus the single handoff in `src/app.ts`);
 - KV writes only in allowlisted maintenance paths;
 - crypto allowlist: Ed25519/ES256, RS256 verify for OIDC ID tokens; no RSA signing;
 - no `new Date()` / `Date.now()` in service/domain code — injected `Clock`;
@@ -124,6 +126,7 @@ Executable rules, not review memory (ADR-0008):
 
 - v1 is OIDC-first: OIDC sign-in → principal → session issuance; no password material is stored anywhere (ADR-0006).
 - Access tokens are Ed25519 (EdDSA) with a JWKS endpoint; refresh tokens are opaque, rotated on every refresh, with reuse detection.
+- Auth endpoints are rate-limited per client address by the memory-first `AuthRateLimiter` Durable Object (ADR-0012); exceeding a window returns `429` with `Retry-After` (a platform-safety response, intentionally undeclared in `x-error-codes`).
 - `auth.password.*` operations are descoped and recorded in the parity manifest; backlog order is magic link → password revival (M0-spike gated) → passkeys.
 
 ## Contract Parity Model
@@ -137,5 +140,5 @@ Executable rules, not review memory (ADR-0008):
 
 - Stack decisions: `docs/core/project-stack.md`
 - Decision log: `docs/adr/README.md`
-- Budget standard: `docs/standards/README.md` (free-tier-budget lands with platform core)
+- Standards index: `docs/standards/README.md` — the free-tier guardrails are enforced today by `npm run budget:check`; the standard doc is queued with the usage envelopes
 - Proposals (historical): `_WIP/2026-10-10_cf-core-kit-architecture-proposal.md`

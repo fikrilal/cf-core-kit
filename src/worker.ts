@@ -1,5 +1,7 @@
 import { createWorkerApp } from "./app";
 
+export { AuthRateLimiter } from "./platform/rate-limit/rate-limiter";
+
 const app = createWorkerApp();
 
 export default {

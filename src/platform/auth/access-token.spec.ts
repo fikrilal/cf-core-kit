@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { TEST_SIGNING_KEYS_JSON } from "../../../test/auth-fixtures";
+import {
+  createRsaTestKey,
+  generateEd25519Key,
+  TEST_SIGNING_KEYS_JSON,
+} from "../../../test/auth-fixtures";
 import { encodeBase64Url, encodeBytesBase64Url } from "../../shared/base64url";
 import { signEd25519 } from "../crypto/crypto";
 import { issueAccessToken, verifyAccessToken } from "./access-token";
@@ -233,5 +237,118 @@ describe("access token structural rules", () => {
         audience: "audience-b",
       }),
     ).resolves.toBeDefined();
+  });
+});
+
+describe("access token key rotation", () => {
+  it("verifies pre-rotation tokens and signs with the current key", async () => {
+    const previous = await generateEd25519Key("previous-key");
+    const current = await generateEd25519Key("current-key");
+
+    const previousRing = await buildKeyRing({
+      authSigningKeysJson: JSON.stringify([previous.privateJwk]),
+      authSigningKeysJsonBase64: undefined,
+    });
+    const currentOnlyRing = await buildKeyRing({
+      authSigningKeysJson: JSON.stringify([current.privateJwk]),
+      authSigningKeysJsonBase64: undefined,
+    });
+    const rotatedRing = await buildKeyRing({
+      authSigningKeysJson: JSON.stringify([
+        current.privateJwk,
+        previous.publicJwk,
+      ]),
+      authSigningKeysJsonBase64: undefined,
+    });
+
+    const oldToken = await issueAccessToken({
+      keyRing: previousRing,
+      ...BASE_INPUT,
+    });
+    const newToken = await issueAccessToken({
+      keyRing: rotatedRing,
+      ...BASE_INPUT,
+    });
+
+    await expect(
+      verifyAccessToken({ token: oldToken, keyRing: rotatedRing, now: NOW }),
+    ).resolves.toBeDefined();
+    await expect(
+      verifyAccessToken({
+        token: oldToken,
+        keyRing: currentOnlyRing,
+        now: NOW,
+      }),
+    ).resolves.toBeUndefined();
+
+    await expect(
+      verifyAccessToken({ token: newToken, keyRing: rotatedRing, now: NOW }),
+    ).resolves.toBeDefined();
+    await expect(
+      verifyAccessToken({
+        token: newToken,
+        keyRing: previousRing,
+        now: NOW,
+      }),
+    ).resolves.toBeUndefined();
+  });
+});
+
+describe("access token hardening", () => {
+  it("rejects RSA-alg tokens on a mixed ring without throwing", async () => {
+    const ed25519 = await generateEd25519Key("ed-key");
+    const rsa = await createRsaTestKey("rsa-key");
+
+    const mixedRing = await buildKeyRing({
+      authSigningKeysJson: JSON.stringify([
+        ed25519.privateJwk,
+        { ...rsa.publicJwk, kid: rsa.kid },
+      ]),
+      authSigningKeysJsonBase64: undefined,
+    });
+
+    const rsaAlgToken = await signToken(
+      { alg: "RS256", kid: "rsa-key", typ: "JWT" },
+      basePayload(),
+    );
+
+    await expect(
+      verifyAccessToken({ token: rsaAlgToken, keyRing: mixedRing, now: NOW }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("rejects future nbf, oversized jti, and empty sid", async () => {
+    const ring = await keyRing();
+    const notBefore = await signToken(
+      baseHeader(),
+      basePayload({ nbf: Math.floor(NOW.getTime() / 1000) + 3_600 }),
+    );
+    const longJti = await signToken(
+      baseHeader(),
+      basePayload({ jti: "j".repeat(129) }),
+    );
+    const emptySid = await signToken(baseHeader(), basePayload({ sid: "" }));
+
+    for (const token of [notBefore, longJti, emptySid]) {
+      await expect(
+        verifyAccessToken({ token, keyRing: ring, now: NOW }),
+      ).resolves.toBeUndefined();
+    }
+  });
+
+  it("treats a missing roles claim as an empty role set", async () => {
+    const ring = await keyRing();
+    const token = await signToken(
+      baseHeader(),
+      basePayload({ roles: undefined }),
+    );
+
+    const principal = await verifyAccessToken({
+      token,
+      keyRing: ring,
+      now: NOW,
+    });
+
+    expect(principal?.roles).toEqual([]);
   });
 });
