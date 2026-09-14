@@ -1,6 +1,6 @@
 # Session lifecycle: rotation, reuse detection, logout (task 3.3)
 
-- Status: active
+- Status: completed
 - Owner: fikrilal
 - Risk: high
 - Date: 2026-10-11
@@ -37,9 +37,9 @@
 
 ## Steps
 
-- [ ] Session lifecycle service (refresh/logout) + repository updates with conditional rotation + batch
-- [ ] Routes + DTO wiring; error codes already present; manifest/spec updates
-- [ ] Tests (matrix incl. race and logout semantics); verify + bookkeeping
+- [x] Session lifecycle service (refresh/logout) + repository updates with conditional rotation + batch
+- [x] Routes + DTO wiring; error codes already present; manifest/spec updates
+- [x] Tests (matrix incl. race and logout semantics); verify + bookkeeping
 
 ## Decision Log
 
@@ -49,5 +49,27 @@
 ## Verification
 
 ```bash
-npm run verify   # (to be recorded)
+npm run verify:ci   # full profile green (11 steps): format, lint, typecheck, typecheck:cfkit,
+                    # vitest (229 tests across 36 files), script fixtures (55), budget
+                    # (1159.91 KiB), drift, contract:check (parity ok), contract:lint, build
+npm run contract:emit   # docs/openapi/openapi.yaml now carries all four auth operations (10,071 bytes)
+# behavior matrix (deterministic: fixedClock(TEST_TOKEN_INSTANT) injected into the routes):
+#   rotation (payload, verifiable access token, replacement lineage, same expiry, lastSeenAt
+#   advance); reuse detection revoking the session family (active tokens 0, rotated token then
+#   AUTH_SESSION_REVOKED); failure order (unknown, expired token/session, revoked session,
+#   suspended, deleted); concurrent double-refresh lets exactly one rotation win; logout
+#   revokes session + tokens, is idempotent, validates the payload
 ```
+
+## Completion Notes
+
+`auth.refresh` and `auth.logout` are mounted, contract-green, and tested. Rotation is a single
+D1 batch (conditional revoke of the presented token, insert of the replacement, session touch)
+whose matched-row count decides the outcome: a lost race or a replayed token revokes the whole
+session family and returns 401 `AUTH_REFRESH_TOKEN_REUSED`; the replacement keeps the original
+token expiry and the session never extends. Failure order mirrors the family (invalid →
+suspended → session-revoked → expired → reused), with deleted accounts resolving to the
+declared 401 `AUTH_REFRESH_TOKEN_INVALID` per the review-round vocabulary rule. Logout revokes
+the session and every token it owns and is idempotent for the same token. The access token is
+minted before rotation commits, so a failed refresh never consumes the caller's token. Session
+updates advance `lastSeenAt` and refresh ip/userAgent only when provided.

@@ -9,14 +9,14 @@
     "health.get",
     "ready.get",
     "auth.oidc.exchange",
-    "auth.oidc.connect"
+    "auth.oidc.connect",
+    "auth.refresh",
+    "auth.logout"
   ],
   "pending": [
     "auth.email.verify",
     "auth.email.verification.resend",
     "auth.jwks.get",
-    "auth.refresh",
-    "auth.logout",
     "users.me.sessions.list",
     "users.me.sessions.revoke",
     "users.me.pushToken.upsert",

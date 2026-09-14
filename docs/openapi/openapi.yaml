@@ -144,6 +144,72 @@ components:
       required:
         - provider
         - idToken
+    AuthResultEnvelopeDto:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/AuthResultDto"
+      required:
+        - data
+    AuthResultDto:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/AuthUserDto"
+        accessToken:
+          type: string
+          example: <access-token>
+        refreshToken:
+          type: string
+          example: <refresh-token>
+      required:
+        - user
+        - accessToken
+        - refreshToken
+    AuthUserDto:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
+        email:
+          type: string
+          example: user@example.com
+        emailVerified:
+          type: boolean
+          example: false
+        authMethods:
+          type: array
+          items:
+            type: string
+            enum:
+              - PASSWORD
+              - GOOGLE
+          example:
+            - PASSWORD
+            - GOOGLE
+          description: Linked authentication methods on this account. Omitted on token
+            refresh responses.
+      required:
+        - id
+        - email
+        - emailVerified
+    RefreshRequestDto:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+          example: <refresh-token>
+      required:
+        - refreshToken
+    LogoutRequestDto:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+          example: <refresh-token>
+      required:
+        - refreshToken
   parameters: {}
   securitySchemes:
     access-token:
@@ -265,4 +331,52 @@ paths:
         - AUTH_OIDC_EMAIL_NOT_VERIFIED
         - AUTH_OIDC_IDENTITY_ALREADY_LINKED
         - AUTH_OIDC_PROVIDER_ALREADY_LINKED
+        - INTERNAL
+  /v1/auth/refresh:
+    post:
+      operationId: auth.refresh
+      tags:
+        - Auth
+      summary: Refresh tokens
+      description: Rotates the refresh token and returns a new access + refresh token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequestDto"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResultEnvelopeDto"
+      x-error-codes:
+        - VALIDATION_FAILED
+        - AUTH_REFRESH_TOKEN_INVALID
+        - AUTH_REFRESH_TOKEN_EXPIRED
+        - AUTH_REFRESH_TOKEN_REUSED
+        - AUTH_SESSION_REVOKED
+        - AUTH_USER_SUSPENDED
+        - INTERNAL
+  /v1/auth/logout:
+    post:
+      operationId: auth.logout
+      tags:
+        - Auth
+      summary: Logout
+      description: Revokes the session associated with the provided refresh token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequestDto"
+      responses:
+        "204":
+          description: ""
+      x-error-codes:
+        - VALIDATION_FAILED
+        - AUTH_REFRESH_TOKEN_INVALID
         - INTERNAL

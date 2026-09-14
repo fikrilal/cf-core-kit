@@ -5,13 +5,18 @@ import type {
   IdTokenVerification,
   IdTokenVerifier,
 } from "../src/features/auth/oidc";
-import { exportPublicJwk } from "../src/platform/crypto/crypto";
+import {
+  exportPublicJwk,
+  randomBase64Url,
+  sha256Base64Url,
+} from "../src/platform/crypto/crypto";
 import type { Database } from "../src/platform/db/db";
 import {
   oidcIdentities,
   refreshTokens,
   sessions,
   users,
+  type UserStatus,
 } from "../src/platform/db/schema";
 import { encodeBase64Url, encodeBytesBase64Url } from "../src/shared/base64url";
 import type { RuntimeEnv } from "./app-request";
@@ -214,4 +219,70 @@ export function pickString(
     throw new Error(`expected a string at ${path.join(".")}`);
 
   return value;
+}
+
+export type SeededSession = Readonly<{
+  userId: string;
+  sessionId: string;
+  tokenId: string;
+  refreshToken: string;
+}>;
+
+export type SeedSessionOptions = Readonly<{
+  now?: Date;
+  email?: string;
+  status?: UserStatus;
+  sessionExpiresAt?: Date;
+  tokenExpiresAt?: Date;
+  sessionRevokedAt?: Date;
+  tokenRevokedAt?: Date;
+}>;
+
+const DEFAULT_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+export async function seedSessionWithRefreshToken(
+  db: Database,
+  options: SeedSessionOptions = {},
+): Promise<SeededSession> {
+  const now = options.now ?? new Date();
+  const userId = crypto.randomUUID();
+  const sessionId = crypto.randomUUID();
+  const tokenId = crypto.randomUUID();
+  const refreshToken = randomBase64Url(32);
+  const defaultExpiry = new Date(now.getTime() + DEFAULT_SESSION_TTL_MS);
+
+  await db.insert(users).values({
+    id: userId,
+    email: options.email ?? `seed-${userId}@example.com`,
+    emailVerifiedAt: now,
+    ...(options.status === undefined ? {} : { status: options.status }),
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  await db.insert(sessions).values({
+    id: sessionId,
+    userId,
+    lastSeenAt: now,
+    expiresAt: options.sessionExpiresAt ?? defaultExpiry,
+    ...(options.sessionRevokedAt === undefined
+      ? {}
+      : { revokedAt: options.sessionRevokedAt }),
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  await db.insert(refreshTokens).values({
+    id: tokenId,
+    sessionId,
+    tokenHash: await sha256Base64Url(refreshToken),
+    expiresAt: options.tokenExpiresAt ?? defaultExpiry,
+    ...(options.tokenRevokedAt === undefined
+      ? {}
+      : { revokedAt: options.tokenRevokedAt }),
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return { userId, sessionId, tokenId, refreshToken };
 }

@@ -9,19 +9,24 @@ import { systemClock, type Clock } from "../../platform/clock/clock";
 import { configFrom } from "../../platform/config/request";
 import { databaseFrom } from "../../platform/db/request";
 import { requireAuth } from "../../platform/auth/guard";
+import { getKeyRing } from "../../platform/auth/keys";
 import { noContent } from "../../platform/http/envelope";
 import { idempotent } from "../../platform/http/idempotency";
 import type { OperationMetadata } from "../../platform/http/openapi";
 import type { AppEnv } from "../../platform/http/types";
 import { AppError } from "../../platform/errors/app-error";
 import {
+  authResultEnvelopeSchema,
   authResultWithMeEnvelopeSchema,
+  logoutRequestSchema,
   oidcConnectRequestSchema,
   oidcExchangeRequestSchema,
+  refreshRequestSchema,
 } from "../../shared/contract/auth";
 import { ErrorCode } from "../../shared/error-codes";
 import { connectOidc, exchangeOidc } from "./oidc.service";
 import { createDefaultIdTokenVerifier, type IdTokenVerifier } from "./oidc";
+import { logoutSession, refreshSession } from "./session.service";
 
 const IDEMPOTENCY_KEY_PARAM = z.object({
   "Idempotency-Key": z.string().min(1).max(128).optional().meta({
@@ -74,6 +79,47 @@ const connectRoute = createRoute({
   security: [{ "access-token": [] }],
 });
 
+const refreshRoute = createRoute({
+  method: "post",
+  path: "/v1/auth/refresh",
+  operationId: "auth.refresh",
+  tags: ["Auth"],
+  summary: "Refresh tokens",
+  description:
+    "Rotates the refresh token and returns a new access + refresh token.",
+  request: {
+    body: {
+      required: true,
+      content: { "application/json": { schema: refreshRequestSchema } },
+    },
+  },
+  responses: {
+    200: {
+      description: "",
+      content: { "application/json": { schema: authResultEnvelopeSchema } },
+    },
+  },
+});
+
+const logoutRoute = createRoute({
+  method: "post",
+  path: "/v1/auth/logout",
+  operationId: "auth.logout",
+  tags: ["Auth"],
+  summary: "Logout",
+  description:
+    "Revokes the session associated with the provided refresh token.",
+  request: {
+    body: {
+      required: true,
+      content: { "application/json": { schema: logoutRequestSchema } },
+    },
+  },
+  responses: {
+    204: { description: "" },
+  },
+});
+
 export const authOperations: readonly OperationMetadata[] = [
   {
     method: "post",
@@ -103,6 +149,30 @@ export const authOperations: readonly OperationMetadata[] = [
       ErrorCode.AUTH_OIDC_EMAIL_NOT_VERIFIED,
       ErrorCode.AUTH_OIDC_IDENTITY_ALREADY_LINKED,
       ErrorCode.AUTH_OIDC_PROVIDER_ALREADY_LINKED,
+      ErrorCode.INTERNAL,
+    ],
+  },
+  {
+    method: "post",
+    path: "/v1/auth/refresh",
+    operationId: "auth.refresh",
+    errorCodes: [
+      ErrorCode.VALIDATION_FAILED,
+      ErrorCode.AUTH_REFRESH_TOKEN_INVALID,
+      ErrorCode.AUTH_REFRESH_TOKEN_EXPIRED,
+      ErrorCode.AUTH_REFRESH_TOKEN_REUSED,
+      ErrorCode.AUTH_SESSION_REVOKED,
+      ErrorCode.AUTH_USER_SUSPENDED,
+      ErrorCode.INTERNAL,
+    ],
+  },
+  {
+    method: "post",
+    path: "/v1/auth/logout",
+    operationId: "auth.logout",
+    errorCodes: [
+      ErrorCode.VALIDATION_FAILED,
+      ErrorCode.AUTH_REFRESH_TOKEN_INVALID,
       ErrorCode.INTERNAL,
     ],
   },
@@ -164,6 +234,42 @@ function createConnectHandler(
   };
 }
 
+function createRefreshHandler(
+  clock: Clock,
+): RouteHandler<typeof refreshRoute, AppEnv> {
+  return async (context) => {
+    const body = context.req.valid("json");
+    const config = configFrom(context);
+    const result = await refreshSession({
+      db: databaseFrom(context),
+      clock,
+      config,
+      keyRing: await getKeyRing(config),
+      refreshToken: body.refreshToken,
+      ip: context.req.header("CF-Connecting-IP"),
+      userAgent: context.req.header("User-Agent"),
+    });
+
+    return context.json({ data: result }, 200);
+  };
+}
+
+function createLogoutHandler(
+  clock: Clock,
+): RouteHandler<typeof logoutRoute, AppEnv> {
+  return async (context) => {
+    const body = context.req.valid("json");
+
+    await logoutSession({
+      db: databaseFrom(context),
+      clock,
+      refreshToken: body.refreshToken,
+    });
+
+    return noContent();
+  };
+}
+
 export function registerAuthRoutes(
   app: OpenAPIHono<AppEnv>,
   dependencies: AuthRouteDependencies = {},
@@ -179,4 +285,6 @@ export function registerAuthRoutes(
     idempotent({ scopeKey: "auth.oidc.connect" }),
   );
   app.openapi(connectRoute, createConnectHandler(verifier, clock));
+  app.openapi(refreshRoute, createRefreshHandler(clock));
+  app.openapi(logoutRoute, createLogoutHandler(clock));
 }

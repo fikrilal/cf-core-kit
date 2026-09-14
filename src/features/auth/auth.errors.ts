@@ -57,6 +57,38 @@ export function userSuspended(): AppError {
   });
 }
 
+export function refreshTokenInvalid(): AppError {
+  return new AppError({
+    status: 401,
+    code: ErrorCode.AUTH_REFRESH_TOKEN_INVALID,
+    message: "Invalid refresh token",
+  });
+}
+
+export function refreshTokenExpired(): AppError {
+  return new AppError({
+    status: 401,
+    code: ErrorCode.AUTH_REFRESH_TOKEN_EXPIRED,
+    message: "Refresh token has expired",
+  });
+}
+
+export function refreshTokenReused(): AppError {
+  return new AppError({
+    status: 401,
+    code: ErrorCode.AUTH_REFRESH_TOKEN_REUSED,
+    message: "Refresh token has already been used",
+  });
+}
+
+export function sessionRevoked(): AppError {
+  return new AppError({
+    status: 401,
+    code: ErrorCode.AUTH_SESSION_REVOKED,
+    message: "Session has been revoked",
+  });
+}
+
 export function internalError(): AppError {
   return new AppError({
     status: 500,

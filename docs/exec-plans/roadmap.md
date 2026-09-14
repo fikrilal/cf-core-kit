@@ -1,7 +1,7 @@
 # Roadmap
 
 - Status: living document — update as phases and tasks land
-- Updated: 2026-10-10
+- Updated: 2026-10-11
 - Scope: high-level phases, task tracking, and exit gates. Details live in per-task execution plans.
 
 ## How To Use
@@ -9,7 +9,7 @@
 - This roadmap is the index; it never replaces an execution plan.
 - Every task gets a plan from `_template.md` stored in `docs/exec-plans/active/` before work starts; completed plans move to `docs/exec-plans/completed/` with verification evidence.
 - Update checkboxes and "Current Focus" as tasks complete. A task is done only when its gate actually ran.
-- `npm run verify` (later `cfkit verify --profile …`) is the standing gate for every task; phases add gates (budget checks, contract suite, drift checks).
+- `npm run verify` delegates to `cfkit verify --profile fast` (CI runs `verify:ci`, the full profile) — the standing gate for every task; phases add gates (budget checks, drift checks, contract suite).
 - Decisions that change a baseline require an ADR first (see `docs/adr/README.md`).
 
 ## Harness
@@ -17,17 +17,17 @@
 The harness keeps quality golden; it is mandatory, not optional. Layers, in landing order (practices ported from backendkit, frontendkit, mobilekit, and gokit):
 
 1. **Strict lint/format baseline** (landed, 1.0): type-aware eslint (`strictTypeChecked` + `stylisticTypeChecked`), import hygiene (`import-x`: first, newline-after-import, no-cycle, no-duplicates, no-mutable-exports), budgets (complexity 12, max-lines 350, max-lines-per-function 80), `no-console`, `eqeqeq`, Prettier. Violation probes confirmed the gates fail with their expected markers.
-2. **Budget checks** (1.10): the free-tier guardrails become real checks (ADR-0005, ADR-0008) — bundle size, crypto allowlist, `env` confinement, KV-write allowlist, cron count — wired into the verify gate.
-3. **cfkit v0** (1.11): typed command layer, `verify --profile fast|full`, `doctor`, `budget:check`; `npm run verify` delegates to the fast profile; CI calls the same profile.
-4. **Drift & docs checks** (1.12): project map (AGENTS.md tree ↔ dirs), markdown link integrity, `wrangler types` + drizzle migrations drift, ADR index completeness.
-5. **Contract gates** (2.x): snapshot pin + provenance, emitted OpenAPI + drift gate, parity manifest check, Spectral family rules, and the contract suite — each gate carrying a gate-honesty meta-test.
-6. **Feature-level enforcement** (3.x–5.x): boundary lint rules as the directories exist (platform ↛ features, `env` confinement in code, crypto allowlist), scaffold output smoke-tested against `npm run verify`, `remove feature` unwiring; duplication policy and runtime evidence later.
+2. **Budget checks** (landed, 1.10): the free-tier guardrails are real checks (ADR-0005, ADR-0008) — bundle size, crypto allowlist, `env` confinement, KV-write allowlist, cron count — wired into the verify gate.
+3. **cfkit v0** (landed, 1.11): typed command layer, `verify --profile fast|full`, `doctor`, `budget:check`; `npm run verify` delegates to the fast profile; CI calls the same profile.
+4. **Drift & docs checks** (landed, 1.12): project map (AGENTS.md tree ↔ dirs), markdown link integrity, `wrangler types` + drizzle migrations drift, ADR index completeness.
+5. **Contract gates** (landed, 2.1–2.5): snapshot pin + provenance, emitted OpenAPI + drift gate, parity manifest check, Spectral family rules, and the contract suite — each gate carrying a gate-honesty meta-test.
+6. **Feature-level enforcement** (in progress, 3.x–5.x): `env` confinement and the crypto allowlist already gate through budget checks (1.10); boundary lint rules land with 3.5 (platform ↛ features, shared purity, cross-feature surfaces); scaffold output smoke-tested against `npm run verify` and `remove feature` unwiring land with Phase 5; duplication policy and runtime evidence later.
 
 Rules: findings gate on **new vs baseline**, and baseline updates require explicit approval (never silent). Profiles are defined once (fast/full/runtime/ci), fail-fast with stable step ids and advisory duration budgets. A gate that cannot fail is not a gate — every new gate ships with a violation probe or a meta-test.
 
 ## Current Focus
 
-**Phase 3 — Auth slice** (in progress): 3.1 (schema) and 3.2 (OIDC sign-in end to end, contract-green) landed; next 3.3 (sessions: rotation, reuse detection, logout), then 3.4 (JWKS endpoint + keyring rotation), 3.5 (DO auth rate limiting + boundary lint zones), 3.6–3.8.
+**Phase 3 — Auth slice** (in progress): 3.1–3.3 landed (schema, OIDC sign-in, session rotation/reuse detection/logout — all contract-green); next: 3.4 (JWKS endpoint + keyring rotation), then 3.5 (DO auth rate limiting + boundary lint zones), 3.6–3.8.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -71,15 +71,15 @@ Objective: the pinned contract and the machinery that proves client parity (ADR-
 
 Exit gate: checks fail on injected drift; downstream retarget documented (provenance swap for frontend/mobile kits).
 
-## Phase 3 — Auth slice (clean tier)
+## Phase 3 — Auth slice (clean tier, in progress)
 
 Objective: the OIDC-first auth surface, contract-green (ADR-0006).
 
 - [x] 3.1 Schema + migrations: users, oidc_identities, sessions, refresh_tokens, idempotency_records — landed 2026-10-11; migration 0001 generated and applied; 5 constraint tests against real D1
 - [x] 3.2 OIDC sign-in: ID-token exchange, verification against cached JWKS, user upsert + provider link — landed 2026-10-11; `auth.oidc.exchange` + `auth.oidc.connect` contract-green; platform crypto/auth modules; 61 new tests across 3.1+3.2 (34 spec files, 55 fixtures); review round 1 fixes applied (error-code vocabulary tripwire, keygen script, race + boundary + redaction fixes); client-side authorize/callback stays out of the server contract
-- [ ] 3.3 Sessions: refresh rotation + reuse detection + logout/revocation
-- [ ] 3.4 Access tokens: Ed25519 keyring + JWKS endpoint
-- [ ] 3.5 Auth rate limiting: DO memory-first counters (ADR-0007); boundary lint rules land with the first feature
+- [x] 3.3 Sessions: refresh rotation + reuse detection + logout/revocation — landed 2026-10-11; `auth.refresh` + `auth.logout` contract-green; single-use rotation via a conditional D1 batch (replay or lost race revokes the session family), idempotent logout; 12 new tests (229 total, 36 files); clock-injected deterministic specs
+- [ ] 3.4 Access tokens: Ed25519 keyring + JWKS endpoint — exec plan written (queued, committed `dd6ef9e`); issuance + keyring already landed with 3.2
+- [ ] 3.5 Auth rate limiting: DO memory-first counters (ADR-0007); boundary lint rules land with the first feature — exec plan written (queued, committed `dd6ef9e`)
 - [ ] 3.6 `users/me`: GET / PATCH
 - [ ] 3.7 `users/me/sessions`: list / revoke
 - [ ] 3.8 Runtime evidence: auth flows measured within the CPU budget on the dev deployment; rows-written recorded
