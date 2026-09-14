@@ -11,6 +11,8 @@ import {
   randomBase64Url,
   sha256Base64Url,
 } from "../src/platform/crypto/crypto";
+import { issueAccessToken } from "../src/platform/auth/access-token";
+import { buildKeyRing } from "../src/platform/auth/keys";
 import type { Database } from "../src/platform/db/db";
 import {
   oidcIdentities,
@@ -185,6 +187,27 @@ export async function jsonRecord(
   return result;
 }
 
+export function recordsOf(
+  body: Record<string, unknown>,
+  key = "data",
+): Record<string, unknown>[] {
+  const value = body[key];
+  if (!Array.isArray(value)) throw new Error(`expected an array at ${key}`);
+
+  return value.map((entry: unknown) => {
+    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+      return {};
+    }
+
+    const record: Record<string, unknown> = {};
+    for (const [entryKey, entryValue] of Object.entries(entry)) {
+      record[entryKey] = entryValue;
+    }
+
+    return record;
+  });
+}
+
 export function pick(
   record: Record<string, unknown>,
   ...path: readonly string[]
@@ -318,4 +341,28 @@ export async function generateEd25519Key(
 
 export function permissiveLimiterFactory(): LimiterFactory {
   return () => () => Promise.resolve({ allowed: true, retryAfterSeconds: 0 });
+}
+
+export async function userAccessToken(
+  userId: string,
+  options: Readonly<{
+    emailVerified?: boolean;
+    roles?: readonly string[];
+    sessionId?: string;
+  }> = {},
+): Promise<string> {
+  const keyRing = await buildKeyRing({
+    authSigningKeysJson: TEST_SIGNING_KEYS_JSON,
+    authSigningKeysJsonBase64: undefined,
+  });
+
+  return issueAccessToken({
+    keyRing,
+    now: new Date(),
+    ttlSeconds: 900,
+    userId,
+    sessionId: options.sessionId ?? crypto.randomUUID(),
+    emailVerified: options.emailVerified ?? true,
+    roles: options.roles ?? ["USER"],
+  });
 }

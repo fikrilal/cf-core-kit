@@ -320,6 +320,32 @@ describe("exchange: provider verification through the route", () => {
     });
   });
 
+  it("rejects unknown body fields with the field named", async () => {
+    const response = await signIn(fakeVerifier(), {
+      provider: "GOOGLE",
+      idToken: "stub",
+      extra: true,
+    });
+
+    expect(response.status).toBe(400);
+    const body = await jsonRecord(response);
+
+    expect(body).toMatchObject({ code: "VALIDATION_FAILED" });
+
+    const errors = pick(body, "errors");
+    if (!Array.isArray(errors)) throw new Error("expected errors array");
+
+    const first: unknown = errors[0];
+    if (typeof first !== "object" || first === null) {
+      throw new Error("expected the first error");
+    }
+
+    const record: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(first)) record[key] = value;
+
+    expect(record.field).toBe("extra");
+  });
+
   it("rejects payloads outside the provider enum with the problem shape", async () => {
     const response = await signIn(fakeVerifier(), {
       provider: "APPLE",

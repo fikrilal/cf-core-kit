@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 
 import type { Database } from "../../platform/db/db";
 import { oidcIdentities, users } from "../../platform/db/schema";
@@ -32,7 +32,7 @@ export async function loadMe(
     .where(eq(users.id, userId))
     .get();
 
-  if (user === undefined) return undefined;
+  if (user === undefined || user.status === "DELETED") return undefined;
 
   const identities = await db
     .select({ provider: oidcIdentities.provider })
@@ -64,4 +64,30 @@ export async function loadMe(
           }
         : null,
   };
+}
+
+export type ProfilePatch = Readonly<{
+  displayName?: string | null;
+  givenName?: string | null;
+  familyName?: string | null;
+}>;
+
+export async function updateMeProfile(
+  db: Database,
+  userId: string,
+  patch: ProfilePatch,
+  now: Date,
+): Promise<MeView | undefined> {
+  const columns: Partial<typeof users.$inferInsert> = { updatedAt: now };
+
+  if (patch.displayName !== undefined) columns.displayName = patch.displayName;
+  if (patch.givenName !== undefined) columns.givenName = patch.givenName;
+  if (patch.familyName !== undefined) columns.familyName = patch.familyName;
+
+  await db
+    .update(users)
+    .set(columns)
+    .where(and(eq(users.id, userId), ne(users.status, "DELETED")));
+
+  return loadMe(db, userId);
 }

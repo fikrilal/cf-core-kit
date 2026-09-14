@@ -4,6 +4,7 @@ import { data } from "./platform/http/envelope";
 import { requestLogging } from "./platform/http/request-logging";
 import { registerHealthRoutes } from "./platform/health/health";
 import { registerAuthRoutes } from "./features/auth/auth.routes";
+import { registerUsersRoutes } from "./features/users/users.routes";
 import { commit, version } from "./version";
 
 export function createWorkerApp(): ReturnType<typeof createApp> {
@@ -12,6 +13,7 @@ export function createWorkerApp(): ReturnType<typeof createApp> {
   app.use(requestLogging());
   registerHealthRoutes(app);
   registerAuthRoutes(app);
+  registerUsersRoutes(app);
 
   app.get("/", (context) => {
     const config = configFrom(context);

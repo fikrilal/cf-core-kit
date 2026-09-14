@@ -12,17 +12,17 @@
     "auth.oidc.connect",
     "auth.refresh",
     "auth.logout",
-    "auth.jwks.get"
+    "auth.jwks.get",
+    "users.me.get",
+    "users.me.patch",
+    "users.me.sessions.list",
+    "users.me.sessions.revoke"
   ],
   "pending": [
     "auth.email.verify",
     "auth.email.verification.resend",
-    "users.me.sessions.list",
-    "users.me.sessions.revoke",
     "users.me.pushToken.upsert",
     "users.me.pushToken.revoke",
-    "users.me.get",
-    "users.me.patch",
     "users.me.profileImage.upload",
     "users.me.profileImage.complete",
     "users.me.profileImage.clear",

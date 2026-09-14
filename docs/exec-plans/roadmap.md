@@ -27,7 +27,7 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Phase 3 — Auth slice** (in progress): 3.1–3.5 landed (schema, OIDC sign-in, session rotation/reuse detection/logout, JWKS endpoint, auth rate limiting + boundary lint zones — all contract-green); next: 3.6 (`users/me` GET/PATCH), 3.7 (session list/revoke), 3.8 (runtime evidence).
+**Phase 3 — Auth slice** (in progress): 3.1–3.7 landed (schema, OIDC sign-in, rotation/reuse/logout, JWKS, rate limiting, `users/me` GET+PATCH, session list/revoke — all contract-green; 13 implemented operations); next: 3.8 (runtime evidence for the auth/users surface).
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -80,8 +80,8 @@ Objective: the OIDC-first auth surface, contract-green (ADR-0006).
 - [x] 3.3 Sessions: refresh rotation + reuse detection + logout/revocation — landed 2026-10-11; `auth.refresh` + `auth.logout` contract-green; single-use rotation via a conditional D1 batch (replay or lost race revokes the session family), idempotent logout; 12 new tests (229 total, 36 files); clock-injected deterministic specs
 - [x] 3.4 Access tokens: Ed25519 keyring + JWKS endpoint — landed 2026-10-11; `auth.jwks.get` contract-green (five auth operations emitted); rotation-ready multi-key ring (first private key signs, retired keys stay published); pre-rotation tokens verify after rotation; 5 new tests (234 total, 37 files)
 - [x] 3.5 Auth rate limiting: DO memory-first counters (ADR-0007); boundary lint rules land with the first feature — landed 2026-10-11; ADR-0012; hibernating memory-first `AuthRateLimiter` (one DO request per auth op, fail-open, no storage writes); 429 dialect with `Retry-After` (undeclared by design, parity preserved); boundary lint zones with committed meta-test probes; review round 2 applied (per-bucket DO objects, headerless skip, pure window tests); 252 tests across 39 files + 60 fixtures
-- [ ] 3.6 `users/me`: GET / PATCH
-- [ ] 3.7 `users/me/sessions`: list / revoke
+- [x] 3.6 `users/me`: GET / PATCH — landed 2026-10-11; both contract-green (11 implemented operations); raw-body unknown-field rejection; method-scoped idempotent PATCH; 13 new tests (265 total across 40 files)
+- [x] 3.7 `users/me/sessions`: list / revoke — landed 2026-10-11; cursor pagination via the shared pipeline (first consumer), status precedence, idempotent revoke reusing the token-family helper; 9 new tests + a cross-feature integration spec (275 total across 42 files)
 - [ ] 3.8 Runtime evidence: auth flows measured within the CPU budget on the dev deployment; rows-written recorded
 
 Exit gate: contract suite green for the auth + users surface; `auth.password.*` descope recorded in the manifest; runtime evidence within budget.

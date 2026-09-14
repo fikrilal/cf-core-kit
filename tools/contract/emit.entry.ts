@@ -6,7 +6,12 @@ import {
   registerAuthRoutes,
 } from "../../src/features/auth/auth.routes";
 import {
+  registerUsersRoutes,
+  usersOperations,
+} from "../../src/features/users/users.routes";
+import {
   applyErrorCodeExtensions,
+  applyOperationParameters,
   applySecuritySchemes,
 } from "../../src/platform/http/openapi";
 import type { AppEnv } from "../../src/platform/http/types";
@@ -20,6 +25,7 @@ export type EmitOptions = Readonly<{ title: string; version: string }>;
 const TAG_REGISTRY = [
   { name: "Health", description: "Service health and readiness endpoints." },
   { name: "Auth", description: "Authentication and session endpoints." },
+  { name: "Users", description: "User profile endpoints." },
 ];
 
 const SECURITY_SCHEMES = {
@@ -31,6 +37,7 @@ export function renderOpenApiYaml(options: EmitOptions): string {
 
   registerHealthRoutes(app);
   registerAuthRoutes(app);
+  registerUsersRoutes(app);
 
   const document: unknown = app.getOpenAPIDocument({
     openapi: "3.0.0",
@@ -44,8 +51,15 @@ export function renderOpenApiYaml(options: EmitOptions): string {
     servers: [{ url: "/" }],
   });
 
+  const operations = [
+    ...healthOperations,
+    ...authOperations,
+    ...usersOperations,
+  ];
+
   applySecuritySchemes(document, SECURITY_SCHEMES);
-  applyErrorCodeExtensions(document, [...healthOperations, ...authOperations]);
+  applyOperationParameters(document, operations);
+  applyErrorCodeExtensions(document, operations);
 
   return stringify(document, { indent: 2 });
 }

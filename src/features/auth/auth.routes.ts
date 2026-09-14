@@ -19,6 +19,8 @@ import {
   type AuthRateLimits,
 } from "./auth.rate-limits";
 import { noContent } from "../../platform/http/envelope";
+import { captureRawJson, rawJsonOf } from "../../platform/http/raw-body";
+import { rejectUnknownKeys } from "../../platform/http/validation";
 import { idempotent } from "../../platform/http/idempotency";
 import type { OperationMetadata } from "../../platform/http/openapi";
 import type { AppEnv } from "../../platform/http/types";
@@ -221,6 +223,12 @@ function createExchangeHandler(
 ): RouteHandler<typeof exchangeRoute, AppEnv> {
   return async (context) => {
     const body = context.req.valid("json");
+    rejectUnknownKeys(rawJsonOf(context), [
+      "provider",
+      "idToken",
+      "deviceId",
+      "deviceName",
+    ]);
     const result = await exchangeOidc(
       {
         db: databaseFrom(context),
@@ -251,6 +259,7 @@ function createConnectHandler(
     }
 
     const body = context.req.valid("json");
+    rejectUnknownKeys(rawJsonOf(context), ["provider", "idToken"]);
 
     await connectOidc(
       {
@@ -280,6 +289,7 @@ function createRefreshHandler(
 ): RouteHandler<typeof refreshRoute, AppEnv> {
   return async (context) => {
     const body = context.req.valid("json");
+    rejectUnknownKeys(rawJsonOf(context), ["refreshToken"]);
     const config = configFrom(context);
     const result = await refreshSession({
       db: databaseFrom(context),
@@ -300,6 +310,7 @@ function createLogoutHandler(
 ): RouteHandler<typeof logoutRoute, AppEnv> {
   return async (context) => {
     const body = context.req.valid("json");
+    rejectUnknownKeys(rawJsonOf(context), ["refreshToken"]);
 
     await logoutSession({
       db: databaseFrom(context),
@@ -320,6 +331,11 @@ export function registerAuthRoutes(
   const limiterFactory =
     dependencies.rateLimiterFactory ?? durableObjectLimiterFactory();
   registerAuthRateLimits(app, dependencies.rateLimits, limiterFactory);
+
+  app.use("/v1/auth/oidc/exchange", captureRawJson());
+  app.use("/v1/auth/oidc/connect", captureRawJson());
+  app.use("/v1/auth/refresh", captureRawJson());
+  app.use("/v1/auth/logout", captureRawJson());
 
   app.openapi(exchangeRoute, createExchangeHandler(verifier, clock));
 

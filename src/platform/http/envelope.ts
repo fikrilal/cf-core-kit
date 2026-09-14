@@ -1,5 +1,5 @@
-export type ListPayload = Readonly<{
-  items: readonly unknown[];
+export type ListPayload<T = unknown> = Readonly<{
+  items: readonly T[];
   limit: number;
   hasMore: boolean;
   nextCursor?: string;
@@ -9,20 +9,24 @@ export function data(payload: unknown, init?: ResponseInit): Response {
   return Response.json({ data: payload }, init);
 }
 
-export function list(payload: ListPayload, init?: ResponseInit): Response {
-  return Response.json(
-    {
-      data: payload.items,
-      meta: {
-        ...(payload.nextCursor === undefined
-          ? {}
-          : { nextCursor: payload.nextCursor }),
-        limit: payload.limit,
-        hasMore: payload.hasMore,
-      },
+export function listPayload<T>(payload: ListPayload<T>): {
+  data: T[];
+  meta: { limit: number; hasMore: boolean; nextCursor?: string };
+} {
+  return {
+    data: [...payload.items],
+    meta: {
+      ...(payload.nextCursor === undefined
+        ? {}
+        : { nextCursor: payload.nextCursor }),
+      limit: payload.limit,
+      hasMore: payload.hasMore,
     },
-    init,
-  );
+  };
+}
+
+export function list(payload: ListPayload, init?: ResponseInit): Response {
+  return Response.json(listPayload(payload), init);
 }
 
 export function created(

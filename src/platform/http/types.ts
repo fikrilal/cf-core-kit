@@ -4,6 +4,7 @@ export interface HttpVariables {
   requestId: string;
   principalId?: string;
   principal?: AccessTokenPrincipal;
+  rawJson?: unknown;
 }
 
 export interface AppEnv {

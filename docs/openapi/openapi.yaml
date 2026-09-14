@@ -9,6 +9,8 @@ tags:
     description: Service health and readiness endpoints.
   - name: Auth
     description: Authentication and session endpoints.
+  - name: Users
+    description: User profile endpoints.
 servers:
   - url: /
 components:
@@ -210,6 +212,126 @@ components:
           example: <refresh-token>
       required:
         - refreshToken
+    MeEnvelopeDto:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/MeDto"
+      required:
+        - data
+    PatchMeRequestDto:
+      type: object
+      properties:
+        profile:
+          $ref: "#/components/schemas/PatchMeProfileDto"
+      required:
+        - profile
+    PatchMeProfileDto:
+      type: object
+      properties:
+        displayName:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 100
+          example: Dante
+        givenName:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 100
+          example: Dante
+        familyName:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 100
+          example: Alighieri
+    MeSessionsListEnvelopeDto:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeSessionDto"
+        meta:
+          $ref: "#/components/schemas/CursorPaginationMetaDto"
+      required:
+        - data
+        - meta
+    MeSessionDto:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
+        deviceId:
+          type: string
+          nullable: true
+          example: device-a
+        deviceName:
+          type: string
+          nullable: true
+          example: iPhone 15
+        ip:
+          type: string
+          nullable: true
+          example: 203.0.113.10
+        userAgent:
+          type: string
+          nullable: true
+          maxLength: 512
+          example: Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)
+            AppleWebKit/605.1.15
+        lastSeenAt:
+          type: string
+          format: date-time
+          example: 2026-01-10T12:34:56.789Z
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-01-10T12:34:56.789Z
+        expiresAt:
+          type: string
+          format: date-time
+          example: 2026-02-10T12:34:56.789Z
+        revokedAt:
+          type: string
+          nullable: true
+          format: date-time
+          example: 2026-01-10T12:34:56.789Z
+        current:
+          type: boolean
+          example: true
+        status:
+          type: string
+          enum:
+            - active
+            - revoked
+            - expired
+          example: active
+      required:
+        - id
+        - lastSeenAt
+        - createdAt
+        - expiresAt
+        - current
+        - status
+    CursorPaginationMetaDto:
+      type: object
+      properties:
+        limit:
+          type: number
+          example: 25
+        hasMore:
+          type: boolean
+          example: true
+        nextCursor:
+          type: string
+          example: eyJ2IjoxLCJzb3J0IjoiLWNyZWF0ZWRBdCIsImFmdGVyIjp7fX0
+      required:
+        - limit
+        - hasMore
   parameters: {}
   securitySchemes:
     access-token:
@@ -403,4 +525,133 @@ paths:
                 required:
                   - keys
       x-error-codes:
+        - INTERNAL
+  /v1/me:
+    get:
+      operationId: users.me.get
+      tags:
+        - Users
+      summary: Get current user
+      description: Returns the authenticated user profile.
+      security:
+        - access-token: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeEnvelopeDto"
+      x-error-codes:
+        - UNAUTHORIZED
+        - INTERNAL
+    patch:
+      operationId: users.me.patch
+      tags:
+        - Users
+      summary: Update current user profile
+      description: Partially updates the authenticated user profile. Omitted fields
+        are unchanged; null clears a field.
+      security:
+        - access-token: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+            description: "Idempotency key for safe retries of write requests. Replays return
+              `Idempotency-Replayed: true`."
+          required: false
+          description: "Idempotency key for safe retries of write requests. Replays return
+            `Idempotency-Replayed: true`."
+          name: Idempotency-Key
+          in: header
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchMeRequestDto"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeEnvelopeDto"
+      x-error-codes:
+        - VALIDATION_FAILED
+        - UNAUTHORIZED
+        - IDEMPOTENCY_IN_PROGRESS
+        - CONFLICT
+        - INTERNAL
+  /v1/me/sessions:
+    get:
+      operationId: users.me.sessions.list
+      tags:
+        - Users
+      summary: List current user sessions
+      description: Lists all sessions (active, revoked, expired) for the authenticated
+        user. Revoked sessions have refresh tokens revoked; access tokens remain
+        valid until expiry.
+      security:
+        - access-token: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeSessionsListEnvelopeDto"
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Max results to return (default 25, max 100).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque cursor from the previous response meta.nextCursor.
+          schema:
+            type: string
+        - name: sort
+          in: query
+          required: false
+          description: 'Comma-separated fields; prefix "-" for descending. Max 3 fields.
+            Default: "-createdAt". Allowed: createdAt, id'
+          schema:
+            type: string
+            example: -createdAt
+      x-error-codes:
+        - VALIDATION_FAILED
+        - UNAUTHORIZED
+        - INTERNAL
+  /v1/me/sessions/{sessionId}/revoke:
+    post:
+      operationId: users.me.sessions.revoke
+      tags:
+        - Users
+      summary: Revoke a session (current user)
+      description: Revokes the given session and its refresh tokens. Idempotent.
+      security:
+        - access-token: []
+      parameters:
+        - schema:
+            type: string
+            example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
+          required: true
+          name: sessionId
+          in: path
+      responses:
+        "204":
+          description: ""
+      x-error-codes:
+        - VALIDATION_FAILED
+        - UNAUTHORIZED
+        - NOT_FOUND
         - INTERNAL

@@ -1,4 +1,4 @@
-export { loadMe, type MeView } from "./me";
+export { loadMe, updateMeProfile, type MeView, type ProfilePatch } from "./me";
 export {
   toAuthUserPayload,
   toMePayload,
