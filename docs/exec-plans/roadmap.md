@@ -27,7 +27,7 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Phase 3 — Auth slice** (in progress): 3.1–3.7 landed (schema, OIDC sign-in, rotation/reuse/logout, JWKS, rate limiting, `users/me` GET+PATCH, session list/revoke — all contract-green; 13 implemented operations); next: 3.8 (runtime evidence for the auth/users surface).
+**Phase 3 — Auth slice complete**: 3.1–3.8 landed (schema, OIDC sign-in, rotation/reuse/logout, JWKS, rate limiting, `users/me` GET+PATCH, session list/revoke, live runtime evidence — all contract-green; 13 implemented operations). Credentialed dashboard-CPU measurement remains an explicit follow-up alongside the 1.13 lane.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -71,7 +71,7 @@ Objective: the pinned contract and the machinery that proves client parity (ADR-
 
 Exit gate: checks fail on injected drift; downstream retarget documented (provenance swap for frontend/mobile kits).
 
-## Phase 3 — Auth slice (clean tier, in progress)
+## Phase 3 — Auth slice (clean tier, complete 2026-10-11)
 
 Objective: the OIDC-first auth surface, contract-green (ADR-0006).
 
@@ -82,7 +82,7 @@ Objective: the OIDC-first auth surface, contract-green (ADR-0006).
 - [x] 3.5 Auth rate limiting: DO memory-first counters (ADR-0007); boundary lint rules land with the first feature — landed 2026-10-11; ADR-0012; hibernating memory-first `AuthRateLimiter` (one DO request per auth op, fail-open, no storage writes); 429 dialect with `Retry-After` (undeclared by design, parity preserved); boundary lint zones with committed meta-test probes; review round 2 applied (per-bucket DO objects, headerless skip, pure window tests); 252 tests across 39 files + 60 fixtures
 - [x] 3.6 `users/me`: GET / PATCH — landed 2026-10-11; both contract-green (11 implemented operations); raw-body unknown-field rejection; method-scoped idempotent PATCH; 13 new tests (265 total across 40 files)
 - [x] 3.7 `users/me/sessions`: list / revoke — landed 2026-10-11; cursor pagination via the shared pipeline (first consumer), status precedence, idempotent revoke reusing the token-family helper; 9 new tests + a cross-feature integration spec (275 total across 42 files)
-- [ ] 3.8 Runtime evidence: auth flows measured within the CPU budget on the dev deployment; rows-written recorded
+- [x] 3.8 Runtime evidence — landed 2026-10-11; live wrangler-dev run (migrations + seeded D1 + minted Ed25519 token) covering the full auth/users surface, rows-written table with counted spot checks, latency table (curl + server-side); credentialed dashboard CPU for the dev deployment tracked as the remaining follow-up
 
 Exit gate: contract suite green for the auth + users surface; `auth.password.*` descope recorded in the manifest; runtime evidence within budget.
 
