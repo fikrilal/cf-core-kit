@@ -28,10 +28,11 @@ First deploy (dev):
 
 1. `npx wrangler login`
 2. `npx wrangler d1 create cf-core-kit-dev` — paste the returned id into `wrangler.jsonc` (top-level and `env.dev`); repeat with `cf-core-kit-staging` / `cf-core-kit-prod` when those lanes go live
-3. `npx wrangler d1 migrations apply cf-core-kit-dev --remote`
-4. `npm run deploy`
-5. Smoke: `curl -fsS https://cf-core-kit-dev.<subdomain>.workers.dev/health` and `/ready` (both `{"status":"ok"}`); every response echoes `X-Request-Id`
-6. Budget evidence: after real traffic, read CPU time per route class in the Workers dashboard (Metrics); keep invocation CPU under the 10 ms free-tier budget (ADR-0005)
+3. `npx wrangler queues create cf-core-kit-jobs-dev` and `npx wrangler queues create cf-core-kit-dlq-dev` — consumers cannot deploy before their queues exist; repeat per environment (`...-staging`, `...-prod`)
+4. `npx wrangler d1 migrations apply cf-core-kit-dev --remote`
+5. `npm run deploy`
+6. Smoke: `curl -fsS https://cf-core-kit-dev.<subdomain>.workers.dev/health` and `/ready` (both `{"status":"ok"}`); every response echoes `X-Request-Id`
+7. Budget evidence: after real traffic, read CPU time per route class in the Workers dashboard (Metrics); keep invocation CPU under the 10 ms free-tier budget (ADR-0005)
 
 Secrets: `npx wrangler secret put NAME --env dev`; local secrets live in `.dev.vars` (never committed).
 

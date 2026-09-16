@@ -27,7 +27,7 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Phase 3 — Auth slice complete**: 3.1–3.8 landed (schema, OIDC sign-in, rotation/reuse/logout, JWKS, rate limiting, `users/me` GET+PATCH, session list/revoke, live runtime evidence — all contract-green; 13 implemented operations). Credentialed dashboard-CPU measurement remains an explicit follow-up alongside the 1.13 lane.
+**Phase 4 — Background processing + platform services** (in progress): 4.1 landed (queue platform: versioned job envelope, typed registry, producer/consumer/DLQ helpers, retry/backoff defaults, budget checks, `queues-jobs` standard — all gates green; 290 tests across 45 files); next: 4.2 (first jobs: one fan-out cron + session/credential sweeps), then 4.3 (R2 presign) and 4.4 (observability pass). The Phase 3 credentialed dashboard-CPU follow-up stays tracked in its plan.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -88,7 +88,7 @@ Exit gate: contract suite green for the auth + users surface; `auth.password.*` 
 
 ## Phase 4 — Background processing + platform services
 
-- [ ] 4.1 Queue platform: producer/consumer helpers, job envelope + trace propagation, retry/backoff defaults, DLQ policy
+- [x] 4.1 Queue platform: producer/consumer helpers, job envelope + trace propagation, retry/backoff defaults, DLQ policy — landed 2026-10-11; one work queue + DLQ per environment (names/bounds/DLQ linkage budget-checked), versioned envelope with trace propagation, explicit per-message ack/retry with 30s-exponential+jitter backoff, DLQ consumer, worker `queue` handler; `queues-jobs` standard normative; 18 new tests + 4 budget fixtures
 - [ ] 4.2 First jobs: one fan-out cron + session/credential sweeps; idempotent handler pattern with tests
 - [ ] 4.3 R2 module: presign PUT/GET helpers (lands when a feature needs objects)
 - [ ] 4.4 Observability pass: log-economy check, `traceId` propagation assertions
