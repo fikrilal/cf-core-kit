@@ -39,6 +39,30 @@
       "migrations_dir": "db/migrations",
     },
   ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "JOBS",
+        "queue": "cf-core-kit-jobs-dev",
+      },
+    ],
+    "consumers": [
+      {
+        "queue": "cf-core-kit-jobs-dev",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+        "retry_delay": 30,
+        "dead_letter_queue": "cf-core-kit-dlq-dev",
+      },
+      {
+        "queue": "cf-core-kit-dlq-dev",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+      },
+    ],
+  },
   "env": {
     "dev": {
       "name": "cf-core-kit-dev",
@@ -68,6 +92,30 @@
           "migrations_dir": "db/migrations",
         },
       ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "JOBS",
+            "queue": "cf-core-kit-jobs-dev",
+          },
+        ],
+        "consumers": [
+          {
+            "queue": "cf-core-kit-jobs-dev",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+            "retry_delay": 30,
+            "dead_letter_queue": "cf-core-kit-dlq-dev",
+          },
+          {
+            "queue": "cf-core-kit-dlq-dev",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+          },
+        ],
+      },
     },
     "staging": {
       "name": "cf-core-kit-staging",
@@ -97,6 +145,30 @@
           "migrations_dir": "db/migrations",
         },
       ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "JOBS",
+            "queue": "cf-core-kit-jobs-staging",
+          },
+        ],
+        "consumers": [
+          {
+            "queue": "cf-core-kit-jobs-staging",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+            "retry_delay": 30,
+            "dead_letter_queue": "cf-core-kit-dlq-staging",
+          },
+          {
+            "queue": "cf-core-kit-dlq-staging",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+          },
+        ],
+      },
     },
     "prod": {
       "name": "cf-core-kit-prod",
@@ -126,6 +198,30 @@
           "migrations_dir": "db/migrations",
         },
       ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "JOBS",
+            "queue": "cf-core-kit-jobs-prod",
+          },
+        ],
+        "consumers": [
+          {
+            "queue": "cf-core-kit-jobs-prod",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+            "retry_delay": 30,
+            "dead_letter_queue": "cf-core-kit-dlq-prod",
+          },
+          {
+            "queue": "cf-core-kit-dlq-prod",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+          },
+        ],
+      },
     },
   },
 }

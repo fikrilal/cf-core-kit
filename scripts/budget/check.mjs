@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
+
 import { join, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -9,6 +10,22 @@ export const SUBTLE_ALLOWED_PREFIXES = ["src/platform/"];
 export const ENV_ALLOWED_PREFIXES = ["src/platform/"];
 export const ENV_ALLOWED_PATHS = ["src/app.ts"];
 export const KV_ALLOWLIST = [];
+export const MAX_QUEUE_CONSUMERS = 2;
+export const MAX_QUEUE_RETRIES = 5;
+export const MAX_QUEUE_BATCH_SIZE = 10;
+export const MAX_QUEUE_BATCH_TIMEOUT_SECONDS = 10;
+export const REQUIRED_QUEUE_SCOPES = [
+  "root",
+  "env.dev",
+  "env.staging",
+  "env.prod",
+];
+export const JOB_QUEUE_PREFIX = "cf-core-kit-jobs";
+export const DEAD_LETTER_QUEUE_PREFIX = "cf-core-kit-dlq";
+export const QUEUE_BINDING_NAME = "JOBS";
+export const QUEUE_BINDING_PATTERN = /env\.JOBS\b/;
+export const QUEUE_BINDING_ALLOWED_PREFIXES = ["src/platform/"];
+export const QUEUE_BINDING_ALLOWED_PATHS = ["src/app.ts", "src/worker.ts"];
 
 const NODE_CRYPTO_PATTERN =
   /\bfrom\s+["']node:crypto["']|require\(\s*["']node:crypto["']\s*\)/;
@@ -116,14 +133,194 @@ export function checkKvAccess(files, options = {}) {
   return violations;
 }
 
-export function parseCronTriggers(wranglerContent) {
+export function parseWranglerJsonc(wranglerContent) {
   const stripped = wranglerContent
     .replace(/^\s*\/\/.*$/gm, "")
     .replace(/,\s*([}\]])/g, "$1");
-  const parsed = JSON.parse(stripped);
-  const crons = parsed?.triggers?.crons ?? [];
+
+  return JSON.parse(stripped);
+}
+
+export function parseCronTriggers(wranglerContent) {
+  const crons = parseWranglerJsonc(wranglerContent)?.triggers?.crons ?? [];
 
   return Array.isArray(crons) ? crons : [];
+}
+
+function appEnvForScope(scope) {
+  return scope === "root" ? "dev" : scope.replace("env.", "");
+}
+
+function resolveScopeQueues(parsed, scope) {
+  if (scope === "root") return parsed?.queues;
+
+  const envName = scope.startsWith("env.") ? scope.slice(4) : scope;
+
+  return parsed?.env?.[envName]?.queues;
+}
+
+function collectQueueScopes(parsed) {
+  const scopes = ["root"];
+
+  for (const env of Object.keys(parsed?.env ?? {})) {
+    scopes.push(`env.${env}`);
+  }
+
+  return scopes;
+}
+
+export function checkQueueConfig(wranglerContent, options = {}) {
+  const maxConsumers = options.maxConsumers ?? MAX_QUEUE_CONSUMERS;
+  const maxRetries = options.maxRetries ?? MAX_QUEUE_RETRIES;
+  const maxBatchSize = options.maxBatchSize ?? MAX_QUEUE_BATCH_SIZE;
+  const maxBatchTimeout =
+    options.maxBatchTimeoutSeconds ?? MAX_QUEUE_BATCH_TIMEOUT_SECONDS;
+  const requiredScopes = options.requiredScopes ?? REQUIRED_QUEUE_SCOPES;
+  let parsed;
+  let scopeNames;
+
+  try {
+    parsed = parseWranglerJsonc(wranglerContent);
+    scopeNames = [
+      ...new Set([...requiredScopes, ...collectQueueScopes(parsed)]),
+    ];
+  } catch (error) {
+    return [
+      {
+        file: "wrangler.jsonc",
+        rule: "queue",
+        detail: `could not parse: ${String(error)}`,
+      },
+    ];
+  }
+
+  const violations = [];
+  const push = (scope, detail) => {
+    violations.push({
+      file: "wrangler.jsonc",
+      rule: "queue",
+      detail: `${scope}: ${detail}`,
+    });
+  };
+
+  for (const scope of scopeNames) {
+    const appEnv = appEnvForScope(scope);
+    const queues = resolveScopeQueues(parsed, scope);
+
+    if (queues === undefined) {
+      push(scope, "missing queues block");
+
+      continue;
+    }
+
+    const producers = Array.isArray(queues.producers) ? queues.producers : [];
+    const consumers = Array.isArray(queues.consumers) ? queues.consumers : [];
+    const expectedJobQueue = `${JOB_QUEUE_PREFIX}-${appEnv}`;
+    const expectedDlq = `${DEAD_LETTER_QUEUE_PREFIX}-${appEnv}`;
+
+    if (
+      producers.length !== 1 ||
+      producers[0].binding !== QUEUE_BINDING_NAME ||
+      producers[0].queue !== expectedJobQueue
+    ) {
+      push(
+        scope,
+        `expected exactly one producer binding ${QUEUE_BINDING_NAME} -> ${expectedJobQueue}`,
+      );
+    }
+
+    if (consumers.length > maxConsumers) {
+      push(
+        scope,
+        `${String(consumers.length)} consumers configured; budget is ${String(maxConsumers)}`,
+      );
+    }
+
+    const workConsumers = consumers.filter(
+      (consumer) => consumer.queue !== expectedDlq,
+    );
+    const dlqConsumers = consumers.filter(
+      (consumer) => consumer.queue === expectedDlq,
+    );
+
+    if (
+      workConsumers.length !== 1 ||
+      workConsumers[0].queue !== expectedJobQueue
+    ) {
+      push(scope, `expected exactly one consumer for ${expectedJobQueue}`);
+    } else if (workConsumers[0].dead_letter_queue !== expectedDlq) {
+      push(
+        scope,
+        `work consumer must declare dead_letter_queue ${expectedDlq}`,
+      );
+    }
+
+    if (dlqConsumers.length !== 1) {
+      push(scope, `expected exactly one consumer for ${expectedDlq}`);
+    }
+
+    for (const consumer of consumers) {
+      const queue = String(consumer.queue);
+
+      if (
+        !Number.isInteger(consumer.max_retries) ||
+        consumer.max_retries < 1 ||
+        consumer.max_retries > maxRetries
+      ) {
+        push(
+          queue,
+          `max_retries must be an integer within 1..${String(maxRetries)}`,
+        );
+      }
+
+      if (
+        !Number.isInteger(consumer.max_batch_size) ||
+        consumer.max_batch_size < 1 ||
+        consumer.max_batch_size > maxBatchSize
+      ) {
+        push(
+          queue,
+          `max_batch_size must be an integer within 1..${String(maxBatchSize)}`,
+        );
+      }
+
+      if (
+        !Number.isInteger(consumer.max_batch_timeout) ||
+        consumer.max_batch_timeout < 0 ||
+        consumer.max_batch_timeout > maxBatchTimeout
+      ) {
+        push(
+          queue,
+          `max_batch_timeout must be an integer within 0..${String(maxBatchTimeout)} seconds`,
+        );
+      }
+    }
+  }
+
+  return violations;
+}
+
+export function checkQueueBindingConfinement(files, options = {}) {
+  const allowedPrefixes =
+    options.allowedPrefixes ?? QUEUE_BINDING_ALLOWED_PREFIXES;
+  const allowedPaths = options.allowedPaths ?? QUEUE_BINDING_ALLOWED_PATHS;
+  const violations = [];
+
+  for (const file of files) {
+    if (
+      QUEUE_BINDING_PATTERN.test(file.content) &&
+      !isAllowed(file.path, allowedPrefixes, allowedPaths)
+    ) {
+      violations.push({
+        file: file.path,
+        rule: "queue",
+        detail:
+          "env.JOBS is only allowed in src/platform/, src/app.ts, and src/worker.ts",
+      });
+    }
+  }
+
+  return violations;
 }
 
 export function checkCronCount(wranglerContent, options = {}) {
@@ -222,6 +419,8 @@ export function runChecks(root) {
       ...checkEnvConfinement(files),
       ...checkKvAccess(files),
       ...checkCronCount(wrangler),
+      ...checkQueueConfig(wrangler),
+      ...checkQueueBindingConfinement(files),
       ...bundle.violations,
     ],
   };

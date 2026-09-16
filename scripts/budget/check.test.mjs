@@ -1,15 +1,53 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import {
   checkBundleSize,
   checkCronCount,
   checkCryptoAllowlist,
   checkEnvConfinement,
   checkKvAccess,
+  checkQueueBindingConfinement,
+  checkQueueConfig,
+  DEAD_LETTER_QUEUE_PREFIX,
+  JOB_QUEUE_PREFIX,
 } from "./check.mjs";
 
 const file = (path, content) => ({ path, content });
+
+const queueBlock = (appEnv) => ({
+  producers: [{ binding: "JOBS", queue: `${JOB_QUEUE_PREFIX}-${appEnv}` }],
+  consumers: [
+    {
+      queue: `${JOB_QUEUE_PREFIX}-${appEnv}`,
+      max_batch_size: 10,
+      max_batch_timeout: 5,
+      max_retries: 3,
+      retry_delay: 30,
+      dead_letter_queue: `${DEAD_LETTER_QUEUE_PREFIX}-${appEnv}`,
+    },
+    {
+      queue: `${DEAD_LETTER_QUEUE_PREFIX}-${appEnv}`,
+      max_batch_size: 10,
+      max_batch_timeout: 5,
+      max_retries: 3,
+    },
+  ],
+});
+
+const wrangler = (value) => JSON.stringify(value, null, 2);
+
+const fullConfig = () => ({
+  queues: queueBlock("dev"),
+  env: {
+    dev: { queues: queueBlock("dev") },
+    staging: { queues: queueBlock("staging") },
+    prod: { queues: queueBlock("prod") },
+  },
+});
 
 test("crypto allowlist: node:crypto is rejected anywhere", () => {
   const violations = checkCryptoAllowlist([
@@ -81,4 +119,124 @@ test("bundle size: parses the dry-run output and enforces the budget", () => {
     1,
   );
   assert.equal(checkBundleSize("no size here").violations.length, 1);
+});
+
+test("queue config: well-formed scopes pass and are pinned to the naming helpers", () => {
+  assert.equal(
+    checkQueueConfig(
+      wrangler({
+        queues: queueBlock("dev"),
+        env: {
+          dev: { queues: queueBlock("dev") },
+          staging: { queues: queueBlock("staging") },
+          prod: { queues: queueBlock("prod") },
+        },
+      }),
+    ).length,
+    0,
+  );
+
+  const source = readFileSync(
+    join(import.meta.dirname, "../../src/platform/queue/names.ts"),
+    "utf8",
+  );
+  assert.match(
+    source,
+    new RegExp(`JOB_QUEUE_PREFIX = "${JOB_QUEUE_PREFIX}"`),
+    "the check prefix must match the platform helper",
+  );
+  assert.match(
+    source,
+    new RegExp(`DEAD_LETTER_QUEUE_PREFIX = "${DEAD_LETTER_QUEUE_PREFIX}"`),
+    "the check prefix must match the platform helper",
+  );
+});
+
+test("queue config: wrong names, missing DLQ, and extra consumers fail", () => {
+  const wrongName = fullConfig();
+  wrongName.env.dev.queues.producers[0].queue = `${JOB_QUEUE_PREFIX}-staging`;
+  assert.ok(
+    checkQueueConfig(wrangler(wrongName)).some((violation) =>
+      violation.detail.includes("producer binding"),
+    ),
+  );
+
+  const noDlq = fullConfig();
+  delete noDlq.env.dev.queues.consumers[0].dead_letter_queue;
+  assert.ok(
+    checkQueueConfig(wrangler(noDlq)).some((violation) =>
+      violation.detail.includes("dead_letter_queue"),
+    ),
+  );
+
+  const extra = fullConfig();
+  extra.env.dev.queues.consumers.push({
+    queue: "another-queue",
+    max_batch_size: 10,
+    max_batch_timeout: 5,
+    max_retries: 3,
+    dead_letter_queue: `${DEAD_LETTER_QUEUE_PREFIX}-dev`,
+  });
+  assert.ok(
+    checkQueueConfig(wrangler(extra)).some((violation) =>
+      violation.detail.includes("consumers configured"),
+    ),
+  );
+});
+
+test("queue config: a scope that omits its queues block is flagged", () => {
+  const violations = checkQueueConfig(wrangler({ queues: queueBlock("dev") }));
+
+  for (const scope of ["env.dev", "env.staging", "env.prod"]) {
+    assert.ok(
+      violations.some((violation) =>
+        violation.detail.startsWith(`${scope}: missing queues block`),
+      ),
+      `expected ${scope} to be flagged`,
+    );
+  }
+});
+
+test("queue config: retry, batch-size, and timeout bounds are enforced", () => {
+  const overRetries = fullConfig();
+  overRetries.env.dev.queues.consumers[0].max_retries = 6;
+  assert.ok(
+    checkQueueConfig(wrangler(overRetries)).some((violation) =>
+      violation.detail.includes("max_retries"),
+    ),
+  );
+
+  const overBatch = fullConfig();
+  overBatch.env.dev.queues.consumers[0].max_batch_size = 11;
+  assert.ok(
+    checkQueueConfig(wrangler(overBatch)).some((violation) =>
+      violation.detail.includes("max_batch_size"),
+    ),
+  );
+
+  const overTimeout = fullConfig();
+  overTimeout.env.dev.queues.consumers[0].max_batch_timeout = 11;
+  assert.ok(
+    checkQueueConfig(wrangler(overTimeout)).some((violation) =>
+      violation.detail.includes("max_batch_timeout"),
+    ),
+  );
+});
+
+test("queue binding: env.JOBS is confined to the platform and composition roots", () => {
+  assert.equal(
+    checkQueueBindingConfinement([file("src/platform/queue/p.ts", "env.JOBS;")])
+      .length,
+    0,
+  );
+  assert.equal(
+    checkQueueBindingConfinement([file("src/worker.ts", "env.JOBS;")]).length,
+    0,
+  );
+
+  const violations = checkQueueBindingConfinement([
+    file("src/features/auth/a.ts", "await env.JOBS.send({});"),
+  ]);
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].rule, "queue");
 });
