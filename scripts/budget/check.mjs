@@ -141,12 +141,6 @@ export function parseWranglerJsonc(wranglerContent) {
   return JSON.parse(stripped);
 }
 
-export function parseCronTriggers(wranglerContent) {
-  const crons = parseWranglerJsonc(wranglerContent)?.triggers?.crons ?? [];
-
-  return Array.isArray(crons) ? crons : [];
-}
-
 function appEnvForScope(scope) {
   return scope === "root" ? "dev" : scope.replace("env.", "");
 }
@@ -325,10 +319,10 @@ export function checkQueueBindingConfinement(files, options = {}) {
 
 export function checkCronCount(wranglerContent, options = {}) {
   const maxCrons = options.maxCrons ?? MAX_CRON_TRIGGERS;
-  let crons;
+  let parsed;
 
   try {
-    crons = parseCronTriggers(wranglerContent);
+    parsed = parseWranglerJsonc(wranglerContent);
   } catch (error) {
     return [
       {
@@ -339,17 +333,28 @@ export function checkCronCount(wranglerContent, options = {}) {
     ];
   }
 
-  if (crons.length > maxCrons) {
-    return [
-      {
+  const scopes = [
+    ["root", parsed?.triggers?.crons],
+    ...Object.entries(parsed?.env ?? {}).map(([env, value]) => [
+      `env.${env}`,
+      value?.triggers?.crons,
+    ]),
+  ];
+  const violations = [];
+
+  for (const [scope, crons] of scopes) {
+    if (!Array.isArray(crons)) continue;
+
+    if (crons.length > maxCrons) {
+      violations.push({
         file: "wrangler.jsonc",
         rule: "crons",
-        detail: `${String(crons.length)} cron triggers configured; budget is ${String(maxCrons)}`,
-      },
-    ];
+        detail: `${scope}: ${String(crons.length)} cron triggers configured; budget is ${String(maxCrons)}`,
+      });
+    }
   }
 
-  return [];
+  return violations;
 }
 
 export function checkBundleSize(output, options = {}) {

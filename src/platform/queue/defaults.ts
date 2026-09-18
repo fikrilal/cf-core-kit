@@ -8,6 +8,8 @@ export const QUEUE_DEFAULTS = {
 
 export const MAX_MESSAGE_DELAY_SECONDS = 86_400;
 
+export const SWEEP_BATCH_SIZE = 50;
+
 export type RetryDelayOptions = Readonly<{
   baseDelaySeconds?: number;
   jitterRatio?: number;

@@ -46,3 +46,9 @@ export type JobEnvelope = Readonly<{
   enqueuedAt: string;
   payload: unknown;
 }>;
+
+export const schedulePayloadSchema = z.object({
+  scheduledFor: z.iso.datetime(),
+});
+
+export type SchedulePayload = z.infer<typeof schedulePayloadSchema>;

@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { z } from "zod";
 
 import type { LogFields, Logger } from "../src/platform/logging/logger";
@@ -113,5 +114,39 @@ export function sampleEnvelope(
     enqueuedAt: "2026-06-01T00:00:00.000Z",
     payload: { userId: "user-1" },
     ...overrides,
+  };
+}
+
+export function captureConsoleLogs(): {
+  records: Record<string, unknown>[];
+  restore: () => void;
+} {
+  const records: Record<string, unknown>[] = [];
+  const spy = vi.spyOn(console, "log").mockImplementation((value: unknown) => {
+    if (typeof value !== "string") return;
+
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (
+        typeof parsed !== "object" ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
+        return;
+      }
+
+      const record: Record<string, unknown> = {};
+      for (const [key, entry] of Object.entries(parsed)) record[key] = entry;
+      if (typeof record.message === "string") records.push(record);
+    } catch {
+      // non-JSON logs are not part of the assertion surface
+    }
+  });
+
+  return {
+    records,
+    restore: () => {
+      spy.mockRestore();
+    },
   };
 }

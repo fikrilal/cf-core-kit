@@ -320,13 +320,14 @@ describe("idempotency records maintenance", () => {
 
   it("sweeps expired records only", async () => {
     const db = createDb(env.DB);
+    const now = 1_000_000;
 
     await db.run(sql`
       INSERT OR REPLACE INTO idempotency_records (key, record, expires_at)
-      VALUES ('sweep-a', '{}', 1), ('sweep-b', '{}', ${Date.now() + 60_000})
+      VALUES ('sweep-a', '{}', ${now - 1}), ('sweep-b', '{}', ${now + 60_000})
     `);
 
-    await deleteExpiredIdempotencyRecords(db);
+    await deleteExpiredIdempotencyRecords(db, { nowMs: now, limit: 50 });
 
     const remaining = await db.get<{ total: number }>(sql`
       SELECT COUNT(*) AS total FROM idempotency_records WHERE key IN ('sweep-a', 'sweep-b')

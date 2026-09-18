@@ -276,10 +276,16 @@ export async function releaseIdempotency(
 
 export async function deleteExpiredIdempotencyRecords(
   db: Database,
-  nowMs = Date.now(),
+  input: Readonly<{ nowMs: number; limit: number }>,
 ): Promise<number> {
   const result = await db.run(sql`
-    DELETE FROM idempotency_records WHERE expires_at <= ${nowMs}
+    DELETE FROM idempotency_records
+    WHERE key IN (
+      SELECT key FROM idempotency_records
+      WHERE expires_at <= ${input.nowMs}
+      ORDER BY expires_at
+      LIMIT ${input.limit}
+    )
   `);
 
   return result.meta.changes;

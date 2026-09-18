@@ -116,6 +116,9 @@
           },
         ],
       },
+      "triggers": {
+        "crons": ["0 * * * *"],
+      },
     },
     "staging": {
       "name": "cf-core-kit-staging",
@@ -168,6 +171,9 @@
             "max_retries": 3,
           },
         ],
+      },
+      "triggers": {
+        "crons": ["0 * * * *"],
       },
     },
     "prod": {
@@ -222,6 +228,12 @@
           },
         ],
       },
+      "triggers": {
+        "crons": ["0 * * * *"],
+      },
     },
+  },
+  "triggers": {
+    "crons": ["0 * * * *"],
   },
 }

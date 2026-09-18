@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lte } from "drizzle-orm";
 
 import type { Database } from "../../platform/db/db";
 import { runBatch } from "../../platform/db/db";
@@ -217,4 +217,23 @@ export async function revokeSessionAndTokens(
       .set({ revokedAt: now, activeKey: null, updatedAt: now })
       .where(and(eq(sessions.id, sessionId), isNull(sessions.revokedAt))),
   ]);
+}
+
+export async function purgeExpiredSessions(
+  db: Database,
+  input: Readonly<{ now: Date; limit: number }>,
+): Promise<number> {
+  const doomed = db
+    .select({ id: sessions.id })
+    .from(sessions)
+    .where(lte(sessions.expiresAt, input.now))
+    .orderBy(asc(sessions.expiresAt))
+    .limit(input.limit);
+
+  const deleted = await db
+    .delete(sessions)
+    .where(inArray(sessions.id, doomed))
+    .returning({ id: sessions.id });
+
+  return deleted.length;
 }

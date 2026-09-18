@@ -121,6 +121,31 @@ test("bundle size: parses the dry-run output and enforces the budget", () => {
   assert.equal(checkBundleSize("no size here").violations.length, 1);
 });
 
+test("cron count: environment scopes are enforced separately", () => {
+  assert.equal(
+    checkCronCount(
+      wrangler({
+        triggers: { crons: ["0 * * * *"] },
+        env: {
+          dev: { triggers: { crons: ["0 * * * *"] } },
+          staging: { triggers: { crons: ["0 * * * *"] } },
+        },
+      }),
+    ).length,
+    0,
+  );
+
+  const violations = checkCronCount(
+    wrangler({
+      triggers: { crons: ["0 * * * *"] },
+      env: { staging: { triggers: { crons: ["0 * * * *", "30 * * * *"] } } },
+    }),
+  );
+
+  assert.equal(violations.length, 1);
+  assert.ok(violations[0].detail.startsWith("env.staging:"));
+});
+
 test("queue config: well-formed scopes pass and are pinned to the naming helpers", () => {
   assert.equal(
     checkQueueConfig(
