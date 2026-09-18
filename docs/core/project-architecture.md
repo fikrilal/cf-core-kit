@@ -18,6 +18,7 @@ cf-core-kit/
 ├─ src/
 │  ├─ worker.ts              # fetch / queue / scheduled handlers + DO class exports
 │  ├─ app.ts                 # composition root (middleware + feature mounting)
+│  ├─ jobs.ts                # job registry + scheduled fan-out composition
 │  ├─ platform/              # cross-cutting concerns; never imports features
 │  │  ├─ config/             # zod-validated env; raw env access stays inside src/platform
 │  │  ├─ http/               # envelope, problem details, request id, validation, idempotency, list query

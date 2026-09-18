@@ -71,6 +71,22 @@ Status: normative (landed 2026-10-11, task 4.1). This standard mirrors backend-c
 - Message retention is fixed at 24 hours on the Free plan: handlers must run fast and must not
   depend on delivery latency; `delaySeconds` is bounded at 24 hours.
 
+## Scheduled sweeps (shipped conventions)
+
+- The single hourly cron (`0 * * * *`, all four scopes) enqueues the registered sweeps and
+  returns — it never touches data.
+- Jobs are enqueued per tick with `jobId = <job>-<scheduledFor ISO>` and
+  `traceId = cron:<scheduledFor ISO>`. The transport has no dedupe, so correctness comes from
+  the handlers, not the message ids.
+- Sweep handlers are naturally idempotent, bounded deletes: `SWEEP_BATCH_SIZE = 50` rows per
+  run through an ordered subquery, so backlogs drain across ticks instead of in one unbounded
+  statement. A duplicate tick deletes nothing; a missed tick is not an incident.
+- Sweeps are housekeeping, never enforcement — expiry is enforced lazily at use time, so sweep
+  latency never affects correctness.
+- Current retention: expired sessions (their refresh tokens cascade) and expired idempotency
+  records. There is deliberately **no token-only sweep**: the reuse-detection window must
+  equal the session lifetime, and the cascade reclaims tokens when the session expires.
+
 ## Definition of done for a new job
 
 - `defineJob` next to its feature with a payload schema and a typed handler; registered in the

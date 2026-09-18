@@ -27,7 +27,7 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Phase 4 — Background processing + platform services** (in progress): 4.1 landed (queue platform: versioned job envelope, typed registry, producer/consumer/DLQ helpers, retry/backoff defaults, budget checks, `queues-jobs` standard — all gates green; 290 tests across 45 files); next: 4.2 (first jobs: one fan-out cron + session/credential sweeps), then 4.3 (R2 presign) and 4.4 (observability pass). The Phase 3 credentialed dashboard-CPU follow-up stays tracked in its plan.
+**Phase 4 — Background processing + platform services** (in progress): 4.1–4.2 landed (queue platform with envelope/registry/producer/consumer/DLQ + budget checks; hourly fan-out cron; bounded idempotent sweeps for expired sessions and idempotency records, proven through real queue delivery in the pool) — all gates green; 301 tests across 48 files. Next: 4.3 (R2 presign) and 4.4 (observability pass). The Phase 3 credentialed dashboard-CPU follow-up stays tracked in its plan.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -89,7 +89,7 @@ Exit gate: contract suite green for the auth + users surface; `auth.password.*` 
 ## Phase 4 — Background processing + platform services
 
 - [x] 4.1 Queue platform: producer/consumer helpers, job envelope + trace propagation, retry/backoff defaults, DLQ policy — landed 2026-10-11; one work queue + DLQ per environment (names/bounds/DLQ linkage budget-checked), versioned envelope with trace propagation, explicit per-message ack/retry with 30s-exponential+jitter backoff, DLQ consumer, worker `queue` handler; `queues-jobs` standard normative; 18 new tests + 4 budget fixtures
-- [ ] 4.2 First jobs: one fan-out cron + session/credential sweeps; idempotent handler pattern with tests
+- [x] 4.2 First jobs: one fan-out cron + session/credential sweeps; idempotent handler pattern with tests — landed 2026-10-11; hourly cron enqueues `auth.purgeExpiredSessions` + `http.purgeExpiredIdempotencyRecords` (deterministic per-tick ids, `cron:<iso>` trace); bounded deletes (`SWEEP_BATCH_SIZE`), cascade-verified; per-scope cron budget check; real queue delivery exercised in the pool (`queueConsumers`) with tick-idempotency proven; 8 new tests (301 total across 48 files)
 - [ ] 4.3 R2 module: presign PUT/GET helpers (lands when a feature needs objects)
 - [ ] 4.4 Observability pass: log-economy check, `traceId` propagation assertions
 
