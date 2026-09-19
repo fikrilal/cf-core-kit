@@ -24,6 +24,7 @@ export const JOB_QUEUE_PREFIX = "cf-core-kit-jobs";
 export const DEAD_LETTER_QUEUE_PREFIX = "cf-core-kit-dlq";
 export const QUEUE_BINDING_NAME = "JOBS";
 export const STORAGE_SIGNER_ALLOWED_PREFIXES = ["src/platform/storage/"];
+export const CONSOLE_ALLOWED_PREFIXES = ["src/platform/logging/"];
 export const QUEUE_BINDING_PATTERN = /env\.JOBS\b/;
 export const QUEUE_BINDING_ALLOWED_PREFIXES = ["src/platform/"];
 export const QUEUE_BINDING_ALLOWED_PATHS = ["src/app.ts", "src/worker.ts"];
@@ -296,6 +297,29 @@ export function checkQueueConfig(wranglerContent, options = {}) {
 }
 
 const AWS4FETCH_PATTERN = /from\s+["']aws4fetch["']/;
+const CONSOLE_PATTERN = /console\.(log|info|warn|error|debug|trace)\s*\(/;
+
+export function checkConsoleConfinement(files, options = {}) {
+  const allowedPrefixes = options.allowedPrefixes ?? CONSOLE_ALLOWED_PREFIXES;
+  const violations = [];
+
+  for (const file of files) {
+    if (
+      CONSOLE_PATTERN.test(file.content) &&
+      !isAllowed(file.path, allowedPrefixes)
+    ) {
+      violations.push({
+        file: file.path,
+        rule: "logging",
+        detail:
+          "console is confined to src/platform/logging/; use the level-aware logger",
+      });
+    }
+  }
+
+  return violations;
+}
+
 export function checkStorageSignerConfinement(files, options = {}) {
   const allowedPrefixes =
     options.allowedPrefixes ?? STORAGE_SIGNER_ALLOWED_PREFIXES;
@@ -450,6 +474,7 @@ export function runChecks(root) {
       ...checkQueueConfig(wrangler),
       ...checkQueueBindingConfinement(files),
       ...checkStorageSignerConfinement(files),
+      ...checkConsoleConfinement(files),
       ...bundle.violations,
     ],
   };

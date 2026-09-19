@@ -11,6 +11,7 @@ import {
   checkEnvConfinement,
   checkKvAccess,
   checkQueueBindingConfinement,
+  checkConsoleConfinement,
   checkQueueConfig,
   checkStorageSignerConfinement,
   DEAD_LETTER_QUEUE_PREFIX,
@@ -283,4 +284,22 @@ test("storage signer: aws4fetch is confined to the platform module", () => {
   ]);
   assert.equal(violations.length, 1);
   assert.equal(violations[0].rule, "storage");
+});
+
+test("log economy: console is confined to the platform logger", () => {
+  assert.equal(
+    checkConsoleConfinement([
+      file(
+        "src/platform/logging/logger.ts",
+        "console.log(JSON.stringify(record));",
+      ),
+    ]).length,
+    0,
+  );
+
+  const violations = checkConsoleConfinement([
+    file("src/features/auth/a.ts", 'console.log("debug");'),
+  ]);
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].rule, "logging");
 });
