@@ -23,6 +23,7 @@ export const REQUIRED_QUEUE_SCOPES = [
 export const JOB_QUEUE_PREFIX = "cf-core-kit-jobs";
 export const DEAD_LETTER_QUEUE_PREFIX = "cf-core-kit-dlq";
 export const QUEUE_BINDING_NAME = "JOBS";
+export const STORAGE_SIGNER_ALLOWED_PREFIXES = ["src/platform/storage/"];
 export const QUEUE_BINDING_PATTERN = /env\.JOBS\b/;
 export const QUEUE_BINDING_ALLOWED_PREFIXES = ["src/platform/"];
 export const QUEUE_BINDING_ALLOWED_PATHS = ["src/app.ts", "src/worker.ts"];
@@ -294,6 +295,28 @@ export function checkQueueConfig(wranglerContent, options = {}) {
   return violations;
 }
 
+const AWS4FETCH_PATTERN = /from\s+["']aws4fetch["']/;
+export function checkStorageSignerConfinement(files, options = {}) {
+  const allowedPrefixes =
+    options.allowedPrefixes ?? STORAGE_SIGNER_ALLOWED_PREFIXES;
+  const violations = [];
+
+  for (const file of files) {
+    if (
+      AWS4FETCH_PATTERN.test(file.content) &&
+      !isAllowed(file.path, allowedPrefixes)
+    ) {
+      violations.push({
+        file: file.path,
+        rule: "storage",
+        detail: "aws4fetch is confined to src/platform/storage/",
+      });
+    }
+  }
+
+  return violations;
+}
+
 export function checkQueueBindingConfinement(files, options = {}) {
   const allowedPrefixes =
     options.allowedPrefixes ?? QUEUE_BINDING_ALLOWED_PREFIXES;
@@ -426,6 +449,7 @@ export function runChecks(root) {
       ...checkCronCount(wrangler),
       ...checkQueueConfig(wrangler),
       ...checkQueueBindingConfinement(files),
+      ...checkStorageSignerConfinement(files),
       ...bundle.violations,
     ],
   };

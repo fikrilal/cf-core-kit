@@ -72,3 +72,19 @@ describe("getConfig", () => {
     expect(second.appEnv).toBe("staging");
   });
 });
+
+describe("R2 settings", () => {
+  it("parses optional R2 keys into camelCase fields", () => {
+    const config = parseConfig({
+      R2_ACCOUNT_ID: "acc-1",
+      R2_BUCKET: "bucket-1",
+      R2_ACCESS_KEY_ID: "key-1",
+      R2_SECRET_ACCESS_KEY: "secret-1",
+    });
+
+    expect(config.r2AccountId).toBe("acc-1");
+    expect(config.r2Bucket).toBe("bucket-1");
+    expect(config.r2AccessKeyId).toBe("key-1");
+    expect(config.r2SecretAccessKey).toBe("secret-1");
+  });
+});

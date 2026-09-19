@@ -16,6 +16,10 @@ const configSchema = z
     AUTH_OIDC_GOOGLE_CLIENT_IDS: z.string().optional(),
     AUTH_ISSUER: z.string().optional(),
     AUTH_AUDIENCE: z.string().optional(),
+    R2_ACCOUNT_ID: z.string().optional(),
+    R2_BUCKET: z.string().optional(),
+    R2_ACCESS_KEY_ID: z.string().optional(),
+    R2_SECRET_ACCESS_KEY: z.string().optional(),
   })
   .superRefine((value, context) => {
     if (value.APP_ENV === "prod" && value.LOG_LEVEL === "debug") {
@@ -40,6 +44,10 @@ export type AppConfig = Readonly<{
   authOidcGoogleClientIds: readonly string[];
   authIssuer: string | undefined;
   authAudience: string | undefined;
+  r2AccountId: string | undefined;
+  r2Bucket: string | undefined;
+  r2AccessKeyId: string | undefined;
+  r2SecretAccessKey: string | undefined;
 }>;
 
 type ConfigKey =
@@ -51,7 +59,11 @@ type ConfigKey =
   | "AUTH_SIGNING_KEYS_JSON_BASE64"
   | "AUTH_OIDC_GOOGLE_CLIENT_IDS"
   | "AUTH_ISSUER"
-  | "AUTH_AUDIENCE";
+  | "AUTH_AUDIENCE"
+  | "R2_ACCOUNT_ID"
+  | "R2_BUCKET"
+  | "R2_ACCESS_KEY_ID"
+  | "R2_SECRET_ACCESS_KEY";
 
 export type ConfigInput = Readonly<Partial<Record<ConfigKey, string>>>;
 
@@ -89,6 +101,10 @@ export function parseConfig(input: ConfigInput): AppConfig {
     ),
     authIssuer: result.data.AUTH_ISSUER,
     authAudience: result.data.AUTH_AUDIENCE,
+    r2AccountId: result.data.R2_ACCOUNT_ID,
+    r2Bucket: result.data.R2_BUCKET,
+    r2AccessKeyId: result.data.R2_ACCESS_KEY_ID,
+    r2SecretAccessKey: result.data.R2_SECRET_ACCESS_KEY,
   });
 }
 

@@ -41,3 +41,11 @@ describe("redactLogFields", () => {
     });
   });
 });
+
+describe("R2 credentials", () => {
+  it("redacts the R2 secret access key", () => {
+    expect(
+      redactLogFields({ R2_SECRET_ACCESS_KEY: "secret-material" }),
+    ).toEqual({ R2_SECRET_ACCESS_KEY: REDACTED });
+  });
+});

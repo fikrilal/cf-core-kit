@@ -16,6 +16,8 @@
   "vars": {
     "APP_ENV": "dev",
     "LOG_LEVEL": "info",
+    "R2_ACCOUNT_ID": "00000000000000000000000000000000",
+    "R2_BUCKET": "cf-core-kit-dev",
   },
   "durable_objects": {
     "bindings": [
@@ -69,6 +71,8 @@
       "vars": {
         "APP_ENV": "dev",
         "LOG_LEVEL": "info",
+        "R2_ACCOUNT_ID": "00000000000000000000000000000000",
+        "R2_BUCKET": "cf-core-kit-dev",
       },
       "durable_objects": {
         "bindings": [
@@ -125,6 +129,8 @@
       "vars": {
         "APP_ENV": "staging",
         "LOG_LEVEL": "info",
+        "R2_ACCOUNT_ID": "00000000000000000000000000000000",
+        "R2_BUCKET": "cf-core-kit-staging",
       },
       "durable_objects": {
         "bindings": [
@@ -181,6 +187,8 @@
       "vars": {
         "APP_ENV": "prod",
         "LOG_LEVEL": "info",
+        "R2_ACCOUNT_ID": "00000000000000000000000000000000",
+        "R2_BUCKET": "cf-core-kit-prod",
       },
       "durable_objects": {
         "bindings": [

@@ -12,6 +12,7 @@ import {
   checkKvAccess,
   checkQueueBindingConfinement,
   checkQueueConfig,
+  checkStorageSignerConfinement,
   DEAD_LETTER_QUEUE_PREFIX,
   JOB_QUEUE_PREFIX,
 } from "./check.mjs";
@@ -264,4 +265,22 @@ test("queue binding: env.JOBS is confined to the platform and composition roots"
   ]);
   assert.equal(violations.length, 1);
   assert.equal(violations[0].rule, "queue");
+});
+
+test("storage signer: aws4fetch is confined to the platform module", () => {
+  assert.equal(
+    checkStorageSignerConfinement([
+      file(
+        "src/platform/storage/presign.ts",
+        'import { AwsClient } from "aws4fetch";',
+      ),
+    ]).length,
+    0,
+  );
+
+  const violations = checkStorageSignerConfinement([
+    file("src/features/a.ts", 'import { AwsClient } from "aws4fetch";'),
+  ]);
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].rule, "storage");
 });
