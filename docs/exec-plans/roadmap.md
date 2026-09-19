@@ -27,7 +27,7 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Phase 4 — Background processing + platform services** (in progress): 4.1–4.2 landed (queue platform with envelope/registry/producer/consumer/DLQ + budget checks; hourly fan-out cron; bounded idempotent sweeps for expired sessions and idempotency records, proven through real queue delivery in the pool) — all gates green; 301 tests across 48 files. Next: 4.3 (R2 presign) and 4.4 (observability pass). The Phase 3 credentialed dashboard-CPU follow-up stays tracked in its plan.
+**Phase 4 — Background processing + platform services complete**: 4.1–4.4 landed (queue platform with envelope/registry/producer/consumer/DLQ + budget checks; hourly fan-out cron; bounded idempotent sweeps proven through real queue delivery; R2 presign port pinned to the documented AWS SigV4 vector; log-economy confinement rule, counted observability specs, and the normative `observability` standard) — all gates green; 316 tests across 51 files. Credentialed follow-ups (dashboard CPU, live R2 upload) stay tracked in their plans. Next: Phase 5 (cfkit CLI + task governance) or Phase 6 (remaining parity) as you prefer.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -86,14 +86,14 @@ Objective: the OIDC-first auth surface, contract-green (ADR-0006).
 
 Exit gate: contract suite green for the auth + users surface; `auth.password.*` descope recorded in the manifest; runtime evidence within budget.
 
-## Phase 4 — Background processing + platform services
+## Phase 4 — Background processing + platform services (complete 2026-10-11)
 
 - [x] 4.1 Queue platform: producer/consumer helpers, job envelope + trace propagation, retry/backoff defaults, DLQ policy — landed 2026-10-11; one work queue + DLQ per environment (names/bounds/DLQ linkage budget-checked), versioned envelope with trace propagation, explicit per-message ack/retry with 30s-exponential+jitter backoff, DLQ consumer, worker `queue` handler; `queues-jobs` standard normative; 18 new tests + 4 budget fixtures
 - [x] 4.2 First jobs: one fan-out cron + session/credential sweeps; idempotent handler pattern with tests — landed 2026-10-11; hourly cron enqueues `auth.purgeExpiredSessions` + `http.purgeExpiredIdempotencyRecords` (deterministic per-tick ids, `cron:<iso>` trace); bounded deletes (`SWEEP_BATCH_SIZE`), cascade-verified; per-scope cron budget check; real queue delivery exercised in the pool (`queueConsumers`) with tick-idempotency proven; 8 new tests (301 total across 48 files)
-- [ ] 4.3 R2 module: presign PUT/GET helpers (lands when a feature needs objects)
-- [ ] 4.4 Observability pass: log-economy check, `traceId` propagation assertions
+- [x] 4.3 R2 module: presign PUT/GET helpers (lands when a feature needs objects) — landed 2026-10-11; path-style SigV4 presigned GET/PUT via the pinned `aws4fetch` signer (reproduces the documented AWS vector in the suite; frozen golden URLs), 300s default / 604800s cap, segment-validated keys, `INTERNAL` when unconfigured, secret redacted, dependency confined by a budget rule; 11 new tests (312 total across 50 files); first consumer = the users profile-image flow in the parity backlog
+- [x] 4.4 Observability pass: log-economy check, `traceId` propagation assertions — landed 2026-10-11; console confined to the platform logger by a budget rule with fixtures; counted economy specs (one line per request, zero for probes, exactly one failure line) and full header/problem/log id continuity for supplied and generated ids; normative `observability` standard; 4 new tests (316 total across 51 files) + 1 budget fixture (68 total)
 
-Exit gate: job idempotency + retention behavior verified; budget checks include queue ops.
+Exit gate: job idempotency + retention behavior verified (tick-idempotency proven through real queue delivery, bounded deletes with cascade); budget checks include queue ops (queue config bounds, DLQ linkage, per-scope cron, binding + signer + console confinement).
 
 ## Phase 5 — cfkit CLI + task governance
 

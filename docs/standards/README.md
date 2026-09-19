@@ -15,6 +15,6 @@ The wire-contract behaviors are owned by backend-core-kit's standards. This kit 
 | configuration                | planned   | platform core (config)                        |
 | database                     | planned   | platform core (db)                            |
 | queues-jobs                  | normative | background phase (landed 2026-10-11)          |
-| observability                | planned   | platform core                                 |
+| observability                | normative | platform core (landed 2026-10-11)             |
 | testing-strategy             | planned   | platform core                                 |
 | ci-cd                        | planned   | foundation follow-up                          |
