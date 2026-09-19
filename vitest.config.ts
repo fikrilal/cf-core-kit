@@ -7,6 +7,18 @@ export default defineConfig({
   test: {
     include: ["src/**/*.spec.ts", "test/**/*.spec.ts"],
     setupFiles: ["./test/apply-migrations.ts"],
+    coverage: {
+      provider: "v8",
+      include: ["src/**"],
+      exclude: ["src/**/*.spec.ts"],
+      reporter: ["text-summary"],
+      thresholds: {
+        statements: 85,
+        branches: 78,
+        functions: 90,
+        lines: 88,
+      },
+    },
   },
   plugins: [
     cloudflareTest({

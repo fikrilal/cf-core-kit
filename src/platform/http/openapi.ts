@@ -28,31 +28,46 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-export function applyOperationParameters(
-  document: unknown,
-  operations: readonly OperationMetadata[],
-): void {
+function requirePaths(document: unknown): Record<string, unknown> {
   if (!isRecord(document)) throw new Error("openapi document is not an object");
 
   const paths = document.paths;
   if (!isRecord(paths)) throw new Error("openapi document has no paths");
 
+  return paths;
+}
+
+function requireOperationObject(
+  paths: Readonly<Record<string, unknown>>,
+  operation: OperationMetadata,
+): Record<string, unknown> {
+  const pathItem = paths[operation.path];
+  if (!isRecord(pathItem)) {
+    throw new Error(
+      `operation missing from document: ${operation.operationId}`,
+    );
+  }
+
+  const operationObject = pathItem[operation.method];
+  if (!isRecord(operationObject)) {
+    throw new Error(
+      `operation missing from document: ${operation.operationId}`,
+    );
+  }
+
+  return operationObject;
+}
+
+export function applyOperationParameters(
+  document: unknown,
+  operations: readonly OperationMetadata[],
+): void {
+  const paths = requirePaths(document);
+
   for (const operation of operations) {
     if (operation.parameters === undefined) continue;
 
-    const pathItem = paths[operation.path];
-    if (!isRecord(pathItem)) {
-      throw new Error(
-        `operation missing from document: ${operation.operationId}`,
-      );
-    }
-
-    const operationObject = pathItem[operation.method];
-    if (!isRecord(operationObject)) {
-      throw new Error(
-        `operation missing from document: ${operation.operationId}`,
-      );
-    }
+    const operationObject = requireOperationObject(paths, operation);
 
     operationObject.parameters = operation.parameters.map((parameter) => ({
       name: parameter.name,
@@ -81,25 +96,10 @@ export function applyErrorCodeExtensions(
   document: unknown,
   operations: readonly OperationMetadata[],
 ): void {
-  if (!isRecord(document)) throw new Error("openapi document is not an object");
-
-  const paths = document.paths;
-  if (!isRecord(paths)) throw new Error("openapi document has no paths");
+  const paths = requirePaths(document);
 
   for (const operation of operations) {
-    const pathItem = paths[operation.path];
-    if (!isRecord(pathItem)) {
-      throw new Error(
-        `operation missing from document: ${operation.operationId}`,
-      );
-    }
-
-    const operationObject = pathItem[operation.method];
-    if (!isRecord(operationObject)) {
-      throw new Error(
-        `operation missing from document: ${operation.operationId}`,
-      );
-    }
+    const operationObject = requireOperationObject(paths, operation);
 
     if (operationObject.operationId !== operation.operationId) {
       throw new Error(

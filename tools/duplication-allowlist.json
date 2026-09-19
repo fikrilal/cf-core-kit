@@ -1,0 +1,8 @@
+{
+  "reviewedAcceptable": [
+    {
+      "reason": "Standalone script entrypoint boilerplate (the isDirectRun guard + main() call); each check script under scripts/ must stay individually runnable without a shared runner.",
+      "files": ["scripts/budget/check.mjs", "scripts/drift/check.mjs"]
+    }
+  ]
+}

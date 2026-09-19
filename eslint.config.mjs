@@ -110,6 +110,7 @@ export default tseslint.config(
     languageOptions: {
       globals: {
         Buffer: "readonly",
+        URL: "readonly",
         console: "readonly",
         crypto: "readonly",
         process: "readonly",
