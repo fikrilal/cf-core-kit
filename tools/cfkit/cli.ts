@@ -1,17 +1,34 @@
 import { spawnSync } from "node:child_process";
 
+import { runHandoff } from "./commands-handoff.ts";
+import { runRemove } from "./commands-remove.ts";
+import { runScaffold } from "./commands-scaffold.ts";
+import { runTask } from "./commands-task.ts";
 import { evaluateDoctor, gatherDoctorFacts } from "./doctor.ts";
-import { resolveProfile } from "./profiles.ts";
+import { expandProfile, resolveProfile } from "./profiles.ts";
 import { runProfile } from "./runner.ts";
 
 const USAGE = `cfkit <command>
 
 Commands:
-  verify [--profile fast|full]   Run a verify profile (default: fast)
+  verify [--profile fast|full|runtime|ci]
+                                 Run a verify profile (default: fast)
   budget:check                   Delegate to scripts/budget/check.mjs
   contract:check                 Delegate to scripts/contract/check.mjs
   contract:lint                  Delegate to scripts/contract/lint.mjs
   doctor                         Read-only repository readiness check
+  scaffold feature <name>        Generate a capability slice under src/features/
+  scaffold endpoint <operationId>
+                                 Generate an endpoint for a pending pinned operation
+  remove endpoint <operationId>  Reverse an endpoint scaffold (marker-checked)
+  remove feature <name> --yes    Reverse a feature scaffold (--force-core for auth/users)
+  task begin --plan <path>       Track a task from an active exec plan
+  task verify --task <id>        Run the task's lane profile with bounded repair
+  task status --task <id>        Print the tracked task state
+  handoff dry-run --task <id> --action commit|push|draft-pr
+                                 Prepare an expiring, per-action approval
+  handoff commit|push|draft-pr --task <id> --challenge <c>
+                                 Execute one approved action (no merge/deploy)
 `;
 
 function parseProfileArg(args: readonly string[]): string | undefined {
@@ -26,7 +43,7 @@ function runVerify(args: readonly string[]): number {
 
   if (profile === undefined) {
     console.error(
-      `[cfkit] unknown profile "${requested}" (expected fast|full)`,
+      `[cfkit] unknown profile "${requested}" (expected fast|full|runtime|ci)`,
     );
 
     return 1;
@@ -34,7 +51,10 @@ function runVerify(args: readonly string[]): number {
 
   console.log(`[cfkit] verify --profile ${profile.name}`);
 
-  const result = runProfile(profile);
+  const result = runProfile({
+    name: profile.name,
+    steps: expandProfile(profile.name),
+  });
 
   if (result.exitCode !== 0) {
     console.error(
@@ -65,8 +85,22 @@ function runDoctor(): number {
   return checks.some((check) => check.status === "fail") ? 1 : 0;
 }
 
+type CommandHandler = (args: readonly string[]) => number;
+
+const COMMAND_HANDLERS: Readonly<Record<string, CommandHandler>> = {
+  verify: runVerify,
+  "budget:check": () => runScript("scripts/budget/check.mjs"),
+  "contract:check": () => runScript("scripts/contract/check.mjs"),
+  "contract:lint": () => runScript("scripts/contract/lint.mjs"),
+  doctor: () => runDoctor(),
+  scaffold: runScaffold,
+  remove: runRemove,
+  task: (args) => runTask(args, process.cwd()),
+  handoff: (args) => runHandoff(args, process.cwd()),
+};
+
 function main(args: readonly string[]): number {
-  const command = args[0];
+  const [command, ...rest] = args;
 
   if (command === undefined || command === "help" || command === "--help") {
     console.log(USAGE);
@@ -74,13 +108,9 @@ function main(args: readonly string[]): number {
     return command === undefined ? 1 : 0;
   }
 
-  if (command === "verify") return runVerify(args.slice(1));
-  if (command === "budget:check") return runScript("scripts/budget/check.mjs");
-  if (command === "contract:check")
-    return runScript("scripts/contract/check.mjs");
-  if (command === "contract:lint")
-    return runScript("scripts/contract/lint.mjs");
-  if (command === "doctor") return runDoctor();
+  const handler = COMMAND_HANDLERS[command];
+
+  if (handler !== undefined) return handler(rest);
 
   console.error(`[cfkit] unknown command "${command}"`);
   console.error(USAGE);

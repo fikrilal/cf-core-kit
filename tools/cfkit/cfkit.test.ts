@@ -4,33 +4,65 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { evaluateDoctor, type DoctorFacts } from "./doctor.ts";
-import { resolveProfile, VERIFY_PROFILES } from "./profiles.ts";
+import { durationAdvisory } from "./duration-policy.ts";
+import {
+  expandProfile,
+  resolveProfile,
+  VERIFY_PROFILES,
+  type VerifyProfile,
+  type VerifyProfileName,
+} from "./profiles.ts";
 import { runProfile, type StepRunner } from "./runner.ts";
 
 const ROOT = join(import.meta.dirname, "..", "..");
 
-test("profiles: fast and full compose as documented", () => {
-  assert.deepEqual(VERIFY_PROFILES.fast.steps, [
-    "format:check",
-    "lint",
-    "typecheck",
-    "typecheck:cfkit",
-    "test",
-    "test:scripts",
-    "budget:check",
-    "drift:check",
-    "contract:check",
-    "contract:lint",
-  ]);
-  assert.deepEqual(VERIFY_PROFILES.full.steps, [
-    ...VERIFY_PROFILES.fast.steps,
-    "build",
-  ]);
-  assert.equal(resolveProfile("fast")?.name, "fast");
+test("profiles: fast, full, runtime, and ci compose as documented", () => {
+  assert.deepEqual(
+    VERIFY_PROFILES.fast.steps.map((step) => step.id),
+    [
+      "format:check",
+      "lint",
+      "typecheck",
+      "typecheck:cfkit",
+      "test",
+      "test:scripts",
+      "budget:check",
+      "secrets:check",
+      "drift:check",
+      "contract:check",
+      "contract:lint",
+    ],
+  );
+  assert.deepEqual(
+    VERIFY_PROFILES.full.steps.map((step) => step.id),
+    [
+      ...VERIFY_PROFILES.fast.steps.map((step) => step.id),
+      "test:coverage",
+      "duplication:check",
+      "build",
+    ],
+  );
+  assert.deepEqual(
+    VERIFY_PROFILES.runtime.steps.map((step) => step.id),
+    ["runtime.smoke"],
+  );
+  assert.deepEqual(
+    VERIFY_PROFILES.smoke.steps.map((step) => step.id),
+    ["scaffold.smoke"],
+  );
+  assert.deepEqual(
+    expandProfile("ci").map((step) => step.id),
+    [
+      ...VERIFY_PROFILES.full.steps.map((step) => step.id),
+      "runtime.smoke",
+      "scaffold.smoke",
+    ],
+  );
+  assert.equal(resolveProfile("ci")?.name, "ci");
   assert.equal(resolveProfile("nope"), undefined);
 });
 
-test("profiles: every step id is a package.json script", () => {
+test("profiles: every step script is a package.json script", () => {
   const parsed: unknown = JSON.parse(
     readFileSync(join(ROOT, "package.json"), "utf8"),
   );
@@ -38,9 +70,29 @@ test("profiles: every step id is a package.json script", () => {
   const scripts = "scripts" in parsed ? parsed.scripts : undefined;
   assert.ok(typeof scripts === "object" && scripts !== null);
 
-  for (const step of VERIFY_PROFILES.full.steps) {
-    assert.ok(step in scripts, `missing npm script: ${step}`);
+  for (const step of expandProfile("ci")) {
+    assert.ok(step.script in scripts, `missing npm script: ${step.script}`);
   }
+});
+
+test("profiles: composition cycles are rejected", () => {
+  const cyclic: Record<VerifyProfileName, VerifyProfile> = {
+    ...VERIFY_PROFILES,
+    fast: { name: "fast", steps: [], composes: ["full"] },
+    full: { name: "full", steps: [], composes: ["fast"] },
+  };
+
+  assert.throws(() => expandProfile("fast", cyclic), /Verify profile cycle/);
+});
+
+test("duration policy: budgets are advisory only", () => {
+  assert.equal(durationAdvisory("fast", 10_000), undefined);
+  assert.equal(durationAdvisory("ci", 10_000), undefined);
+
+  const message = durationAdvisory("fast", 999_999);
+
+  assert.ok(message?.includes("Duration advisory: fast"));
+  assert.ok(message?.includes("took 999999ms"));
 });
 
 test("runner: runs steps in order and stops at the first failure", () => {
@@ -57,7 +109,14 @@ test("runner: runs steps in order and stops at the first failure", () => {
   };
 
   const result = runProfile(
-    { name: "fast", steps: ["step-a", "step-b", "step-c"] },
+    {
+      name: "fast",
+      steps: [
+        { id: "step-a", script: "step-a" },
+        { id: "step-b", script: "step-b" },
+        { id: "step-c", script: "step-c" },
+      ],
+    },
     runner,
   );
 
@@ -69,7 +128,7 @@ test("runner: runs steps in order and stops at the first failure", () => {
   );
 });
 
-test("runner: a passing profile returns zero", () => {
+test("runner: a passing profile returns zero and reports durations", () => {
   const calls: string[] = [];
   const runner: StepRunner = (script) => {
     calls.push(script);
@@ -77,11 +136,22 @@ test("runner: a passing profile returns zero", () => {
     return 0;
   };
 
-  const result = runProfile({ name: "full", steps: ["a", "b"] }, runner);
+  const result = runProfile(
+    {
+      name: "full",
+      steps: [
+        { id: "a", script: "a" },
+        { id: "b", script: "b" },
+      ],
+    },
+    runner,
+  );
 
   assert.deepEqual(calls, ["a", "b"]);
   assert.equal(result.exitCode, 0);
   assert.equal(result.results.length, 2);
+  assert.ok(result.durationMs >= 0);
+  assert.ok(result.results.every((entry) => entry.durationMs >= 0));
 });
 
 const GOOD_FACTS: DoctorFacts = {

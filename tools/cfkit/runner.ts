@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 
-import type { VerifyProfile } from "./profiles.ts";
+import { durationAdvisory } from "./duration-policy.ts";
+import type { VerifyProfile, VerifyStep } from "./profiles.ts";
 
 export type StepRunner = (script: string) => number;
 
@@ -14,6 +15,7 @@ export type ProfileRunResult = Readonly<{
   profile: string;
   results: readonly StepResult[];
   exitCode: number;
+  durationMs: number;
 }>;
 
 export function defaultStepRunner(script: string): number {
@@ -34,24 +36,39 @@ function reportStep(
 }
 
 export function runProfile(
-  profile: VerifyProfile,
+  profile: Readonly<{
+    name: VerifyProfile["name"];
+    steps: readonly VerifyStep[];
+  }>,
   runStep: StepRunner = defaultStepRunner,
 ): ProfileRunResult {
   const results: StepResult[] = [];
+  const startedAt = Date.now();
 
   for (const step of profile.steps) {
     const start = Date.now();
-    const exitCode = runStep(step);
+    const exitCode = runStep(step.script);
     const durationMs = Date.now() - start;
     const status = exitCode === 0 ? "passed" : "failed";
+    const result: StepResult = { id: step.id, status, durationMs };
 
-    results.push({ id: step, status, durationMs });
-    reportStep(step, status, durationMs);
+    results.push(result);
+    reportStep(step.id, status, durationMs);
 
     if (exitCode !== 0) {
-      return { profile: profile.name, results, exitCode };
+      return {
+        profile: profile.name,
+        results,
+        exitCode,
+        durationMs: Date.now() - startedAt,
+      };
     }
   }
 
-  return { profile: profile.name, results, exitCode: 0 };
+  const durationMs = Date.now() - startedAt;
+  const advisory = durationAdvisory(profile.name, durationMs);
+
+  if (advisory !== undefined) console.log(`  ${advisory}`);
+
+  return { profile: profile.name, results, exitCode: 0, durationMs };
 }
