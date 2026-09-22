@@ -34,13 +34,17 @@ cf-core-kit/
 │  │  ├─ clock/              # Clock interface + SystemClock
 │  │  ├─ errors/             # ErrorCode enum, AppErrorCode union, problem mapping
 │  │  ├─ crypto/             # WebCrypto primitives (Ed25519/RS256 verify, SHA-256, tokens)
-│  │  └─ ids/                # UUIDv7-style sortable IDs
 │  ├─ features/              # vertical slices (progressive tiers)
 │  └─ shared/                # framework-free: error codes, list-query, time
 ├─ test/                     # integration / contract suites (co-located unit tests live with source)
 ├─ tools/
-│  ├─ cfkit/                 # scaffold / remove / verify / budget / contract CLI (M1)
+│  ├─ cfkit/                 # verify profiles (fast/full/runtime/smoke/ci), scaffold + remove,
+│  │                         # task lifecycle, handoff approvals, doctor, budget/contract CLI
+│  ├─ contract/              # OpenAPI emit entry (contract:emit / contract:check)
 │  └─ parity/                # coverage.json parity manifest + checker scripts
+├─ scripts/                  # budget, contract, drift, security, ci, duplication, scaffold checks
+├─ db/migrations/            # generated Drizzle migrations (drift-checked)
+├─ contracts/                # pinned backend snapshot + provenance
 ├─ docs/                     # standards, ADRs, exec plans
 └─ _WIP/                     # proposals (historical, not source of truth)
 ```

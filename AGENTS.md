@@ -49,11 +49,16 @@ src/features/       vertical slices (progressive tiers)
 src/shared/         framework-free cross-feature contracts and utilities
 contracts/          pinned backend snapshot + provenance (drift-checked)
 db/migrations/      Drizzle migrations (generated; drift-checked)
-scripts/budget/     free-tier budget checks (node:test fixtures)
+scripts/budget/     free-tier budget checks (bundle, crypto, env, KV, cron, queue, storage, logging)
 scripts/contract/   contract checks: provenance, emit drift, parity
 scripts/drift/      drift checks: map, links, ADR index, types, migrations
+scripts/security/   secrets scan over tracked files (allowlists carry reasons)
+scripts/ci/         CI workflow invariant meta-test (SHA pins, least privilege)
+scripts/duplication/ jscpd gate with a reviewed allowlist (both files per entry)
+scripts/scaffold/   scaffold smoke: scaffold -> verify -> remove -> byte-identical restore
 test/               integration and contract suites
-tools/cfkit/        cfkit CLI: verify profiles, doctor, budget + contract delegates
+tools/cfkit/        cfkit CLI: verify profiles (fast/full/runtime/smoke/ci), doctor, scaffold/remove, task lifecycle, handoff approvals, budget + contract delegates
+tools/contract/     OpenAPI emit entry (contract:emit / contract:check)
 tools/contract/     OpenAPI emit entry (contract:emit / contract:check)
 tools/parity/       parity manifest (implemented / pending / descoped)
 docs/               standards, ADRs, exec plans
@@ -71,8 +76,8 @@ Dependency direction:
 
 Use the repo scripts; do not claim a check passed unless it was actually run.
 
-- `npm run verify` — delegates to `cfkit verify --profile fast` (format, lint, typecheck, vitest, script fixtures, budget, drift, and contract checks). CI runs `npm run verify:ci` (the full profile, adds the dry-run build).
-- `npm run cfkit -- doctor` / `budget:check` / `contract:check` / `contract:lint` / `verify --profile fast|full`. (`scaffold`/`remove feature` and `runtime`/`ci` profiles land in later phases.)
+- `npm run verify` — delegates to `cfkit verify --profile fast` (format, lint, typecheck, vitest, script fixtures, budget, secrets scan, drift, and contract checks). CI runs `npm run verify:ci`, the `ci` profile: the same steps plus coverage floors, the duplication gate, the dry-run build, the runtime boot smoke, and the scaffold smoke.
+- `npm run cfkit -- doctor` / `budget:check` / `secrets:check` / `contract:check` / `contract:lint` / `verify --profile fast|full|runtime|smoke|ci` / `scaffold feature|endpoint` / `remove feature|endpoint` / `task begin|verify|status` / `handoff dry-run|<action>`.
 - Record exact verification commands and outcomes for auth/session, queue, idempotency, contract-surface, and budget-relevant changes; include measured CPU / rows-written where a change affects them.
 
 ## Delivery Notes

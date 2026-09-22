@@ -7,14 +7,14 @@ The pinned and emitted wire-contract artifacts. The contract itself is owned by 
 - `backend.openapi.yaml` — byte-identical copy of `backend-core-kit`'s committed snapshot (`docs/openapi/openapi.yaml`), pinned at the commit recorded in `provenance.json`.
 - `provenance.json` — where the pin came from: repo, branch, HEAD and file commits, upstream version, SHA-256, byte size, pin date, and the artifact path.
 
-Once the emit task lands, this repository also commits its own `docs/openapi/openapi.yaml`, generated from route definitions and drift-checked (`npm run contract:emit` writes it; `npm run contract:check` fails when it is stale).
+This repository also commits its own `docs/openapi/openapi.yaml` (landed with the contract pipeline), generated from route definitions and gates in order: the emit step writes it, `contract:check` fails when it is stale relative to the route definitions, and the parity check compares its operations against the pin.
 
 ## Re-pin procedure
 
 1. In `backend-core-kit`, confirm the tree is clean and note `git log -1 --format=%H` plus the file's last commit (`git log -1 --format=%H -- docs/openapi/openapi.yaml`).
 2. Copy `docs/openapi/openapi.yaml` to `contracts/backend.openapi.yaml` byte-for-byte (no reformatting).
 3. Update `provenance.json` (commits, version, SHA-256 via `sha256sum`/`shasum -a 256`, byte size, pin date).
-4. Update `tools/parity/coverage.json`'s source block once it exists.
+4. Update `tools/parity/coverage.json`'s `source` block (commit, SHA-256) — the parity check fails while it disagrees with `provenance.json`.
 5. Run `npm run verify`; the provenance check recomputes the hash and fails on any mismatch.
 
 ## Downstream retarget

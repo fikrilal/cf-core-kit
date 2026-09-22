@@ -34,6 +34,28 @@ has; every rule below is either budget-enforced or spec-asserted.
 - Queue batches log one summary line (`queue batch processed`) with per-outcome counts and
   duration; individual failures log one error line each with job, jobId, traceId, and attempt.
 
+## External export (off by default)
+
+The kit ships **no** external telemetry destinations; Workers Logs (the `observability.enabled`
+block in `wrangler.jsonc`) is the only sink. Adoption paths, in the order Cloudflare recommends:
+
+- **OpenTelemetry export (preferred)**: `observability.traces` / `observability.logs` with
+  `destinations` names configured in the dashboard, an explicit `head_sampling_rate`, and
+  `persist: false` unless Cloudflare-side storage is wanted — persisted data starts contributing
+  to Cloudflare Observability ingestion and storage usage from 2026-12-01, so the free-tier
+  answer is export-without-persist or nothing. Destination credentials live in the dashboard
+  configuration, never in this repository.
+- **Tail Workers (not available here)**: the docs state Tail Workers are "available to all
+  customers on the Workers Paid and Enterprise tiers", so a hand-rolled OTLP forwarder on the
+  free tier is not an option. `SENSITIVE_KEYS` already covers `otel_exporter_otlp_headers` in
+  case a paid deployment adds one.
+- What stays in-repo either way: structured one-line logs with `requestId`/`traceId` (above), so
+  any destination receives correlated events without extra instrumentation.
+
+Turning export on is a deployment decision per environment (ADR-0010); it is not wired in any
+`wrangler.jsonc` scope today, and a task enabling it must update this section with the measured
+cost envelope.
+
 ## Definition of done for new logging
 
 - The rule the log line serves is visible in its level and message; no free-form debug output

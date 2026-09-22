@@ -10,7 +10,11 @@ These docs are the source of truth for architecture, standards, and workflow; co
   - `docs/core/project-architecture.md`
   - `docs/core/project-stack.md`
 - Standards (normative)
-  - `docs/standards/README.md` — index; free-tier-budget lands first, with platform core
+  - `docs/standards/README.md` — index with the status vocabulary (normative / guide / family)
+  - `free-tier-budget` · `queues-jobs` · `observability` · `testing-strategy` · `database` · `ci-cd`
+- Guides (task-oriented)
+  - `docs/guide/README.md` — feature, endpoint, config, and jobs walkthroughs that mirror the
+    scaffolding and verification tooling
 - ADRs (decision log)
   - `docs/adr/README.md`
 - Execution plans
@@ -21,6 +25,12 @@ These docs are the source of truth for architecture, standards, and workflow; co
   - `docs/openapi/openapi.yaml` — emitted from route definitions (`npm run contract:emit`); drift-, parity-, and lint-gated
   - `tools/parity/coverage.json` — parity manifest: implemented / pending / descoped operations
   - `npm run contract:check` / `contract:lint` — provenance + emit drift + parity / family Spectral rules
+- Harness
+  - `npm run verify` — the fast developer profile; `npm run verify:ci` — the ci profile (fast
+    steps + coverage floors + duplication gate + dry-run build + runtime boot smoke + scaffold
+    smoke), which is what CI runs
+  - `npm run cfkit -- …` — verify profiles, `doctor`, `scaffold`/`remove`, `task`, `handoff`,
+    plus the `budget:check` / `secrets:check` / `contract:check` delegates
 - Proposals (historical, not source of truth)
   - `_WIP/2026-10-10_cf-core-kit-architecture-proposal.md`
 

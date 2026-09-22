@@ -19,7 +19,9 @@ Do not modify, stage, commit, or revert anything. Read-only review.
   - **Unit spec** — colocated `src/**/*.spec.ts`, runs in the Workers pool (`@cloudflare/vitest-plugin`), real `env` bindings available.
   - **Contract suite** — `test/contract/*.spec.ts`, dialect invariants on the composed app (`createWorkerApp`) in the same pool.
   - **Script fixture** — `scripts/**/*.test.mjs` and `tools/cfkit/*.test.ts`, run by `node --test` via `test:scripts`, deliberately outside the Workers runtime.
-  - **Gate probe / meta-test** — fixtures that spawn or import a checker and assert it fails on injected drift (budget, drift, contract, spectral).
+  - **Gate probe / meta-test** — fixtures that spawn or import a checker and assert it fails on injected drift (budget, drift, contract, spectral, secrets scan, duplication, CI workflow pins).
+  - **Coverage tier** — `test:coverage` through the v8 provider in the Workers pool over `src/**` minus specs; floors live in `vitest.config.ts` and are pinned slightly below a measured baseline.
+  - **Boot/smoke tier** — `tools/cfkit/runtime.ts` (wrangler dev on scratch state: health/ready/JWKS, self-cleaning process group + temp dir) and `scripts/scaffold/smoke.mjs` (scaffold a real pending operation, verify the tree, remove, byte-compare restoration from captured bytes).
 - Confirm the tier's runtime constraints: `app.request()` carries no runtime env (bindings must be passed explicitly, as `test/app-request.ts` does); Node fixtures cannot use `cloudflare:*`; Workers specs cannot use `node:fs`.
 
 ## Phase 1 — Authenticity reconstruction
@@ -31,10 +33,10 @@ Do not modify, stage, commit, or revert anything. Read-only review.
 
 ## Phase 2 — Review dimensions (report only evidence-backed issues)
 
-1. **Gate honesty (ADR-0011)** — every new or changed check/gate ships with a violation probe; the probe fails for the right reason (assert the rule name, the violation `code`/`field`, or the exit code — not just "some error"); the clean path is asserted too (no vacuous always-failing probes); the probe is wired into `test:scripts` or the vitest include so CI runs it.
-2. **Wiring coverage (silent-skip detection)** — `test:scripts` lists fixture files explicitly: a new `*.test.mjs` that is not added there never runs — flag it. Vitest's include is `src/**/*.spec.ts` plus `test/**/*.spec.ts`: a spec placed elsewhere silently never runs; a Node-only fixture accidentally matching the include breaks the pool — flag either direction.
+1. **Gate honesty (ADR-0011)** — every new or changed check/gate ships with a violation probe; the probe fails for the right reason (assert the rule name, the violation `code`/`field`, or the exit code — not just "some error"); the clean path is asserted too (no vacuous always-failing probes); the probe is wired into `test:scripts` or the vitest include so CI runs it. Gate-specific probe shapes that already exist and should be preserved: emptying the duplication allowlist turns the gate red with the clone printed; raising a coverage threshold above the measurement fails with the named threshold; floating a workflow pin or widening permissions fails the workflow meta-test; a scanner fixture built at runtime (concatenated) proves each secrets rule fires without putting a literal secret in the repo.
+2. **Wiring coverage (silent-skip detection)** — `test:scripts` lists fixture files explicitly: a new `*.test.mjs` (or `*.test.ts` under `tools/`) that is not added there never runs — flag it. Vitest's include is `src/**/*.spec.ts` plus `test/**/*.spec.ts`: a spec placed elsewhere silently never runs; a Node-only fixture accidentally matching the include breaks the pool — flag either direction. Coverage's `include` is `src/**` with specs excluded: new source outside that scope is invisible to the floors.
 3. **Contract-suite fidelity** — dialect invariants asserted on the composed app through the real pipeline; exact-body assertions where absence matters (e.g. proving `detail` is omitted, proving no envelope on `/health`); `traceId` equality with the response `X-Request-Id`; fixture routes mount platform helpers (`data`, `list`, `created`, `noContent`, `readJson`) instead of hand-built responses; no production stub routes added for tests.
-4. **Fixture quality** — fixtures can fail (mutation mindset); deterministic (no `Date.now()`, no real network, no sleeps, no ordering assumptions); D1 fixtures idempotent (drop + create, never assume empty state); temp files under the OS temp dir or `node_modules/.cache` and cleaned up in `finally`; the repo tree is byte-identical after any fixture run.
+4. **Fixture quality** — fixtures can fail (mutation mindset); deterministic (no `Date.now()`, no real network, no sleeps, no ordering assumptions; injected clocks and clocks-honest tokens — a fixed verifier clock against a real-time-issued token is a 401 generator, not a test); D1 fixtures idempotent (drop + create, never assume empty state); temp files under the OS temp dir or `node_modules/.cache` and cleaned up in `finally`; the repo tree is byte-identical after any fixture run, restored from captured bytes rather than `git checkout` (which silently reverts unrelated in-progress edits); fixtures that read live repo state must derive their own pre-state copies so they also pass while a scaffold is present in the tree.
 5. **Failure-path coverage** — new behavior has its failure modes tested, not just the happy path: validation failures (per-field `errors[]`, no `detail`), injected binding/probe failures (503 readiness problem), idempotency replay/in-progress/conflict paths, drift cases for generated artifacts, partial failure and retry behavior where applicable.
 6. **Assertion precision** — exact `toEqual` bodies where the dialect is the contract (extra keys must fail), `toMatchObject` only where the rest is genuinely variable, no assertions on private internals when a response-level assertion exists, no snapshot-style catch-alls that would accept wrong shapes.
 7. **Test data & secrets** — no real credentials, tokens, or personal data; no dependence on developer machine state (env vars, absolute paths); `any`-typed response bodies accessed only through narrowing helpers so type-aware lint does not force blind spots.
@@ -50,7 +52,11 @@ npm run test                                        # vitest: unit + contract ti
 npm run test:scripts                                # node:test: script fixtures + cfkit fixtures
 npx vitest run test/contract/dialect.spec.ts        # targeted contract suite
 npm run budget:check && npm run drift:check && npm run contract:check && npm run contract:lint
+npm run secrets:check && npm run duplication:check  # the newer gates when their inputs move
+npm run test:coverage                               # when source or tests move the floors
+node scripts/scaffold/smoke.mjs                     # the scaffold cycle end to end
 npm run verify                                      # the full fast profile when the change crosses tiers
+npm run verify:ci                                   # the ci profile (full + runtime + scaffold smokes) before publishing
 ```
 
 - For new or changed gates, run the violation probe yourself: inject the drift, observe the named failure, restore, observe clean.

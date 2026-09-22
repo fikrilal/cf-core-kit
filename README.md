@@ -2,11 +2,11 @@
 
 Production-grade Cloudflare Workers backend template — the Cloudflare member of the core-kit family. It serves the same wire contract as `backend-core-kit` for the implemented surface (envelope, RFC7807 problem details, stable error codes, `X-Request-Id`, session tokens with JWKS), so existing frontend-core-kit and mobile-core-kit clients need no tuning for the implemented operations.
 
-- **Free-tier engineered**: one Worker script with D1, Queues, KV, R2, and Durable Objects; the free-tier budget is a normative standard (ADR-0005).
+- **Free-tier engineered**: one Worker script with D1, Queues, and a memory-first Durable Object limiter; R2 presigning needs no binding. The free-tier budget is a normative standard (ADR-0005).
 - **OIDC-first auth**: no password material anywhere; `auth.password.*` is descoped for v1 and tracked in the parity manifest (ADR-0006).
 - **Lean by default**: Hono + zod, Drizzle, strict TypeScript, no ORM magic, no DI container.
 
-Status: platform core complete; the contract pipeline is next. Decisions are recorded in `docs/adr/`; proposals live in `_WIP/`.
+Status: Phases 0-5 complete — platform core, the contract pipeline, the OIDC-first auth surface, background processing (queue platform, cron sweeps, R2 presigning), and the cfkit harness (scaffold/remove, five verify profiles, task lifecycle, handoff approvals). Remaining work is product-deferred (`admin`, `merchant-onboarding` surfaces) or credentialed (live deploy evidence), tracked in `docs/exec-plans/roadmap.md`. Decisions are recorded in `docs/adr/`; proposals live in `_WIP/`.
 
 ## Requirements
 
@@ -15,10 +15,14 @@ Status: platform core complete; the contract pipeline is next. Decisions are rec
 
 ## Commands
 
-- `npm run verify` — the single gate (format, lint, typecheck, tests, budget and drift checks); `npm run verify:ci` adds the dry-run build
+- `npm run verify` — the fast developer gate (format, lint, typecheck, tests, script fixtures, budget, secrets scan, drift, contract checks)
+- `npm run verify:ci` — the ci profile: the same steps plus coverage floors, the duplication gate, the dry-run build, the runtime boot smoke, and the scaffold smoke (what CI runs)
 - `npm run dev` — local Worker via wrangler (real workerd, local D1)
 - `npm run deploy` — deploy the dev environment (`wrangler deploy --env staging|prod` for the others)
 - `npm run format` — format the tree
+- `npm run cfkit -- scaffold feature <name>` / `scaffold endpoint <operationId>` — generate a slice or implement a pending pinned operation (see `docs/guide/`)
+- `npm run cfkit -- remove feature <name> --yes` / `remove endpoint <operationId>` — the marker-checked inverse
+- `npm run cfkit -- task begin --plan <path>` / `task verify` — plan-driven task tracking with bounded repair; `handoff dry-run --action commit|push|draft-pr` prepares an expiring per-action approval
 
 ## Deploy
 

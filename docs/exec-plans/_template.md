@@ -1,6 +1,6 @@
 # <Plan Title>
 
-- Status: active | completed
+- Status: queued | active | completed
 - Owner: <name>
 - Risk: low | medium | high
 - Date: YYYY-MM-DD
@@ -39,6 +39,10 @@ Describe the concrete outcome this plan must deliver.
 ## Decision Log
 
 - YYYY-MM-DD: <decision> -> <reason>
+
+## Review Round (optional)
+
+External or self review rounds, their findings, and resolutions.
 
 ## Verification
 

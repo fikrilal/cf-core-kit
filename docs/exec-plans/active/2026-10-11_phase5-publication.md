@@ -1,0 +1,61 @@
+# Phase 5 publication: the harness, the gates, and the docs
+
+- Status: active
+- Owner: fikrilal
+- Risk: high
+- Date: 2026-10-11
+- Related ADRs / proposals: ADR-0009 (cfkit and the verify gate), ADR-0010 (deployment), ADR-0011 (gate honesty); roadmap Phases 5-6 follow-ups
+
+## Objective
+
+Publish the completed Phase 5 harness (scaffold/remove, verify profiles, task lifecycle,
+handoff), the Phase 6 cross-cutting gates (CI hardening, secrets scan, coverage floors,
+duplication policy), the standards completion, and the documentation currency passes — in
+approved, reviewable scopes, through the kit's own handoff flow (task → verify → per-scope
+approvals → commit).
+
+## Scopes
+
+Scopes, in landing order 1 → 2 → 3 (order is load-bearing: the profiles in scope 2 reference
+the scripts and dev dependencies scope 1 adds, and `package.json`/`package-lock.json` can never
+be split; scope 3 is independent):
+
+1. **Gates** (14 files) — `scripts/security/**`, `scripts/ci/**`, `scripts/duplication/**`,
+   `scripts/scaffold/**`, `tools/duplication-allowlist.json`, `vitest.config.ts` (coverage
+   floors), `eslint.config.mjs` (the `URL` mjs global), `src/platform/http/openapi.ts`
+   (duplication refactor), `tools/parity/coverage.json` (canonicalized order),
+   `.github/workflows/ci.yml`, `package.json` + `package-lock.json` (gate scripts and the
+   `jscpd` / `@vitest/coverage-v8` dev dependencies).
+2. **Tooling** (25 files) — `tools/cfkit/**` (scaffold/remove modules, task lifecycle, handoff
+   with path-scoped approvals, the five verify profiles, the runtime smoke), `.gitignore`
+   (`.cfkit/`), `package.json` (`verify:ci` → the ci profile, `test:scripts` entries).
+3. **Docs** (38 files) — six standards + index, four guides, both review skills, AGENTS.md,
+   README.md, `docs/**` (maps, template, plans, roadmap), `contracts/README.md`.
+
+## Constraints
+
+- Publication is per-scope through `handoff dry-run --paths <scope>` → approval → `handoff
+commit --paths <scope> --challenge <c>`; no scope commits files outside its list; the
+  approvals are one-time and expire in 15 minutes, so each dry-run runs immediately before its
+  commit rather than in advance.
+- No push in this task: publishing means local commits; remote publication stays a separate
+  explicit decision.
+
+## Acceptance Criteria
+
+1. `task verify` passes on the lane the classifier chooses for the working tree.
+2. Each scope's approval lists exactly its paths (validated against the changed set) and its
+   commit stages exactly those paths.
+3. The tree is clean afterwards and `git log` shows the scoped commits.
+
+## Steps
+
+- [x] task begin + verify — high risk, ci lane, verified twice (attempt 2/3 after the scope-error fix)
+- [ ] Per-scope dry-runs on approval; commits under each challenge
+- [ ] Post-publication verification and plan completion
+
+## Decision Log
+
+- 2026-10-11: scoped approvals via `--paths` (new). -> the user's standing requirement is scoped commits; the handoff as built bound to every changed path
+- 2026-10-11: no push. -> publication here is local history; remote effects need their own approval
+- 2026-10-11: the scoped dry-run probe found an uncaught scope error (CLI crash instead of a refusal); the dry-run path now shares the mutation path's refusal handling, pinned by the probe and the scope tests

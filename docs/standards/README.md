@@ -4,17 +4,23 @@ Standards are normative. If you need to deviate, add an ADR and document the exc
 
 The wire-contract behaviors are owned by backend-core-kit's standards. This kit mirrors them; the standards below are adapted here as the corresponding platform code lands. Until a standard appears in this directory, backend-core-kit's `docs/standards/` is authoritative for its topic.
 
-| Standard                     | Status    | Lands with                                    |
-| ---------------------------- | --------- | --------------------------------------------- |
-| free-tier-budget             | planned   | platform core (first standard — see ADR-0005) |
-| api-response                 | planned   | platform core (`http`)                        |
-| error-codes                  | planned   | platform core                                 |
-| contract-parity              | planned   | contract pipeline                             |
-| authentication               | planned   | auth slice                                    |
-| pagination-filtering-sorting | planned   | platform core (list query)                    |
-| configuration                | planned   | platform core (config)                        |
-| database                     | planned   | platform core (db)                            |
-| queues-jobs                  | normative | background phase (landed 2026-10-11)          |
-| observability                | normative | platform core (landed 2026-10-11)             |
-| testing-strategy             | planned   | platform core                                 |
-| ci-cd                        | planned   | foundation follow-up                          |
+| Standard                     | Status    | Where the rules live                |
+| ---------------------------- | --------- | ----------------------------------- |
+| free-tier-budget             | normative | this directory (landed 2026-10-11)  |
+| queues-jobs                  | normative | this directory (landed 2026-10-11)  |
+| observability                | normative | this directory (landed 2026-10-11)  |
+| testing-strategy             | normative | this directory (landed 2026-10-11)  |
+| database                     | normative | this directory (landed 2026-10-11)  |
+| ci-cd                        | normative | this directory (landed 2026-10-11)  |
+| configuration                | guide     | `docs/guide/config.md` + zod schema |
+| api-response                 | family    | backend-core-kit (mirrored + gated) |
+| error-codes                  | family    | backend-core-kit (mirrored + gated) |
+| contract-parity              | family    | backend-core-kit (mirrored + gated) |
+| authentication               | family    | backend-core-kit (mirrored + gated) |
+| pagination-filtering-sorting | family    | backend-core-kit (mirrored + gated) |
+
+Statuses: `normative` — the standard lives in this directory; `guide` — the practical rules
+and key table live in `docs/guide/config.md`, with the zod schema as the machine truth;
+`family` — the wire-contract behavior is owned by backend-core-kit's standards, this kit
+mirrors it, and the mirroring is enforced by `contract:check`, the parity manifest, Spectral,
+and the dialect suite rather than by prose here.

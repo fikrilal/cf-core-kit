@@ -27,7 +27,7 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Phase 4 — Background processing + platform services complete**: 4.1–4.4 landed (queue platform with envelope/registry/producer/consumer/DLQ + budget checks; hourly fan-out cron; bounded idempotent sweeps proven through real queue delivery; R2 presign port pinned to the documented AWS SigV4 vector; log-economy confinement rule, counted observability specs, and the normative `observability` standard) — all gates green; 316 tests across 51 files. Credentialed follow-ups (dashboard CPU, live R2 upload) stay tracked in their plans. Next: Phase 5 (cfkit CLI + task governance) or Phase 6 (remaining parity) as you prefer.
+**Phase 5 — cfkit CLI + task governance complete**: 5.1–5.6 landed (scaffold/remove inverses proven byte-identical; verify profiles fast/full/runtime/smoke/ci with a runtime boot smoke and a scaffold smoke in CI; task lifecycle with raise-only risk and bounded repair; handoff with expiring per-action approvals). All gates green; `npm run verify:ci` runs the ci profile (~110s). Next: Phase 6 (remaining parity) or consolidation as you prefer. Credentialed follow-ups (dashboard CPU, live R2 upload) stay tracked in their plans.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -95,18 +95,18 @@ Exit gate: contract suite green for the auth + users surface; `auth.password.*` 
 
 Exit gate: job idempotency + retention behavior verified (tick-idempotency proven through real queue delivery, bounded deletes with cascade); budget checks include queue ops (queue config bounds, DLQ linkage, per-scope cron, binding + signer + console confinement).
 
-## Phase 5 — cfkit CLI + task governance
+## Phase 5 — cfkit CLI + task governance (complete 2026-10-11)
 
 Objective: full harness — the simple path is the scaffolded path, and publication requires explicit approval.
 
-- [ ] 5.1 `scaffold feature` / `scaffold endpoint` — output passes `npm run verify` untouched
-- [ ] 5.2 `remove feature` — unwires routes/composition/tests cleanly
-- [ ] 5.3 Verify profiles `runtime` + `ci`, stable step ids, advisory duration budgets
-- [ ] 5.4 Task lifecycle: `task begin/verify`, risk classification (may raise, never lower), bounded repair
-- [ ] 5.5 Handoff: `dry-run` + expiring, per-action approvals (commit / push / draft-PR; no merge/deploy)
-- [ ] 5.6 Guides (`docs/guide/`: adding-a-feature, config, jobs) + scaffold smoke in CI
+- [x] 5.1 `scaffold feature` / `scaffold endpoint` — output passes `npm run verify` untouched — landed 2026-10-11; endpoint scaffolds implement pending pinned 204 operations (route + spec + three anchored edits + manifest move preserving provenance + automatic `contract:emit`); feature scaffolds create the slice and wire the cross-feature lint zones; live cycles green (endpoint → full profile, 318 tests; feature → fast profile) and fully reverted; 4 real bugs found by the cycles and pinned by tests
+- [x] 5.2 `remove feature` — unwires routes/composition/tests cleanly — landed 2026-10-11; `remove endpoint` + `remove feature` reverse every scaffold edit (three code anchors, zone blocks, manifest move, automatic `contract:emit`) with marker-checked refusals (hand-written routes, hand-edited features, protected cores behind `--force-core`, `--yes` confirmation); live round trip restores all five touched artifacts byte-for-byte (manifest arrays canonicalized to make moves position-stable); 4 new tests (83 fixtures total)
+- [x] 5.3 Verify profiles `runtime` + `ci`, stable step ids, advisory duration budgets — landed 2026-10-11; `runtime` is the committed boot smoke (wrangler dev + health/ready/JWKS assertions, self-cleaning), `ci` composes `full` + `runtime` with cycle detection, steps carry stable ids, and advisory budgets warn without failing (baselines calibrated from the first ci run: 75s observed vs 360s advisory); `npm run verify:ci` now runs the ci profile; 2 new tests (85 fixtures total)
+- [x] 5.4 Task lifecycle: `task begin/verify`, risk classification (may raise, never lower), bounded repair — landed 2026-10-11; plan-driven begin (status/risk headers), path classification with stable rule ids and raise-only max semantics, lane selection (low → fast, medium/high → full, runtime paths → ci), bounded repair with per-step fingerprints and escalation after the repair limit, state under gitignored `.cfkit/`; live begin → verify → status on this very task; 7 new tests (92 fixtures total)
+- [x] 5.5 Handoff: `dry-run` + expiring, per-action approvals (commit / push / draft-PR; no merge/deploy) — landed 2026-10-11; dry-run binds the approval to action/revision/paths with a one-time challenge (hash-only, `0600`, 15-minute expiry), mutations re-verify everything before acting, commit stages exactly the approved paths and refuses foreign staged work, push is non-force, draft-pr degrades to printing the `gh` command, and merge/deploy/migrate/force-push are absent by test; live scratch-repo cycle (commit + push + refusals) caught three real bugs (path parsing offset, untracked-directory staging, unhandled mutation throw); 5 new tests (97 fixtures total)
+- [x] 5.6 Guides (`docs/guide/`: adding-a-feature, config, jobs) + scaffold smoke in CI — landed 2026-10-11; four guides (+ index) mirror the tools and their refusals; `scripts/scaffold/smoke.mjs` scaffolds a feature + a real pending operation, verifies the scaffolded tree, removes both, and asserts byte-identical restoration before verifying again — wired as the stable-id `scaffold.smoke` step in the ci profile (39s); found and fixed the missing `URL` mjs global and restored the 5.2 manifest sorting
 
-Exit gate: a fresh clone scaffolds a working endpoint in one command; a real task ran begin → verify → handoff under explicit approval.
+Exit gate: a fresh clone scaffolds a working endpoint in one command (proven on every ci run by the scaffold smoke, and by the live endpoint cycle); a real task ran begin → verify → handoff under explicit approval (the task-lifecycle task ran begin → verify live, and the handoff cycle committed and pushed under a one-time expiring approval in a scratch repo).
 
 ## Phase 6 — Remaining parity (tier 2, optional)
 
@@ -123,13 +123,13 @@ Deferred until a product needs it: `admin`, `merchant-onboarding`. The parity ma
 ## Cross-Cutting Follow-Ups
 
 - [x] Strict quality baseline + violation probes (landed with 1.0)
-- [ ] SHA-pin GitHub Actions + least-privilege permissions (ADR-0010)
-- [ ] Secrets scan gate (pattern-based, `git ls-files` scoped) in CI
-- [ ] Coverage thresholds recorded once the surface stabilizes
-- [ ] Duplication policy: blocking core profile with reviewed allowlists (once features exist)
-- [ ] Native rate-limiting binding evaluation (swap candidate for DO counters)
-- [ ] Tail Worker / OTLP export hook (documented, off by default)
-- [ ] `docs/standards/free-tier-budget.md` completed with measured envelopes per route class
+- [x] SHA-pin GitHub Actions + least-privilege permissions (ADR-0010) — landed 2026-10-11; workflow pinned to released commit SHAs with tag comments, `permissions: contents: read`, concurrency, `npm ci --include=dev`; invariants enforced by `scripts/ci/workflow.test.mjs` with both probes recorded
+- [x] Secrets scan gate (pattern-based, `git ls-files` scoped) in CI — landed 2026-10-11; `secrets:check` scans tracked files for private keys, AWS-style key ids, private JWKs (incl. pretty-printed), and secret-valued assignments; documented allowlists for the AWS example and the test fixtures; runs in the fast profile
+- [x] Coverage thresholds recorded once the surface stabilizes — landed 2026-10-11; `test:coverage` (v8 provider through the Workers pool) measured 88.6% statements / 82.5% branches / 94.0% functions / 91.9% lines with floors set just below (85/78/90/88), wired as a `full`-profile step (~53s); the raised-threshold probe fails and is recorded
+- [x] Duplication policy: blocking core profile with reviewed allowlists (once features exist) — landed 2026-10-11; `jscpd` (min-tokens 60) over src/scripts/tools with generated artifacts and test files excluded; the two real source clones were refactored away and the one remaining clone (script entrypoint boilerplate) is allowlisted with its reason; `duplication:check` runs in full/ci; the emptied-allowlist probe fails and is recorded
+- [x] Native rate-limiting binding evaluation (swap candidate for DO counters) — evaluated 2026-10-11; kept the DO counters (ADR-0012) because the binding is documented as per-location, eventually consistent, and "not … an accurate accounting system", and exposes no `Retry-After` signal; revisit triggers recorded in the evaluation plan
+- [x] Tail Worker / OTLP export hook (documented, off by default) — documented 2026-10-11 in the observability standard: Workers OTLP export is the supported path (config sketch, sampling, `persist: false` cost note — persisted data bills from 2026-12-01), Tail Workers are paid/enterprise-only so no hand-rolled forwarder exists, and no destination is wired in any scope
+- [x] `docs/standards/free-tier-budget.md` completed with measured envelopes per route class — landed 2026-10-11; normative rules each mapped to their enforcement, the verified platform envelope (Workers Free / D1 / Queues / DO), and the measured evidence (bundle 1218 KiB, startup 17 ms, per-route wall-clock p50s, sweep/write row counts); standards index marks it normative
 
 ## Open Items Kept Visible
 
