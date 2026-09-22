@@ -17,10 +17,12 @@ the gate, with a documented allowlist for the public examples the docs and tests
 - `scripts/security/secrets-scan.mjs`: `git ls-files -z` → read each tracked file (skip
   binaries by extension) → match patterns with line numbers → report `file:line: rule`.
   Exit 1 with the violation list; exit 0 clean.
-- Patterns (`rule` ids): `private-key` (`-----BEGIN ... PRIVATE KEY-----`), `aws-access-key`
-  (`AKIA[0-9A-Z]{16}`), `jwk-private` (`"kty":"OKP"... "d":"..."` within a short window),
-  `secret-assignment` (`AUTH_SIGNING_KEYS_JSON|R2_SECRET_ACCESS_KEY|R2_ACCESS_KEY_ID` followed by
-  a base64-ish value of 16+ chars — the generator's `${...}` template does not match).
+- Patterns (`rule` ids): `private-key` (a PEM private-key header line), `aws-access-key` (`AKIA`
+  plus sixteen uppercase alphanumerics), `jwk-private` (an OKP key object carrying private key
+  material within a short window — matched line-by-line and across pretty-printed blocks),
+  `secret-assignment` (`AUTH_SIGNING_KEYS_JSON` or the R2 key names followed by a base64-ish
+  value of 16+ chars — the generator's template does not match, and SCREAMING_SNAKE constant
+  references are ignored).
 - Allowlist: exact strings with reasons (the AWS SigV4 documented example secret used by the
   presign spec is public knowledge; the scanner's own fixtures live in the test file, which is
   excluded from self-scanning by name? No — the fixture file legitimately contains examples;

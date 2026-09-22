@@ -8,9 +8,12 @@ import {
   scanText,
 } from "./secrets-scan.mjs";
 
-// fixtures are built at runtime so this file itself never carries a literal secret
+// fixtures are built at runtime from fragments so this file itself matches no pattern
 const FAKE_AWS_KEY = "AKIA" + "ABCDEFGHIJKLMNOP";
-const FAKE_JWK = `{"kty":"OKP","crv":"Ed25519","x":"public","d":"${"c2VjcmV0".repeat(4)}","kid":"k1"}`;
+const KTY = "kty";
+const KTY_VALUE = "OKP";
+const PRIVATE = "d";
+const FAKE_JWK = `{"${KTY}":"${KTY_VALUE}","crv":"Ed25519","x":"public","${PRIVATE}":"${"c2VjcmV0".repeat(4)}","kid":"k1"}`;
 const FAKE_ASSIGNMENT = `R2_SECRET_ACCESS_KEY=${"aB3xY9".repeat(4)}`;
 const FAKE_PRIVATE_KEY = "-----BEGIN " + "PRIVATE KEY-----";
 
@@ -32,9 +35,9 @@ test("each rule fires on a realistic fixture", () => {
 test("a pretty-printed private JWK is caught across lines", () => {
   const prettyJwk = [
     "{",
-    '  "kty": "OKP",',
+    `  "${KTY}": "${KTY_VALUE}",`,
     '  "crv": "Ed25519",',
-    `  "d": "${"c2VjcmV0".repeat(5)}",`,
+    `  "${PRIVATE}": "${"c2VjcmV0".repeat(5)}",`,
     '  "kid": "k1"',
     "}",
   ].join("\n");
