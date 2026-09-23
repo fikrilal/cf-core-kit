@@ -9,7 +9,7 @@
 - This roadmap is the index; it never replaces an execution plan.
 - Every task gets a plan from `_template.md` stored in `docs/exec-plans/active/` before work starts; completed plans move to `docs/exec-plans/completed/` with verification evidence.
 - Update checkboxes and "Current Focus" as tasks complete. A task is done only when its gate actually ran.
-- `npm run verify` delegates to `cfkit verify --profile fast` (CI runs `verify:ci`, the full profile) — the standing gate for every task; phases add gates (budget checks, drift checks, contract suite).
+- `npm run verify` delegates to `cfkit verify --profile fast` (CI runs `verify:ci`, the `ci` profile: fast steps plus coverage, duplication, build, and the runtime and scaffold smokes) — the standing gate for every task; phases add gates (budget checks, drift checks, contract suite, secrets scan).
 - Decisions that change a baseline require an ADR first (see `docs/adr/README.md`).
 
 ## Harness
@@ -27,7 +27,13 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Phase 5 — cfkit CLI + task governance complete**: 5.1–5.6 landed (scaffold/remove inverses proven byte-identical; verify profiles fast/full/runtime/smoke/ci with a runtime boot smoke and a scaffold smoke in CI; task lifecycle with raise-only risk and bounded repair; handoff with expiring per-action approvals). All gates green; `npm run verify:ci` runs the ci profile (~110s). Next: Phase 6 (remaining parity) or consolidation as you prefer. Credentialed follow-ups (dashboard CPU, live R2 upload) stay tracked in their plans.
+**Every roadmap checkbox is closed.** Phases 0–5 are complete, Phase 6's cross-cutting follow-ups are complete, and the published history ends with the harness, gates, and docs current (see the publication plan's record). What remains is deliberately not scheduled here because each item is gated on a decision only the product owner can make:
+
+- **Backlog #1 — Magic link** (+ email module / Resend adapter): needs the method decision confirmed, an email-provider credential (Resend), and family contract surface — the pinned snapshot has `auth.email.verify` / `auth.email.verification.resend` but no magic-link sign-in operations.
+- **Backlog #2 — Password revival**: M0 spike first (DO CPU budget on the free plan + WASM Argon2id), then the `CredentialHasher` port with `do-argon2` / `inline-argon2` adapters; `auth.password.*` stays descoped until then.
+- **Backlog #3 — Passkeys**: needs `auth.passkeys.*` superset endpoints in the family contract.
+- **Phase 6 surfaces — `admin`, `merchant-onboarding`**: deferred until a product needs them; the 18 pending pinned operations are the tier-2 parity backlog (`cfkit scaffold endpoint` implements the simple ones in one command once a product wants them).
+- **Credentialed lanes**: dashboard CPU per route class, a live R2 upload, and the first real deploy — each tracked in its plan.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
