@@ -240,7 +240,13 @@ test("endpoint scaffold refuses unsupported operations with reasons", () => {
   assert.throws(
     () =>
       buildEndpointScaffold(
-        endpointInput({ operationId: "users.me.profileImage.upload" }),
+        endpointInput({
+          operationId: "users.me.profileImage.upload",
+          coverageJson: JSON.stringify({
+            pending: ["users.me.profileImage.upload"],
+            implemented: ["auth.oidc.exchange"],
+          }),
+        }),
       ),
     /not a simple 204 operation/,
   );

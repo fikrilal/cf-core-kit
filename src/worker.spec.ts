@@ -12,7 +12,14 @@ import {
 } from "../test/queue-fixtures";
 import { deadLetterQueueName, jobQueueName } from "./platform/queue/names";
 import { createDb } from "./platform/db/db";
-import { refreshTokens, sessions, users } from "./platform/db/schema";
+import {
+  refreshTokens,
+  sessions,
+  storedFiles,
+  users,
+} from "./platform/db/schema";
+import { eq } from "drizzle-orm";
+import { stubSignedFetch } from "../test/profile-image-fixtures";
 
 describe("worker", () => {
   it("serves the root banner inside the envelope", async () => {
@@ -176,8 +183,80 @@ describe("worker queue registry", () => {
   });
 });
 
+describe("worker queue cleanup wiring", () => {
+  beforeEach(async () => {
+    await cleanAuthTables(createDb(env.DB));
+  });
+
+  it("deletes retired stored objects through the queue with the configured storage", async () => {
+    const db = createDb(env.DB);
+    const userId = crypto.randomUUID();
+    const fileId = crypto.randomUUID();
+    const now = new Date();
+
+    await db.insert(users).values({
+      id: userId,
+      email: `cleanup-${userId}@example.com`,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.insert(storedFiles).values({
+      id: fileId,
+      ownerUserId: userId,
+      purpose: "PROFILE_IMAGE",
+      status: "DELETED",
+      bucket: "cf-core-kit-dev",
+      objectKey: `users/${userId}/profile-images/${fileId}`,
+      contentType: "image/webp",
+      sizeBytes: 4,
+      uploadedAt: null,
+      deletedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const calls = stubSignedFetch(() => new Response(null, { status: 204 }));
+    const r2Env = {
+      ...authEnv(),
+      R2_ACCESS_KEY_ID: "CFEXAMPLEKEY12345",
+      R2_SECRET_ACCESS_KEY: "c2VjcmV0LXRlc3Qta2V5",
+    };
+    const message = fakeMessage(
+      sampleEnvelope({
+        job: "users.profileImage.deleteStoredFile",
+        jobId: `users.profileImage.deleteStoredFile-${fileId}`,
+        payload: {
+          fileId,
+          ownerUserId: userId,
+          enqueuedAt: "2026-06-01T00:00:00.000Z",
+        },
+      }),
+    );
+    const { records, restore } = captureConsoleLogs();
+
+    try {
+      await worker.queue(fakeBatch(jobQueueName("dev"), [message]), r2Env);
+    } finally {
+      restore();
+    }
+
+    expect(message.acks).toBe(1);
+    expect(calls.map((call) => call.method)).toEqual(["DELETE"]);
+
+    const rows = await db
+      .select()
+      .from(storedFiles)
+      .where(eq(storedFiles.id, fileId));
+    expect(rows[0]?.status).toBe("DELETED");
+    const cleanup = records.find(
+      (record) => record.message === "profile image cleanup complete",
+    );
+    expect(cleanup?.outcome).toBe("deleted");
+  });
+});
+
 describe("worker scheduled fan-out", () => {
-  it("enqueues both sweeps with deterministic ids and the cron trace id", async () => {
+  it("enqueues every sweep with deterministic ids and the cron trace id", async () => {
     const { queue, sent } = fakeQueue();
     const scheduledFor = "2026-06-01T00:00:00.000Z";
     const controller: ScheduledController = {
@@ -188,7 +267,7 @@ describe("worker scheduled fan-out", () => {
 
     await worker.scheduled(controller, { ...authEnv(), JOBS: queue });
 
-    expect(sent).toHaveLength(2);
+    expect(sent).toHaveLength(3);
 
     const bodies = sent.map((entry) => entry.body as Record<string, unknown>);
     const names = bodies.map((body) => body.job);
@@ -196,6 +275,7 @@ describe("worker scheduled fan-out", () => {
     expect(names).toEqual([
       "auth.purgeExpiredSessions",
       "http.purgeExpiredIdempotencyRecords",
+      "users.finalizeDueAccountDeletions",
     ]);
 
     for (const body of bodies) {

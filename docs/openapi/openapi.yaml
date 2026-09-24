@@ -212,6 +212,127 @@ components:
           example: <refresh-token>
       required:
         - refreshToken
+    VerifyEmailRequestDto:
+      type: object
+      properties:
+        token:
+          type: string
+          example: <verification-token>
+      required:
+        - token
+    MePushTokenUpsertRequestDto:
+      type: object
+      properties:
+        platform:
+          type: string
+          enum:
+            - ANDROID
+            - IOS
+            - WEB
+          example: ANDROID
+          description: Client platform where the push token was minted.
+        token:
+          type: string
+          maxLength: 2048
+          example: <fcm-registration-token>
+          description: FCM registration token for this device/app install.
+      required:
+        - platform
+        - token
+    ProfileImageUploadPlanEnvelopeDto:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/ProfileImageUploadPlanDto"
+      required:
+        - data
+    ProfileImageUploadPlanDto:
+      type: object
+      properties:
+        fileId:
+          type: string
+          example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
+        upload:
+          $ref: "#/components/schemas/PresignedUploadDto"
+        expiresAt:
+          type: string
+          format: date-time
+          example: 2026-01-10T12:34:56.789Z
+      required:
+        - fileId
+        - upload
+        - expiresAt
+    PresignedUploadDto:
+      type: object
+      properties:
+        method:
+          type: string
+          enum:
+            - PUT
+          example: PUT
+        url:
+          type: string
+          example: https://<r2-presigned-url>
+        headers:
+          type: object
+          properties: {}
+          example:
+            Content-Type: image/webp
+          description: Headers that must be sent with the upload request.
+      required:
+        - method
+        - url
+        - headers
+    CreateProfileImageUploadRequestDto:
+      type: object
+      properties:
+        contentType:
+          type: string
+          enum:
+            - image/jpeg
+            - image/png
+            - image/webp
+          example: image/webp
+          description: Declared MIME type for the upload. Must match the Content-Type used
+            during upload.
+        sizeBytes:
+          type: number
+          minimum: 1
+          maximum: 5000000
+          example: 123456
+          description: Declared size of the upload in bytes (used to verify the stored
+            object).
+      required:
+        - contentType
+        - sizeBytes
+    CompleteProfileImageUploadRequestDto:
+      type: object
+      properties:
+        fileId:
+          type: string
+          example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
+      required:
+        - fileId
+    ProfileImageUrlEnvelopeDto:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/ProfileImageUrlDto"
+      required:
+        - data
+    ProfileImageUrlDto:
+      type: object
+      properties:
+        url:
+          type: string
+          example: https://<r2-presigned-url>
+        expiresAt:
+          type: string
+          format: date-time
+          example: 2026-01-10T12:34:56.789Z
+      required:
+        - url
+        - expiresAt
     MeEnvelopeDto:
       type: object
       properties:
@@ -502,6 +623,83 @@ paths:
         - VALIDATION_FAILED
         - AUTH_REFRESH_TOKEN_INVALID
         - INTERNAL
+  /v1/auth/email/verify:
+    post:
+      operationId: auth.email.verify
+      tags:
+        - Auth
+      summary: Verify email
+      description: Verifies a user email using a token sent via email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyEmailRequestDto"
+      responses:
+        "204":
+          description: ""
+      x-error-codes:
+        - VALIDATION_FAILED
+        - AUTH_EMAIL_VERIFICATION_TOKEN_INVALID
+        - AUTH_EMAIL_VERIFICATION_TOKEN_EXPIRED
+        - INTERNAL
+  /v1/auth/email/verification/resend:
+    post:
+      operationId: auth.email.verification.resend
+      tags:
+        - Auth
+      summary: Resend verification email (current user)
+      description: Sends a fresh email verification token to the authenticated user's
+        email address. Callers can re-login afterwards to pick up the verified
+        state.
+      security:
+        - access-token: []
+      responses:
+        "204":
+          description: ""
+      x-error-codes:
+        - UNAUTHORIZED
+        - RATE_LIMITED
+        - INTERNAL
+  /v1/me/push-token:
+    put:
+      operationId: users.me.pushToken.upsert
+      tags:
+        - Users
+      summary: Register/update push token (current session)
+      description: Stores the FCM registration token for the current session.
+        Idempotent; replaces any existing token for the session.
+      security:
+        - access-token: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MePushTokenUpsertRequestDto"
+      responses:
+        "204":
+          description: ""
+      x-error-codes:
+        - VALIDATION_FAILED
+        - UNAUTHORIZED
+        - AUTH_PUSH_NOT_CONFIGURED
+        - INTERNAL
+    delete:
+      operationId: users.me.pushToken.revoke
+      tags:
+        - Users
+      summary: Revoke push token (current session)
+      description: Clears the stored push token for the current session. Idempotent.
+      security:
+        - access-token: []
+      responses:
+        "204":
+          description: ""
+      x-error-codes:
+        - UNAUTHORIZED
+        - INTERNAL
   /.well-known/jwks.json:
     get:
       operationId: auth.jwks.get
@@ -525,6 +723,175 @@ paths:
                 required:
                   - keys
       x-error-codes:
+        - INTERNAL
+  /v1/me/profile-image/upload:
+    post:
+      operationId: users.me.profileImage.upload
+      tags:
+        - Users
+      summary: Create profile image upload plan
+      description: Creates a stored-file record and returns a short-lived presigned
+        PUT for the current user profile image.
+      security:
+        - access-token: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+            description: "Idempotency key for safe retries of write requests. Replays return
+              `Idempotency-Replayed: true`."
+          required: false
+          description: "Idempotency key for safe retries of write requests. Replays return
+            `Idempotency-Replayed: true`."
+          name: Idempotency-Key
+          in: header
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProfileImageUploadRequestDto"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileImageUploadPlanEnvelopeDto"
+      x-error-codes:
+        - VALIDATION_FAILED
+        - UNAUTHORIZED
+        - RATE_LIMITED
+        - IDEMPOTENCY_IN_PROGRESS
+        - CONFLICT
+        - USERS_OBJECT_STORAGE_NOT_CONFIGURED
+        - INTERNAL
+  /v1/me/profile-image/complete:
+    post:
+      operationId: users.me.profileImage.complete
+      tags:
+        - Users
+      summary: Complete profile image upload
+      description: Verifies the uploaded object against the declared metadata and
+        attaches it as the profile image.
+      security:
+        - access-token: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteProfileImageUploadRequestDto"
+      responses:
+        "204":
+          description: ""
+      x-error-codes:
+        - VALIDATION_FAILED
+        - UNAUTHORIZED
+        - NOT_FOUND
+        - USERS_OBJECT_STORAGE_NOT_CONFIGURED
+        - USERS_PROFILE_IMAGE_NOT_UPLOADED
+        - USERS_PROFILE_IMAGE_SIZE_MISMATCH
+        - USERS_PROFILE_IMAGE_CONTENT_TYPE_MISMATCH
+        - INTERNAL
+  /v1/me/profile-image:
+    delete:
+      operationId: users.me.profileImage.clear
+      tags:
+        - Users
+      summary: Clear profile image
+      description: Removes the current profile image and schedules object cleanup.
+      security:
+        - access-token: []
+      responses:
+        "204":
+          description: ""
+      x-error-codes:
+        - UNAUTHORIZED
+        - INTERNAL
+  /v1/me/profile-image/url:
+    get:
+      operationId: users.me.profileImage.url
+      tags:
+        - Users
+      summary: Get profile image URL
+      description: Returns a short-lived presigned GET URL for the current profile
+        image, or 204 when none is set.
+      security:
+        - access-token: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileImageUrlEnvelopeDto"
+        "204":
+          description: ""
+      x-error-codes:
+        - UNAUTHORIZED
+        - USERS_OBJECT_STORAGE_NOT_CONFIGURED
+        - INTERNAL
+  /v1/me/account-deletion/request:
+    post:
+      operationId: users.me.accountDeletion.request
+      tags:
+        - Users
+      summary: Request account deletion
+      description: Schedules the authenticated account for deletion after the grace
+        period. Idempotent; repeated calls keep the original schedule.
+      security:
+        - access-token: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+            description: "Idempotency key for safe retries of write requests. Replays return
+              `Idempotency-Replayed: true`."
+          required: false
+          description: "Idempotency key for safe retries of write requests. Replays return
+            `Idempotency-Replayed: true`."
+          name: Idempotency-Key
+          in: header
+      responses:
+        "204":
+          description: ""
+      x-error-codes:
+        - UNAUTHORIZED
+        - IDEMPOTENCY_IN_PROGRESS
+        - CONFLICT
+        - USERS_CANNOT_DELETE_LAST_ADMIN
+        - INTERNAL
+  /v1/me/account-deletion/cancel:
+    post:
+      operationId: users.me.accountDeletion.cancel
+      tags:
+        - Users
+      summary: Cancel account deletion
+      description: Cancels a scheduled account deletion. Idempotent; calls without a
+        pending deletion are no-ops.
+      security:
+        - access-token: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+            description: "Idempotency key for safe retries of write requests. Replays return
+              `Idempotency-Replayed: true`."
+          required: false
+          description: "Idempotency key for safe retries of write requests. Replays return
+            `Idempotency-Replayed: true`."
+          name: Idempotency-Key
+          in: header
+      responses:
+        "204":
+          description: ""
+      x-error-codes:
+        - UNAUTHORIZED
+        - IDEMPOTENCY_IN_PROGRESS
         - INTERNAL
   /v1/me:
     get:

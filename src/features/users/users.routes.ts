@@ -7,13 +7,13 @@ import type { Context, MiddlewareHandler } from "hono";
 import { z } from "zod";
 
 import { requireAuth } from "../../platform/auth/guard";
-import type {
-  OperationMetadata,
-  OperationParameter,
-} from "../../platform/http/openapi";
 import { readListQuery } from "../../platform/http/list-query";
 import { systemClock, type Clock } from "../../platform/clock/clock";
 import { databaseFrom } from "../../platform/db/request";
+import {
+  durableObjectLimiterFactory,
+  type LimiterFactory,
+} from "../../platform/rate-limit/require-rate-limit";
 import { AppError } from "../../platform/errors/app-error";
 import { idempotent } from "../../platform/http/idempotency";
 import { listPayload, noContent } from "../../platform/http/envelope";
@@ -36,6 +36,9 @@ import {
   type SessionSortField,
 } from "../auth/index";
 import { loadMe, updateMeProfile, type ProfilePatch } from "./me";
+import { registerAccountDeletionRoutes } from "./account-deletion.routes";
+import { registerProfileImageRoutes } from "./profile-image.routes";
+
 import { toMePayload } from "./payload";
 
 const IDEMPOTENCY_KEY_PARAM = z.object({
@@ -95,115 +98,10 @@ const SESSIONS_QUERY_OPTIONS: ListQueryOptions<SessionSortField, never> = {
   },
 };
 
-const SESSION_LIST_PARAMETERS: readonly OperationParameter[] = [
-  {
-    name: "limit",
-    in: "query",
-    required: false,
-    description: "Max results to return (default 25, max 100).",
-    schema: { type: "integer", minimum: 1, maximum: 100, default: 25 },
-  },
-  {
-    name: "cursor",
-    in: "query",
-    required: false,
-    description: "Opaque cursor from the previous response meta.nextCursor.",
-    schema: { type: "string" },
-  },
-  {
-    name: "sort",
-    in: "query",
-    required: false,
-    description:
-      'Comma-separated fields; prefix "-" for descending. Max 3 fields. Default: "-createdAt". Allowed: createdAt, id',
-    schema: { type: "string", example: "-createdAt" },
-  },
-];
-
-const sessionsListRoute = createRoute({
-  method: "get",
-  path: "/v1/me/sessions",
-  operationId: "users.me.sessions.list",
-  tags: ["Users"],
-  summary: "List current user sessions",
-  description:
-    "Lists all sessions (active, revoked, expired) for the authenticated user. Revoked sessions have refresh tokens revoked; access tokens remain valid until expiry.",
-  responses: {
-    200: {
-      description: "",
-      content: {
-        "application/json": { schema: meSessionsListEnvelopeSchema },
-      },
-    },
-  },
-  security: [{ "access-token": [] }],
-});
-
-const sessionRevokeRoute = createRoute({
-  method: "post",
-  path: "/v1/me/sessions/{sessionId}/revoke",
-  operationId: "users.me.sessions.revoke",
-  tags: ["Users"],
-  summary: "Revoke a session (current user)",
-  description: "Revokes the given session and its refresh tokens. Idempotent.",
-  request: {
-    params: z.object({
-      sessionId: z
-        .string()
-        .meta({ example: "3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0" }),
-    }),
-  },
-  responses: {
-    204: { description: "" },
-  },
-  security: [{ "access-token": [] }],
-});
-
-export const usersOperations: readonly OperationMetadata[] = [
-  {
-    method: "get",
-    path: "/v1/me",
-    operationId: "users.me.get",
-    errorCodes: [ErrorCode.UNAUTHORIZED, ErrorCode.INTERNAL],
-  },
-  {
-    method: "patch",
-    path: "/v1/me",
-    operationId: "users.me.patch",
-    errorCodes: [
-      ErrorCode.VALIDATION_FAILED,
-      ErrorCode.UNAUTHORIZED,
-      ErrorCode.IDEMPOTENCY_IN_PROGRESS,
-      ErrorCode.CONFLICT,
-      ErrorCode.INTERNAL,
-    ],
-  },
-  {
-    method: "get",
-    path: "/v1/me/sessions",
-    operationId: "users.me.sessions.list",
-    errorCodes: [
-      ErrorCode.VALIDATION_FAILED,
-      ErrorCode.UNAUTHORIZED,
-      ErrorCode.INTERNAL,
-    ],
-    parameters: SESSION_LIST_PARAMETERS,
-  },
-  {
-    method: "post",
-    path: "/v1/me/sessions/{sessionId}/revoke",
-    operationId: "users.me.sessions.revoke",
-    errorCodes: [
-      ErrorCode.VALIDATION_FAILED,
-      ErrorCode.UNAUTHORIZED,
-      ErrorCode.NOT_FOUND,
-      ErrorCode.INTERNAL,
-    ],
-  },
-];
-
 export type UsersRouteDependencies = Readonly<{
   clock?: Clock;
+  rateLimiterFactory?: LimiterFactory;
+  queue?: Queue;
 }>;
 
 const PROFILE_FIELDS = ["displayName", "givenName", "familyName"] as const;
@@ -345,11 +243,52 @@ function createSessionRevokeHandler(
   };
 }
 
+const sessionsListRoute = createRoute({
+  method: "get",
+  path: "/v1/me/sessions",
+  operationId: "users.me.sessions.list",
+  tags: ["Users"],
+  summary: "List current user sessions",
+  description:
+    "Lists all sessions (active, revoked, expired) for the authenticated user. Revoked sessions have refresh tokens revoked; access tokens remain valid until expiry.",
+  responses: {
+    200: {
+      description: "",
+      content: {
+        "application/json": { schema: meSessionsListEnvelopeSchema },
+      },
+    },
+  },
+  security: [{ "access-token": [] }],
+});
+
+const sessionRevokeRoute = createRoute({
+  method: "post",
+  path: "/v1/me/sessions/{sessionId}/revoke",
+  operationId: "users.me.sessions.revoke",
+  tags: ["Users"],
+  summary: "Revoke a session (current user)",
+  description: "Revokes the given session and its refresh tokens. Idempotent.",
+  request: {
+    params: z.object({
+      sessionId: z
+        .string()
+        .meta({ example: "3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0" }),
+    }),
+  },
+  responses: {
+    204: { description: "" },
+  },
+  security: [{ "access-token": [] }],
+});
+
 export function registerUsersRoutes(
   app: OpenAPIHono<AppEnv>,
   dependencies: UsersRouteDependencies = {},
 ): void {
   const clock = dependencies.clock ?? systemClock;
+  const limiterFactory =
+    dependencies.rateLimiterFactory ?? durableObjectLimiterFactory();
 
   app.use("/v1/me", captureRawJson());
   app.use("/v1/me", requireAuth(clock));
@@ -360,8 +299,17 @@ export function registerUsersRoutes(
   app.use("/v1/me/sessions", requireAuth(clock));
   app.use("/v1/me/sessions/:sessionId/revoke", requireAuth(clock));
 
+  registerProfileImageRoutes(app, {
+    clock,
+    limiterFactory,
+    queue: dependencies.queue,
+  });
+  registerAccountDeletionRoutes(app, { clock });
+
   app.openapi(meRoute, meHandler);
   app.openapi(patchMeRoute, createPatchMeHandler(clock));
   app.openapi(sessionsListRoute, createSessionsListHandler(clock));
   app.openapi(sessionRevokeRoute, createSessionRevokeHandler(clock));
 }
+
+export { usersOperations } from "./users.operations";

@@ -120,6 +120,120 @@ export const meSessionsListEnvelopeSchema = z
   })
   .meta({ id: "MeSessionsListEnvelopeDto" });
 
+export const sessionPushPlatformSchema = z.enum(["ANDROID", "IOS", "WEB"]);
+
+export const mePushTokenUpsertRequestSchema = z
+  .object({
+    platform: z
+      .preprocess(
+        (value) =>
+          typeof value === "string" ? value.trim().toUpperCase() : value,
+        sessionPushPlatformSchema,
+      )
+      .meta({
+        example: "ANDROID",
+        description: "Client platform where the push token was minted.",
+      }),
+    token: z
+      .string()
+      .trim()
+      .max(2048)
+      .refine((value) => value.length > 0, {
+        message: "token must not be empty",
+      })
+      .meta({
+        example: "<fcm-registration-token>",
+        description: "FCM registration token for this device/app install.",
+      }),
+  })
+  .meta({ id: "MePushTokenUpsertRequestDto" });
+
+export type MePushTokenUpsertRequest = z.infer<
+  typeof mePushTokenUpsertRequestSchema
+>;
+
+export const PROFILE_IMAGE_CONTENT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+
+export const PROFILE_IMAGE_MAX_BYTES = 5_000_000;
+
+const uuidSchema = z
+  .string()
+  .refine(
+    (value) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        value,
+      ),
+    { message: "must be a UUID" },
+  );
+
+export const createProfileImageUploadRequestSchema = z
+  .object({
+    contentType: z.enum(PROFILE_IMAGE_CONTENT_TYPES).meta({
+      example: "image/webp",
+      description:
+        "Declared MIME type for the upload. Must match the Content-Type used during upload.",
+    }),
+    sizeBytes: z
+      .preprocess(
+        (value) => (typeof value === "number" ? Math.trunc(value) : value),
+        z.number().min(1).max(PROFILE_IMAGE_MAX_BYTES),
+      )
+      .meta({
+        example: 123_456,
+        description:
+          "Declared size of the upload in bytes (used to verify the stored object).",
+      }),
+  })
+  .meta({ id: "CreateProfileImageUploadRequestDto" });
+
+export const completeProfileImageUploadRequestSchema = z
+  .object({
+    fileId: uuidSchema.meta({
+      example: "3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0",
+    }),
+  })
+  .meta({ id: "CompleteProfileImageUploadRequestDto" });
+
+export const presignedUploadSchema = z
+  .object({
+    method: z.enum(["PUT"]).meta({ example: "PUT" }),
+    url: z.string().meta({ example: "https://<r2-presigned-url>" }),
+    headers: z.object({}).meta({
+      example: { "Content-Type": "image/webp" },
+      description: "Headers that must be sent with the upload request.",
+    }),
+  })
+  .meta({ id: "PresignedUploadDto" });
+
+export const profileImageUploadPlanSchema = z
+  .object({
+    fileId: z
+      .string()
+      .meta({ example: "3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0" }),
+    upload: presignedUploadSchema,
+    expiresAt: z.iso.datetime().meta({ example: "2026-01-10T12:34:56.789Z" }),
+  })
+  .meta({ id: "ProfileImageUploadPlanDto" });
+
+export const profileImageUploadPlanEnvelopeSchema = z
+  .object({ data: profileImageUploadPlanSchema })
+  .meta({ id: "ProfileImageUploadPlanEnvelopeDto" });
+
+export const profileImageUrlSchema = z
+  .object({
+    url: z.string().meta({ example: "https://<r2-presigned-url>" }),
+    expiresAt: z.iso.datetime().meta({ example: "2026-01-10T12:34:56.789Z" }),
+  })
+  .meta({ id: "ProfileImageUrlDto" });
+
+export const profileImageUrlEnvelopeSchema = z
+  .object({ data: profileImageUrlSchema })
+  .meta({ id: "ProfileImageUrlEnvelopeDto" });
+
 export type Me = z.infer<typeof meSchema>;
 export type MeSession = z.infer<typeof meSessionSchema>;
 export type PatchMeProfile = z.infer<typeof patchMeProfileSchema>;

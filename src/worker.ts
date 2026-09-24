@@ -3,6 +3,7 @@ import { createWorkerJobs } from "./jobs";
 import { systemClock } from "./platform/clock/clock";
 import { getConfig } from "./platform/config/config";
 import { createDb } from "./platform/db/db";
+import { createEmailPort } from "./platform/email/email";
 import { createLogger } from "./platform/logging/logger";
 import {
   createDeadLetterConsumer,
@@ -10,6 +11,7 @@ import {
 } from "./platform/queue/consumer";
 import { deadLetterQueueName } from "./platform/queue/names";
 import { createQueueProducer } from "./platform/queue/producer";
+import { objectStorageFromConfig } from "./platform/storage/request";
 
 export { AuthRateLimiter } from "./platform/rate-limit/rate-limiter";
 
@@ -33,7 +35,11 @@ export default {
 
     const jobs = createWorkerJobs({
       db: createDb(env.DB),
+      queue: env.JOBS,
       clock: systemClock,
+      email: createEmailPort(config),
+      config,
+      objectStorage: objectStorageFromConfig(config),
       logger,
     });
 
@@ -48,7 +54,11 @@ export default {
     });
     const jobs = createWorkerJobs({
       db: createDb(env.DB),
+      queue: env.JOBS,
       clock: systemClock,
+      email: createEmailPort(config),
+      config,
+      objectStorage: objectStorageFromConfig(config),
       logger,
     });
     const producer = createQueueProducer({

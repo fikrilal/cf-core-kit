@@ -3,6 +3,7 @@ import { and, asc, eq, inArray, isNull, lte } from "drizzle-orm";
 import type { Database } from "../../platform/db/db";
 import { runBatch } from "../../platform/db/db";
 import {
+  emailVerificationTokens,
   oidcIdentities,
   refreshTokens,
   sessions,
@@ -98,7 +99,15 @@ export async function createSessionWithToken(
     await runBatch(db, [
       db
         .update(sessions)
-        .set({ revokedAt: now, activeKey: null, updatedAt: now })
+        .set({
+          revokedAt: now,
+          activeKey: null,
+          pushPlatform: null,
+          pushToken: null,
+          pushTokenUpdatedAt: now,
+          pushTokenRevokedAt: now,
+          updatedAt: now,
+        })
         .where(
           and(
             eq(sessions.activeKey, input.revokeActiveKey),
@@ -125,7 +134,7 @@ function isRecordValue(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function readChangeCount(result: unknown): number {
+export function readChangeCount(result: unknown): number {
   if (!isRecordValue(result)) return 0;
 
   const meta = result.meta;
@@ -214,7 +223,15 @@ export async function revokeSessionAndTokens(
       ),
     db
       .update(sessions)
-      .set({ revokedAt: now, activeKey: null, updatedAt: now })
+      .set({
+        revokedAt: now,
+        activeKey: null,
+        pushPlatform: null,
+        pushToken: null,
+        pushTokenUpdatedAt: now,
+        pushTokenRevokedAt: now,
+        updatedAt: now,
+      })
       .where(and(eq(sessions.id, sessionId), isNull(sessions.revokedAt))),
   ]);
 }
@@ -236,4 +253,64 @@ export async function purgeExpiredSessions(
     .returning({ id: sessions.id });
 
   return deleted.length;
+}
+
+export type VerifyEmailOutcome =
+  "ok" | "already_verified" | "token_invalid" | "token_expired";
+
+async function markEmailVerificationTokenUsed(
+  db: Database,
+  id: string,
+  now: Date,
+): Promise<void> {
+  await db
+    .update(emailVerificationTokens)
+    .set({ usedAt: now, updatedAt: now })
+    .where(
+      and(
+        eq(emailVerificationTokens.id, id),
+        isNull(emailVerificationTokens.usedAt),
+      ),
+    );
+}
+
+export async function consumeEmailVerificationToken(
+  db: Database,
+  input: Readonly<{ tokenHash: string; now: Date }>,
+): Promise<VerifyEmailOutcome> {
+  const token = await db
+    .select()
+    .from(emailVerificationTokens)
+    .where(eq(emailVerificationTokens.tokenHash, input.tokenHash))
+    .get();
+  if (token === undefined) return "token_invalid";
+
+  const user = await findUserById(db, token.userId);
+  if (user === undefined) return "token_invalid";
+
+  if (user.emailVerifiedAt !== null) {
+    await markEmailVerificationTokenUsed(db, token.id, input.now);
+
+    return "already_verified";
+  }
+  if (token.revokedAt !== null || token.usedAt !== null) return "token_invalid";
+  if (token.expiresAt.getTime() <= input.now.getTime()) return "token_expired";
+
+  const results = await runBatch(db, [
+    db
+      .update(users)
+      .set({ emailVerifiedAt: input.now, updatedAt: input.now })
+      .where(and(eq(users.id, token.userId), isNull(users.emailVerifiedAt))),
+    db
+      .update(emailVerificationTokens)
+      .set({ usedAt: input.now, updatedAt: input.now })
+      .where(
+        and(
+          eq(emailVerificationTokens.id, token.id),
+          isNull(emailVerificationTokens.usedAt),
+        ),
+      ),
+  ]);
+
+  return readChangeCount(results[0]) === 1 ? "ok" : "already_verified";
 }

@@ -9,6 +9,8 @@ import { systemClock, type Clock } from "../../platform/clock/clock";
 import { configFrom } from "../../platform/config/request";
 import { databaseFrom } from "../../platform/db/request";
 import { requireAuth } from "../../platform/auth/guard";
+import type { EmailPort } from "../../platform/email/email";
+import { disabledPushPort, type PushPort } from "../../platform/push/push";
 import { getKeyRing } from "../../platform/auth/keys";
 import {
   durableObjectLimiterFactory,
@@ -35,6 +37,14 @@ import {
   refreshRequestSchema,
 } from "../../shared/contract/auth";
 import { ErrorCode } from "../../shared/error-codes";
+import {
+  emailVerificationOperations,
+  registerEmailVerificationRoutes,
+} from "./email-verification.routes";
+import {
+  pushTokenOperations,
+  registerPushTokenRoutes,
+} from "./push-token.routes";
 import { connectOidc, exchangeOidc } from "./oidc.service";
 import { createDefaultIdTokenVerifier, type IdTokenVerifier } from "./oidc";
 import { logoutSession, refreshSession } from "./session.service";
@@ -208,6 +218,8 @@ export const authOperations: readonly OperationMetadata[] = [
     operationId: "auth.jwks.get",
     errorCodes: [ErrorCode.INTERNAL],
   },
+  ...emailVerificationOperations,
+  ...pushTokenOperations,
 ];
 
 export type AuthRouteDependencies = Readonly<{
@@ -215,6 +227,9 @@ export type AuthRouteDependencies = Readonly<{
   clock?: Clock;
   rateLimiterFactory?: LimiterFactory;
   rateLimits?: Partial<AuthRateLimits>;
+  email?: EmailPort;
+  queue?: Queue;
+  push?: PushPort;
 }>;
 
 function createExchangeHandler(
@@ -347,5 +362,15 @@ export function registerAuthRoutes(
   app.openapi(connectRoute, createConnectHandler(verifier, clock));
   app.openapi(refreshRoute, createRefreshHandler(clock));
   app.openapi(logoutRoute, createLogoutHandler(clock));
+  registerEmailVerificationRoutes(app, {
+    clock,
+    limiterFactory,
+    email: dependencies.email,
+    queue: dependencies.queue,
+  });
+  registerPushTokenRoutes(app, {
+    clock,
+    push: dependencies.push ?? disabledPushPort(),
+  });
   app.openapi(jwksRoute, createJwksHandler());
 }

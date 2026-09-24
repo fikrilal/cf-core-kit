@@ -38,6 +38,17 @@ export const logoutRequestSchema = z
   })
   .meta({ id: "LogoutRequestDto" });
 
+export const verifyEmailRequestSchema = z
+  .object({
+    token: z
+      .string()
+      .refine((value) => value.length > 0, {
+        message: "token must not be empty",
+      })
+      .meta({ example: "<verification-token>" }),
+  })
+  .meta({ id: "VerifyEmailRequestDto" });
+
 export const authUserSchema = z
   .object({
     id: z.string().meta({ example: "3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0" }),
@@ -82,3 +93,4 @@ export const jwksResponseSchema = z.object({ keys: z.array(z.object({})) });
 
 export type OidcExchangeRequest = z.infer<typeof oidcExchangeRequestSchema>;
 export type OidcConnectRequest = z.infer<typeof oidcConnectRequestSchema>;
+export type VerifyEmailRequest = z.infer<typeof verifyEmailRequestSchema>;

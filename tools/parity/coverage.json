@@ -6,6 +6,8 @@
     "sha256": "6ae079adec93303ae3db3dee3ec13c2d1999f6b3367e800688469d4a780cff8c"
   },
   "implemented": [
+    "auth.email.verification.resend",
+    "auth.email.verify",
     "auth.jwks.get",
     "auth.logout",
     "auth.oidc.connect",
@@ -13,8 +15,16 @@
     "auth.refresh",
     "health.get",
     "ready.get",
+    "users.me.accountDeletion.cancel",
+    "users.me.accountDeletion.request",
     "users.me.get",
     "users.me.patch",
+    "users.me.profileImage.clear",
+    "users.me.profileImage.complete",
+    "users.me.profileImage.upload",
+    "users.me.profileImage.url",
+    "users.me.pushToken.revoke",
+    "users.me.pushToken.upsert",
     "users.me.sessions.list",
     "users.me.sessions.revoke"
   ],
@@ -25,18 +35,8 @@
     "admin.users.role.patch",
     "admin.users.status.patch",
     "admin.whoami.get",
-    "auth.email.verification.resend",
-    "auth.email.verify",
     "merchantOnboarding.applications.submit",
-    "merchantOnboarding.referenceData.get",
-    "users.me.accountDeletion.cancel",
-    "users.me.accountDeletion.request",
-    "users.me.profileImage.clear",
-    "users.me.profileImage.complete",
-    "users.me.profileImage.upload",
-    "users.me.profileImage.url",
-    "users.me.pushToken.revoke",
-    "users.me.pushToken.upsert"
+    "merchantOnboarding.referenceData.get"
   ],
   "descoped": [
     {
