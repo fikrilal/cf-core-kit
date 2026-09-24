@@ -15,6 +15,7 @@ import { issueAccessToken } from "../src/platform/auth/access-token";
 import { buildKeyRing } from "../src/platform/auth/keys";
 import type { Database } from "../src/platform/db/db";
 import {
+  emailVerificationTokens,
   oidcIdentities,
   refreshTokens,
   sessions,
@@ -46,7 +47,11 @@ export type AuthEnvOverrides = Partial<
     | "AUTH_SIGNING_KEYS_JSON_BASE64"
     | "AUTH_OIDC_GOOGLE_CLIENT_IDS"
     | "AUTH_ISSUER"
-    | "AUTH_AUDIENCE",
+    | "AUTH_AUDIENCE"
+    | "RESEND_API_KEY"
+    | "EMAIL_FROM"
+    | "EMAIL_REPLY_TO"
+    | "PUBLIC_APP_URL",
     string
   >
 >;
@@ -143,6 +148,7 @@ export async function signIdToken(options: IdTokenOptions): Promise<string> {
 }
 
 export async function cleanAuthTables(db: Database): Promise<void> {
+  await db.delete(emailVerificationTokens);
   await db.delete(refreshTokens);
   await db.delete(sessions);
   await db.delete(oidcIdentities);
@@ -349,6 +355,7 @@ export async function userAccessToken(
     emailVerified?: boolean;
     roles?: readonly string[];
     sessionId?: string;
+    now?: Date;
   }> = {},
 ): Promise<string> {
   const keyRing = await buildKeyRing({
@@ -358,7 +365,7 @@ export async function userAccessToken(
 
   return issueAccessToken({
     keyRing,
-    now: new Date(),
+    now: options.now ?? new Date(),
     ttlSeconds: 900,
     userId,
     sessionId: options.sessionId ?? crypto.randomUUID(),

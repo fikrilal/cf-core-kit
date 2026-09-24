@@ -10,6 +10,7 @@ export type RateLimitPolicy = Readonly<{
   name: string;
   limit: number;
   windowSeconds: number;
+  blockSeconds?: number;
 }>;
 
 export type RateLimiterPort = (
@@ -89,6 +90,9 @@ export function requireRateLimit(
         key: `${policy.name}:${clientKey}`,
         limit: policy.limit,
         windowSeconds: policy.windowSeconds,
+        ...(policy.blockSeconds === undefined
+          ? {}
+          : { blockSeconds: policy.blockSeconds }),
       });
 
       if (typeof evaluated.allowed !== "boolean") {

@@ -8,7 +8,7 @@ import {
   type JobEnvelope,
 } from "./job";
 import { MAX_MESSAGE_DELAY_SECONDS } from "./defaults";
-import type { Job } from "./registry";
+import type { JobSpec } from "./registry";
 
 export type EnqueueOptions = Readonly<{
   jobId?: string;
@@ -18,7 +18,7 @@ export type EnqueueOptions = Readonly<{
 
 export type QueueProducer = Readonly<{
   enqueue: <TPayload>(
-    job: Job<TPayload>,
+    job: JobSpec<TPayload>,
     payload: TPayload,
     options?: EnqueueOptions,
   ) => Promise<boolean>;
@@ -84,7 +84,7 @@ export function createQueueProducer(input: QueueProducerInput): QueueProducer {
   const { clock, logger } = input;
 
   const enqueue = async <TPayload>(
-    job: Job<TPayload>,
+    job: JobSpec<TPayload>,
     payload: TPayload,
     options: EnqueueOptions = {},
   ): Promise<boolean> => {

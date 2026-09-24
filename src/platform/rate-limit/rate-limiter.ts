@@ -2,6 +2,7 @@ export type RateLimitRequest = Readonly<{
   key: string;
   limit: number;
   windowSeconds: number;
+  blockSeconds?: number;
 }>;
 
 export type RateLimitDecision = Readonly<{
@@ -12,10 +13,12 @@ export type RateLimitDecision = Readonly<{
 const MAX_KEY_LENGTH = 256;
 const MAX_LIMIT = 1_000_000;
 const MAX_WINDOW_SECONDS = 86_400;
+const MAX_BLOCK_SECONDS = 86_400;
 
 export interface RateLimitBucket {
   count: number;
   resetAt: number;
+  blockedUntil?: number;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -52,7 +55,19 @@ export function readRateLimitRequest(
 
   if (limit === undefined || windowSeconds === undefined) return undefined;
 
-  return { key, limit, windowSeconds };
+  if (value.blockSeconds === undefined) {
+    return { key, limit, windowSeconds };
+  }
+
+  const blockSeconds = readBoundedInteger(
+    value.blockSeconds,
+    1,
+    MAX_BLOCK_SECONDS,
+  );
+
+  if (blockSeconds === undefined) return undefined;
+
+  return { key, limit, windowSeconds, blockSeconds };
 }
 
 export type RateLimitEvaluation = Readonly<{
@@ -65,6 +80,28 @@ export function evaluateRateLimit(
   previous: RateLimitBucket | undefined,
   now: number,
 ): RateLimitEvaluation {
+  if (previous?.blockedUntil !== undefined) {
+    if (previous.blockedUntil > now) {
+      return {
+        bucket: previous,
+        decision: {
+          allowed: false,
+          retryAfterSeconds: Math.max(
+            1,
+            Math.ceil((previous.blockedUntil - now) / 1000),
+          ),
+        },
+      };
+    }
+
+    // The advertised block elapsed: treat it as the resolution and start a
+    // fresh window instead of instantly re-blocking on the stale count.
+    return {
+      bucket: { count: 1, resetAt: now + input.windowSeconds * 1000 },
+      decision: { allowed: true, retryAfterSeconds: 0 },
+    };
+  }
+
   const bucket =
     previous === undefined || previous.resetAt <= now
       ? { count: 1, resetAt: now + input.windowSeconds * 1000 }
@@ -72,6 +109,15 @@ export function evaluateRateLimit(
 
   if (bucket.count <= input.limit) {
     return { bucket, decision: { allowed: true, retryAfterSeconds: 0 } };
+  }
+
+  if (input.blockSeconds !== undefined) {
+    const blockedUntil = now + input.blockSeconds * 1000;
+
+    return {
+      bucket: { ...bucket, blockedUntil },
+      decision: { allowed: false, retryAfterSeconds: input.blockSeconds },
+    };
   }
 
   return {

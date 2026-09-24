@@ -16,6 +16,22 @@ const configSchema = z
     AUTH_OIDC_GOOGLE_CLIENT_IDS: z.string().optional(),
     AUTH_ISSUER: z.string().optional(),
     AUTH_AUDIENCE: z.string().optional(),
+    AUTH_EMAIL_VERIFICATION_TOKEN_TTL_SECONDS: ttlSecondsSchema.default(86_400),
+    AUTH_EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS:
+      ttlSecondsSchema.default(60),
+    AUTH_EMAIL_VERIFICATION_RESEND_IP_MAX_ATTEMPTS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(30),
+    AUTH_EMAIL_VERIFICATION_RESEND_IP_WINDOW_SECONDS:
+      ttlSecondsSchema.default(300),
+    AUTH_EMAIL_VERIFICATION_RESEND_IP_BLOCK_SECONDS:
+      ttlSecondsSchema.default(900),
+    RESEND_API_KEY: z.string().optional(),
+    EMAIL_FROM: z.string().optional(),
+    EMAIL_REPLY_TO: z.string().optional(),
+    PUBLIC_APP_URL: z.string().optional(),
     R2_ACCOUNT_ID: z.string().optional(),
     R2_BUCKET: z.string().optional(),
     R2_ACCESS_KEY_ID: z.string().optional(),
@@ -44,6 +60,15 @@ export type AppConfig = Readonly<{
   authOidcGoogleClientIds: readonly string[];
   authIssuer: string | undefined;
   authAudience: string | undefined;
+  authEmailVerificationTokenTtlSeconds: number;
+  authEmailVerificationResendCooldownSeconds: number;
+  authEmailVerificationResendIpMaxAttempts: number;
+  authEmailVerificationResendIpWindowSeconds: number;
+  authEmailVerificationResendIpBlockSeconds: number;
+  resendApiKey: string | undefined;
+  emailFrom: string | undefined;
+  emailReplyTo: string | undefined;
+  publicAppUrl: string | undefined;
   r2AccountId: string | undefined;
   r2Bucket: string | undefined;
   r2AccessKeyId: string | undefined;
@@ -60,6 +85,15 @@ type ConfigKey =
   | "AUTH_OIDC_GOOGLE_CLIENT_IDS"
   | "AUTH_ISSUER"
   | "AUTH_AUDIENCE"
+  | "AUTH_EMAIL_VERIFICATION_TOKEN_TTL_SECONDS"
+  | "AUTH_EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS"
+  | "AUTH_EMAIL_VERIFICATION_RESEND_IP_MAX_ATTEMPTS"
+  | "AUTH_EMAIL_VERIFICATION_RESEND_IP_WINDOW_SECONDS"
+  | "AUTH_EMAIL_VERIFICATION_RESEND_IP_BLOCK_SECONDS"
+  | "RESEND_API_KEY"
+  | "EMAIL_FROM"
+  | "EMAIL_REPLY_TO"
+  | "PUBLIC_APP_URL"
   | "R2_ACCOUNT_ID"
   | "R2_BUCKET"
   | "R2_ACCESS_KEY_ID"
@@ -101,6 +135,20 @@ export function parseConfig(input: ConfigInput): AppConfig {
     ),
     authIssuer: result.data.AUTH_ISSUER,
     authAudience: result.data.AUTH_AUDIENCE,
+    authEmailVerificationTokenTtlSeconds:
+      result.data.AUTH_EMAIL_VERIFICATION_TOKEN_TTL_SECONDS,
+    authEmailVerificationResendCooldownSeconds:
+      result.data.AUTH_EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS,
+    authEmailVerificationResendIpMaxAttempts:
+      result.data.AUTH_EMAIL_VERIFICATION_RESEND_IP_MAX_ATTEMPTS,
+    authEmailVerificationResendIpWindowSeconds:
+      result.data.AUTH_EMAIL_VERIFICATION_RESEND_IP_WINDOW_SECONDS,
+    authEmailVerificationResendIpBlockSeconds:
+      result.data.AUTH_EMAIL_VERIFICATION_RESEND_IP_BLOCK_SECONDS,
+    resendApiKey: result.data.RESEND_API_KEY,
+    emailFrom: result.data.EMAIL_FROM,
+    emailReplyTo: result.data.EMAIL_REPLY_TO,
+    publicAppUrl: result.data.PUBLIC_APP_URL,
     r2AccountId: result.data.R2_ACCOUNT_ID,
     r2Bucket: result.data.R2_BUCKET,
     r2AccessKeyId: result.data.R2_ACCESS_KEY_ID,

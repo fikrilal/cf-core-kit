@@ -21,6 +21,35 @@ export type ObjectPresigner = Readonly<{
   presign: (input: PresignInput) => Promise<string>;
 }>;
 
+export type PresignedUpload = Readonly<{
+  url: string;
+  headers: Readonly<Record<string, string>>;
+}>;
+
+export type HeadObjectResult =
+  | Readonly<{ exists: false }>
+  | Readonly<{
+      exists: true;
+      contentType: string | undefined;
+      contentLength: number | undefined;
+    }>;
+
+export type ObjectStorageHandle = Readonly<{
+  bucket: string;
+  storage: ObjectStorage;
+}>;
+
+export type ObjectStorage = ObjectPresigner &
+  Readonly<{
+    presignPutObject: (input: {
+      key: string;
+      contentType: string;
+      expiresInSeconds?: number;
+    }) => Promise<PresignedUpload>;
+    headObject: (key: string) => Promise<HeadObjectResult>;
+    deleteObject: (key: string) => Promise<void>;
+  }>;
+
 export type ObjectPresignerConfig = Readonly<{
   accountId: string;
   bucket: string;
@@ -100,6 +129,37 @@ export function createObjectPresigner(
   config: ObjectPresignerConfig,
   clock: Clock,
 ): ObjectPresigner {
+  return createObjectStorage(config, clock);
+}
+
+function objectRequestUrl(config: ObjectPresignerConfig, key: string): string {
+  const objectKey = normalizeKey(key);
+
+  return `https://${config.accountId}.r2.cloudflarestorage.com/${encodeURIComponent(config.bucket)}/${objectKey
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/")}`;
+}
+
+function createSignedSender(
+  config: ObjectPresignerConfig,
+  client: AwsClient,
+  clock: Clock,
+): (key: string, method: "HEAD" | "DELETE") => Promise<Response> {
+  return async (key, method) => {
+    const signed = await client.sign(objectRequestUrl(config, key), {
+      method,
+      aws: { datetime: amzDate(clock.now()) },
+    });
+
+    return fetch(signed);
+  };
+}
+
+export function createObjectStorage(
+  config: ObjectPresignerConfig,
+  clock: Clock,
+): ObjectStorage {
   for (const [name, value] of Object.entries(config)) {
     if (value.trim() === "") {
       throw new Error(`R2 presign configuration is missing "${name}"`);
@@ -124,5 +184,56 @@ export function createObjectPresigner(
     return signed.url;
   };
 
-  return { presign };
+  const presignPutObject: ObjectStorage["presignPutObject"] = async (input) => {
+    const key = normalizeKey(input.key);
+    const expires = resolveExpiry(input.expiresInSeconds);
+    const signed = await client.sign(objectUrl(config, key, expires), {
+      method: "PUT",
+      headers: { "content-type": input.contentType },
+      aws: {
+        signQuery: true,
+        datetime: amzDate(clock.now()),
+        allHeaders: true,
+      },
+    });
+
+    return {
+      url: signed.url,
+      headers: { "Content-Type": input.contentType },
+    };
+  };
+
+  const send = createSignedSender(config, client, clock);
+
+  const headObject: ObjectStorage["headObject"] = async (key) => {
+    const response = await send(key, "HEAD");
+
+    if (response.status === 404) return { exists: false };
+    if (!response.ok) {
+      throw new Error(
+        `R2 head object failed with status ${String(response.status)}`,
+      );
+    }
+
+    const contentLength = response.headers.get("content-length");
+
+    return {
+      exists: true,
+      contentType: response.headers.get("content-type") ?? undefined,
+      contentLength:
+        contentLength === null ? undefined : Number.parseInt(contentLength, 10),
+    };
+  };
+
+  const deleteObject: ObjectStorage["deleteObject"] = async (key) => {
+    const response = await send(key, "DELETE");
+
+    if (response.ok || response.status === 404) return;
+
+    throw new Error(
+      `R2 delete object failed with status ${String(response.status)}`,
+    );
+  };
+
+  return { presign, presignPutObject, headObject, deleteObject };
 }

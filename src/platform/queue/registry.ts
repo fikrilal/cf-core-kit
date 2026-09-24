@@ -29,6 +29,11 @@ export type Job<TPayload> = Readonly<{
   dispatch: DispatchFn;
 }>;
 
+export type JobSpec<TPayload> = Readonly<{
+  name: JobName;
+  payloadSchema: z.ZodType<TPayload>;
+}>;
+
 export type AnyJob = Readonly<{
   name: JobName;
   dispatch: DispatchFn;

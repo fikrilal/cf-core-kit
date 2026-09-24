@@ -15,6 +15,20 @@
       "when": 1791695465835,
       "tag": "0001_first_thena",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791734326695,
+      "tag": "0002_swift_thor_girl",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1791810880432,
+      "tag": "0003_lean_sersi",
+      "breakpoints": true
     }
   ]
 }
