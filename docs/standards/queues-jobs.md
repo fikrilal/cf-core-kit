@@ -74,7 +74,10 @@ Status: normative (landed 2026-10-11, task 4.1). This standard mirrors backend-c
 ## Scheduled sweeps (shipped conventions)
 
 - The single hourly cron (`0 * * * *`, all four scopes) enqueues the registered sweeps and
-  returns — it never touches data.
+  returns — it never touches data. Current sweeps: expired-session purge, expired-idempotency
+  purge, and `users.finalizeDueAccountDeletions` (selects due accounts within a bounded batch and
+  enqueues one idempotent `users.finalizeAccountDeletion` job per account — the 30-day grace
+  period exceeds the 24-hour queue-delay maximum, so the schedule is data, not a delayed message).
 - Jobs are enqueued per tick with `jobId = <job>-<scheduledFor ISO>` and
   `traceId = cron:<scheduledFor ISO>`. The transport has no dedupe, so correctness comes from
   the handlers, not the message ids.
@@ -95,3 +98,21 @@ Status: normative (landed 2026-10-11, task 4.1). This standard mirrors backend-c
   the envelope/trace behavior is covered by the platform helper specs
   (`src/platform/queue/*.spec.ts`).
 - Any new consumer or queue change keeps `budget:check` green.
+
+## Produced jobs (request-driven)
+
+- Jobs are not only cron-driven: request paths enqueue work through the same platform producer
+  (`createSendVerificationEmailProducer` style — a feature-owned producer that wraps
+  `createQueueProducer`). The producer exposes `isEnabled()` (configuration gate) and one
+  intent-named enqueue function; features never import the producer directly for anything else.
+- The transport mapping is deliberate: backend-core-kit's separate `emails`/`users`/`push`
+  queues collapse onto this kit's single work queue, while **job names stay identical**
+  (`auth.sendVerificationEmail`, and later `users.*` jobs) so envelopes, logs, and traces remain
+  comparable across the family.
+- Producer-side skip semantics (mirroring the family): when the required configuration is absent
+  the calling endpoint answers its documented error (for `auth.email.verification.resend`, a
+  `500 INTERNAL` "Email is not configured"), and the handler re-checks configuration defensively
+  before doing any work (`verification email skipped` / `reason: email_not_configured`).
+- These jobs carry no deterministic `jobId` (retries are acceptable: at-least-once, and the
+  handler is naturally idempotent per user — a fresh token each run, all older ones still usable
+  until expiry or consumption).

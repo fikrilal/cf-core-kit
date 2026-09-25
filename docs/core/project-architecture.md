@@ -132,6 +132,11 @@ Executable rules, not review memory (ADR-0008):
 - v1 is OIDC-first: OIDC sign-in → principal → session issuance; no password material is stored anywhere (ADR-0006).
 - Access tokens are Ed25519 (EdDSA) with a JWKS endpoint; refresh tokens are opaque, rotated on every refresh, with reuse detection.
 - Auth endpoints are rate-limited per client address by the memory-first `AuthRateLimiter` Durable Object (ADR-0012); exceeding a window returns `429` with `Retry-After` (a platform-safety response, intentionally undeclared in `x-error-codes`).
+- Policies generalize over the bucket key: middleware policies key by client address, while
+  handlers may key by subject (`auth.email.verification.resend:user:<id>` for the resend
+  cooldown, `…:ip:<address>` for its window) and may set an optional `blockSeconds` so an
+  exceeded window escalates to a timed block (the family's IP-block semantics). The mechanism —
+  same DO, same fixed windows, fail-open on limiter errors — is unchanged.
 - `auth.password.*` operations are descoped and recorded in the parity manifest; backlog order is magic link → password revival (M0-spike gated) → passkeys.
 
 ## Contract Parity Model

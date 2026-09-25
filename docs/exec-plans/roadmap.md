@@ -27,12 +27,18 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
 
 ## Current Focus
 
-**Every roadmap checkbox is closed.** Phases 0–5 are complete, Phase 6's cross-cutting follow-ups are complete, and the published history ends with the harness, gates, and docs current (see the publication plan's record). What remains is deliberately not scheduled here because each item is gated on a decision only the product owner can make:
+**Every roadmap checkbox is closed.** Phases 0–5 are complete, Phase 6's cross-cutting follow-ups are complete, and the published history ends with the harness, gates, and docs current (see the publication plan's record). The full auth + users endpoint surface then landed ahead of Phase 6 (2026-10-11): `auth.email.verify`, `auth.email.verification.resend`, `users.me.pushToken.upsert/revoke`, `users.me.profileImage.upload/complete/clear/url`, and `users.me.accountDeletion.request/cancel` — the email and push platform ports, the stored-files model, authenticated R2 head/delete, and the deletion saga came with them (each under its own completed exec plan; password operations stay descoped). What remains is deliberately not scheduled here because each item is gated on a decision only the product owner can make:
 
-- **Backlog #1 — Magic link** (+ email module / Resend adapter): needs the method decision confirmed, an email-provider credential (Resend), and family contract surface — the pinned snapshot has `auth.email.verify` / `auth.email.verification.resend` but no magic-link sign-in operations.
+- **Backlog #1 — Magic link**: the email platform (port + Resend adapter + `auth.sendVerificationEmail`
+  job) landed with `auth.email.*`, so this now needs only the method decision, a Resend credential, and
+  family contract surface — the pinned snapshot has `auth.email.verify` /
+  `auth.email.verification.resend` but no magic-link sign-in operations.
 - **Backlog #2 — Password revival**: M0 spike first (DO CPU budget on the free plan + WASM Argon2id), then the `CredentialHasher` port with `do-argon2` / `inline-argon2` adapters; `auth.password.*` stays descoped until then.
 - **Backlog #3 — Passkeys**: needs `auth.passkeys.*` superset endpoints in the family contract.
-- **Phase 6 surfaces — `admin`, `merchant-onboarding`**: deferred until a product needs them; the 18 pending pinned operations are the tier-2 parity backlog (`cfkit scaffold endpoint` implements the simple ones in one command once a product wants them).
+- **Phase 6 surfaces — `admin`, `merchant-onboarding`**: deferred until a product needs them; 8 pending
+  pinned operations remain (the `admin.*` and `merchantOnboarding.*` groups — the tier-2 parity
+  backlog; `cfkit scaffold endpoint` implements the simple ones in one command once a product wants
+  them).
 - **Credentialed lanes**: dashboard CPU per route class, a live R2 upload, and the first real deploy — each tracked in its plan.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
