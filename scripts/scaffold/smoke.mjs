@@ -114,7 +114,9 @@ function captureBytes() {
 }
 
 function restore(before) {
-  cfkit(["remove", "feature", FEATURE, "--yes", "--force"]);
+  if (existsSync(join(ROOT, "src/features", FEATURE))) {
+    cfkit(["remove", "feature", FEATURE, "--yes", "--force"]);
+  }
 
   if (scaffoldedOperation !== undefined) {
     cfkit(["remove", "endpoint", scaffoldedOperation]);
@@ -130,14 +132,12 @@ function restore(before) {
 export function main() {
   const operation = pickScaffoldableOperation();
 
-  if (operation === undefined) {
-    return fail("no scaffoldable pending operation left");
-  }
-
   scaffoldedOperation = operation;
 
   console.log(
-    `[scaffold-smoke] scaffold feature ${FEATURE} + endpoint ${operation}`,
+    operation === undefined
+      ? `[scaffold-smoke] no scaffoldable pending operation left; scaffold feature ${FEATURE} only`
+      : `[scaffold-smoke] scaffold feature ${FEATURE} + endpoint ${operation}`,
   );
 
   const before = captureBytes();
@@ -147,13 +147,19 @@ export function main() {
       return fail("feature scaffold failed");
     }
 
-    if (cfkit(["scaffold", "endpoint", operation]) !== 0) {
+    if (
+      operation !== undefined &&
+      cfkit(["scaffold", "endpoint", operation]) !== 0
+    ) {
       return fail("endpoint scaffold failed");
     }
 
     if (!verifyScaffoldedTree()) return 1;
 
-    if (cfkit(["remove", "endpoint", operation]) !== 0) {
+    if (
+      operation !== undefined &&
+      cfkit(["remove", "endpoint", operation]) !== 0
+    ) {
       return fail("endpoint removal failed");
     }
 
