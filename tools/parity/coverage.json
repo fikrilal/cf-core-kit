@@ -28,22 +28,19 @@
     "users.me.sessions.list",
     "users.me.sessions.revoke"
   ],
-  "pending": [
-    "admin.audit.userAccountDeletions.list",
-    "admin.audit.userRoleChanges.list",
-    "admin.users.list",
-    "admin.users.role.patch",
-    "admin.users.status.patch",
-    "admin.whoami.get",
-    "merchantOnboarding.applications.submit",
-    "merchantOnboarding.referenceData.get"
-  ],
+  "pending": [],
   "descoped": [
     {
       "operations": ["auth.password.*"],
       "reason": "Password authentication is intentionally out of cf-core-kit scope; OIDC is the v1 sign-in method and no password material is stored (ADR-0006).",
       "revisit": "Backlog order: magic link, then password revival gated on the deferred password-KDF spike, then passkeys.",
       "adr": "0006"
+    },
+    {
+      "operations": ["admin.*", "merchantOnboarding.*"],
+      "reason": "The admin console and the merchant onboarding flow are separate products; this kit serves the client-facing auth and users surface only (ADR-0013).",
+      "revisit": "An admin console or the merchant onboarding flow is scheduled to be served from this kit rather than its own product.",
+      "adr": "0013"
     }
   ]
 }

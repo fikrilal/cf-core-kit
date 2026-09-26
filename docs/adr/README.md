@@ -20,3 +20,4 @@ ADRs record durable decisions. Proposals in `_WIP/` are input; once accepted, de
 | [0010](./0010-deployment-environments-and-rollback.md)           | Deployment environments and rollback                 | Accepted |
 | [0011](./0011-strict-quality-baseline-and-gate-honesty.md)       | Strict quality baseline and gate honesty             | Accepted |
 | [0012](./0012-auth-rate-limiting-via-durable-object-counters.md) | Auth rate limiting via Durable Object counters       | Accepted |
+| [0013](./0013-in-scope-surface-auth-and-users.md)                | In-scope surface is auth and users                   | Accepted |

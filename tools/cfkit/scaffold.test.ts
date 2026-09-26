@@ -229,10 +229,7 @@ test("endpoint scaffold refuses unsupported operations with reasons", () => {
       buildEndpointScaffold(
         endpointInput({
           operationId: "auth.oidc.exchange",
-          coverageJson: JSON.stringify({
-            pending: ["users.me.pushToken.revoke"],
-            implemented: ["auth.oidc.exchange"],
-          }),
+          coverageJson: pendingCoverage("users.me.pushToken.revoke"),
         }),
       ),
     /not pending in coverage\.json/,
@@ -242,10 +239,7 @@ test("endpoint scaffold refuses unsupported operations with reasons", () => {
       buildEndpointScaffold(
         endpointInput({
           operationId: "users.me.profileImage.upload",
-          coverageJson: JSON.stringify({
-            pending: ["users.me.profileImage.upload"],
-            implemented: ["auth.oidc.exchange"],
-          }),
+          coverageJson: pendingCoverage("users.me.profileImage.upload"),
         }),
       ),
     /not a simple 204 operation/,
@@ -264,6 +258,7 @@ test("endpoint scaffold refuses unsupported operations with reasons", () => {
       buildEndpointScaffold(
         endpointInput({
           operationId: "admin.users.list",
+          coverageJson: pendingCoverage("admin.users.list"),
           featureExists: () => false,
         }),
       ),

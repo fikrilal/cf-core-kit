@@ -6,7 +6,7 @@ Production-grade Cloudflare Workers backend template — the Cloudflare member o
 - **OIDC-first auth**: no password material anywhere; `auth.password.*` is descoped for v1 and tracked in the parity manifest (ADR-0006).
 - **Lean by default**: Hono + zod, Drizzle, strict TypeScript, no ORM magic, no DI container.
 
-Status: Phases 0-5 complete — platform core, the contract pipeline, the OIDC-first auth surface, background processing (queue platform, cron sweeps, R2 presigning), and the cfkit harness (scaffold/remove, five verify profiles, task lifecycle, handoff approvals). Remaining work is product-deferred (`admin`, `merchant-onboarding` surfaces) or credentialed (live deploy evidence), tracked in `docs/exec-plans/roadmap.md`. Decisions are recorded in `docs/adr/`; proposals live in `_WIP/`.
+Status: Phases 0-5 complete — platform core, the contract pipeline, the OIDC-first auth surface, background processing (queue platform, cron sweeps, R2 presigning), and the cfkit harness (scaffold/remove, five verify profiles, task lifecycle, handoff approvals). The parity manifest holds no pending operations: every pinned operation is implemented or explicitly descoped (`auth.password.*` under ADR-0006; `admin.*` and `merchantOnboarding.*` under ADR-0013). Remaining work is the credentialed evidence lanes (live deploy, dashboard CPU, live R2), tracked in `docs/exec-plans/roadmap.md`. Decisions are recorded in `docs/adr/`; proposals live in `_WIP/`.
 
 ## Requirements
 
