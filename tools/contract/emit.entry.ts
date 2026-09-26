@@ -32,6 +32,46 @@ const SECURITY_SCHEMES = {
   "access-token": { type: "http", scheme: "bearer", bearerFormat: "JWT" },
 };
 
+function sortRecord(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortRecord);
+  if (typeof value !== "object" || value === null) return value;
+
+  const record = value as Record<string, unknown>;
+  const sorted: Record<string, unknown> = {};
+  for (const key of Object.keys(record).sort()) {
+    sorted[key] = sortRecord(record[key]);
+  }
+
+  return sorted;
+}
+
+function canonicalizeDocument(document: unknown): unknown {
+  if (typeof document !== "object" || document === null) return document;
+
+  const source = document as Record<string, unknown>;
+  const paths = source.paths;
+  const components = source.components;
+  const schemas =
+    typeof components === "object" && components !== null
+      ? (components as Record<string, unknown>).schemas
+      : undefined;
+
+  return {
+    ...source,
+    ...(paths === undefined ? {} : { paths: sortRecord(paths) }),
+    ...(schemas === undefined ||
+    typeof components !== "object" ||
+    components === null
+      ? {}
+      : {
+          components: {
+            ...(components as Record<string, unknown>),
+            schemas: sortRecord(schemas),
+          },
+        }),
+  };
+}
+
 export function renderOpenApiYaml(options: EmitOptions): string {
   const app = new OpenAPIHono<AppEnv>();
 
@@ -61,5 +101,9 @@ export function renderOpenApiYaml(options: EmitOptions): string {
   applyOperationParameters(document, operations);
   applyErrorCodeExtensions(document, operations);
 
-  return stringify(document, { indent: 2 });
+  // Canonical ordering: the emitted artifact must be a function of the contract,
+  // not of feature registration order, so internal refactors never churn it.
+  const canonical = canonicalizeDocument(document);
+
+  return stringify(canonical, { indent: 2 });
 }

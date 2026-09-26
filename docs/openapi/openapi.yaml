@@ -15,75 +15,177 @@ servers:
   - url: /
 components:
   schemas:
-    AuthResultWithMeEnvelopeDto:
+    AuthResultDto:
+      properties:
+        accessToken:
+          example: <access-token>
+          type: string
+        refreshToken:
+          example: <refresh-token>
+          type: string
+        user:
+          $ref: "#/components/schemas/AuthUserDto"
+      required:
+        - user
+        - accessToken
+        - refreshToken
       type: object
+    AuthResultEnvelopeDto:
+      properties:
+        data:
+          $ref: "#/components/schemas/AuthResultDto"
+      required:
+        - data
+      type: object
+    AuthResultWithMeDto:
+      properties:
+        accessToken:
+          example: <access-token>
+          type: string
+        refreshToken:
+          example: <refresh-token>
+          type: string
+        user:
+          $ref: "#/components/schemas/MeDto"
+      required:
+        - user
+        - accessToken
+        - refreshToken
+      type: object
+    AuthResultWithMeEnvelopeDto:
       properties:
         data:
           $ref: "#/components/schemas/AuthResultWithMeDto"
       required:
         - data
-    AuthResultWithMeDto:
       type: object
+    AuthUserDto:
       properties:
-        user:
-          $ref: "#/components/schemas/MeDto"
-        accessToken:
-          type: string
-          example: <access-token>
-        refreshToken:
-          type: string
-          example: <refresh-token>
-      required:
-        - user
-        - accessToken
-        - refreshToken
-    MeDto:
-      type: object
-      properties:
-        id:
-          type: string
-          example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
-        email:
-          type: string
-          example: user@example.com
-        emailVerified:
-          type: boolean
-          example: false
-        roles:
-          type: array
-          items:
-            type: string
-          example:
-            - USER
         authMethods:
-          type: array
+          description: Linked authentication methods on this account. Omitted on token
+            refresh responses.
+          example:
+            - PASSWORD
+            - GOOGLE
           items:
-            type: string
             enum:
               - PASSWORD
               - GOOGLE
-          example:
-            - PASSWORD
-          description: Linked authentication methods on this account.
-        profile:
-          $ref: "#/components/schemas/MeProfileDto"
+            type: string
+          type: array
+        email:
+          example: user@example.com
+          type: string
+        emailVerified:
+          example: false
+          type: boolean
+        id:
+          example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
+          type: string
+      required:
+        - id
+        - email
+        - emailVerified
+      type: object
+    CompleteProfileImageUploadRequestDto:
+      properties:
+        fileId:
+          example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
+          type: string
+      required:
+        - fileId
+      type: object
+    CreateProfileImageUploadRequestDto:
+      properties:
+        contentType:
+          description: Declared MIME type for the upload. Must match the Content-Type used
+            during upload.
+          enum:
+            - image/jpeg
+            - image/png
+            - image/webp
+          example: image/webp
+          type: string
+        sizeBytes:
+          description: Declared size of the upload in bytes (used to verify the stored
+            object).
+          example: 123456
+          maximum: 5000000
+          minimum: 1
+          type: number
+      required:
+        - contentType
+        - sizeBytes
+      type: object
+    CursorPaginationMetaDto:
+      properties:
+        hasMore:
+          example: true
+          type: boolean
+        limit:
+          example: 25
+          type: number
+        nextCursor:
+          example: eyJ2IjoxLCJzb3J0IjoiLWNyZWF0ZWRBdCIsImFmdGVyIjp7fX0
+          type: string
+      required:
+        - limit
+        - hasMore
+      type: object
+    LogoutRequestDto:
+      properties:
+        refreshToken:
+          example: <refresh-token>
+          type: string
+      required:
+        - refreshToken
+      type: object
+    MeDto:
+      properties:
         accountDeletion:
-          type: object
+          description: When set, the account is scheduled for deletion. The request can be
+            canceled until scheduledFor.
           nullable: true
           properties:
             requestedAt:
-              type: string
-              format: date-time
               example: 2026-01-10T12:34:56.789Z
-            scheduledFor:
-              type: string
               format: date-time
+              type: string
+            scheduledFor:
               example: 2026-02-09T12:34:56.789Z
+              format: date-time
+              type: string
           required:
             - requestedAt
             - scheduledFor
-          description: When set, the account is scheduled for deletion. The request can be
-            canceled until scheduledFor.
+          type: object
+        authMethods:
+          description: Linked authentication methods on this account.
+          example:
+            - PASSWORD
+          items:
+            enum:
+              - PASSWORD
+              - GOOGLE
+            type: string
+          type: array
+        email:
+          example: user@example.com
+          type: string
+        emailVerified:
+          example: false
+          type: boolean
+        id:
+          example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
+          type: string
+        profile:
+          $ref: "#/components/schemas/MeProfileDto"
+        roles:
+          example:
+            - USER
+          items:
+            type: string
+          type: array
       required:
         - id
         - email
@@ -91,346 +193,104 @@ components:
         - roles
         - authMethods
         - profile
-    MeProfileDto:
       type: object
-      properties:
-        profileImageFileId:
-          type: string
-          nullable: true
-          example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
-          description: Current profile image stored file ID. Use `GET
-            /v1/me/profile-image/url` to get a short-lived URL for rendering.
-        displayName:
-          type: string
-          nullable: true
-          example: Dante
-        givenName:
-          type: string
-          nullable: true
-          example: Dante
-        familyName:
-          type: string
-          nullable: true
-          example: Alighieri
-    OidcExchangeRequestDto:
-      type: object
-      properties:
-        provider:
-          type: string
-          enum:
-            - GOOGLE
-          example: GOOGLE
-        idToken:
-          type: string
-          example: <oidc-id-token>
-        deviceId:
-          type: string
-          description: Stable per-device identifier (recommended).
-        deviceName:
-          type: string
-          description: Human-friendly device name (optional).
-      required:
-        - provider
-        - idToken
-    OidcConnectRequestDto:
-      type: object
-      properties:
-        provider:
-          type: string
-          enum:
-            - GOOGLE
-          example: GOOGLE
-        idToken:
-          type: string
-          example: <oidc-id-token>
-      required:
-        - provider
-        - idToken
-    AuthResultEnvelopeDto:
-      type: object
-      properties:
-        data:
-          $ref: "#/components/schemas/AuthResultDto"
-      required:
-        - data
-    AuthResultDto:
-      type: object
-      properties:
-        user:
-          $ref: "#/components/schemas/AuthUserDto"
-        accessToken:
-          type: string
-          example: <access-token>
-        refreshToken:
-          type: string
-          example: <refresh-token>
-      required:
-        - user
-        - accessToken
-        - refreshToken
-    AuthUserDto:
-      type: object
-      properties:
-        id:
-          type: string
-          example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
-        email:
-          type: string
-          example: user@example.com
-        emailVerified:
-          type: boolean
-          example: false
-        authMethods:
-          type: array
-          items:
-            type: string
-            enum:
-              - PASSWORD
-              - GOOGLE
-          example:
-            - PASSWORD
-            - GOOGLE
-          description: Linked authentication methods on this account. Omitted on token
-            refresh responses.
-      required:
-        - id
-        - email
-        - emailVerified
-    RefreshRequestDto:
-      type: object
-      properties:
-        refreshToken:
-          type: string
-          example: <refresh-token>
-      required:
-        - refreshToken
-    LogoutRequestDto:
-      type: object
-      properties:
-        refreshToken:
-          type: string
-          example: <refresh-token>
-      required:
-        - refreshToken
-    VerifyEmailRequestDto:
-      type: object
-      properties:
-        token:
-          type: string
-          example: <verification-token>
-      required:
-        - token
-    MePushTokenUpsertRequestDto:
-      type: object
-      properties:
-        platform:
-          type: string
-          enum:
-            - ANDROID
-            - IOS
-            - WEB
-          example: ANDROID
-          description: Client platform where the push token was minted.
-        token:
-          type: string
-          maxLength: 2048
-          example: <fcm-registration-token>
-          description: FCM registration token for this device/app install.
-      required:
-        - platform
-        - token
-    ProfileImageUploadPlanEnvelopeDto:
-      type: object
-      properties:
-        data:
-          $ref: "#/components/schemas/ProfileImageUploadPlanDto"
-      required:
-        - data
-    ProfileImageUploadPlanDto:
-      type: object
-      properties:
-        fileId:
-          type: string
-          example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
-        upload:
-          $ref: "#/components/schemas/PresignedUploadDto"
-        expiresAt:
-          type: string
-          format: date-time
-          example: 2026-01-10T12:34:56.789Z
-      required:
-        - fileId
-        - upload
-        - expiresAt
-    PresignedUploadDto:
-      type: object
-      properties:
-        method:
-          type: string
-          enum:
-            - PUT
-          example: PUT
-        url:
-          type: string
-          example: https://<r2-presigned-url>
-        headers:
-          type: object
-          properties: {}
-          example:
-            Content-Type: image/webp
-          description: Headers that must be sent with the upload request.
-      required:
-        - method
-        - url
-        - headers
-    CreateProfileImageUploadRequestDto:
-      type: object
-      properties:
-        contentType:
-          type: string
-          enum:
-            - image/jpeg
-            - image/png
-            - image/webp
-          example: image/webp
-          description: Declared MIME type for the upload. Must match the Content-Type used
-            during upload.
-        sizeBytes:
-          type: number
-          minimum: 1
-          maximum: 5000000
-          example: 123456
-          description: Declared size of the upload in bytes (used to verify the stored
-            object).
-      required:
-        - contentType
-        - sizeBytes
-    CompleteProfileImageUploadRequestDto:
-      type: object
-      properties:
-        fileId:
-          type: string
-          example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
-      required:
-        - fileId
-    ProfileImageUrlEnvelopeDto:
-      type: object
-      properties:
-        data:
-          $ref: "#/components/schemas/ProfileImageUrlDto"
-      required:
-        - data
-    ProfileImageUrlDto:
-      type: object
-      properties:
-        url:
-          type: string
-          example: https://<r2-presigned-url>
-        expiresAt:
-          type: string
-          format: date-time
-          example: 2026-01-10T12:34:56.789Z
-      required:
-        - url
-        - expiresAt
     MeEnvelopeDto:
-      type: object
       properties:
         data:
           $ref: "#/components/schemas/MeDto"
       required:
         - data
-    PatchMeRequestDto:
       type: object
-      properties:
-        profile:
-          $ref: "#/components/schemas/PatchMeProfileDto"
-      required:
-        - profile
-    PatchMeProfileDto:
-      type: object
+    MeProfileDto:
       properties:
         displayName:
-          type: string
-          nullable: true
-          minLength: 1
-          maxLength: 100
           example: Dante
-        givenName:
-          type: string
           nullable: true
-          minLength: 1
-          maxLength: 100
-          example: Dante
+          type: string
         familyName:
-          type: string
-          nullable: true
-          minLength: 1
-          maxLength: 100
           example: Alighieri
-    MeSessionsListEnvelopeDto:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: "#/components/schemas/MeSessionDto"
-        meta:
-          $ref: "#/components/schemas/CursorPaginationMetaDto"
-      required:
-        - data
-        - meta
-    MeSessionDto:
-      type: object
-      properties:
-        id:
+          nullable: true
           type: string
+        givenName:
+          example: Dante
+          nullable: true
+          type: string
+        profileImageFileId:
+          description: Current profile image stored file ID. Use `GET
+            /v1/me/profile-image/url` to get a short-lived URL for rendering.
           example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
-        deviceId:
-          type: string
           nullable: true
-          example: device-a
-        deviceName:
           type: string
-          nullable: true
-          example: iPhone 15
-        ip:
+      type: object
+    MePushTokenUpsertRequestDto:
+      properties:
+        platform:
+          description: Client platform where the push token was minted.
+          enum:
+            - ANDROID
+            - IOS
+            - WEB
+          example: ANDROID
           type: string
-          nullable: true
-          example: 203.0.113.10
-        userAgent:
+        token:
+          description: FCM registration token for this device/app install.
+          example: <fcm-registration-token>
+          maxLength: 2048
           type: string
-          nullable: true
-          maxLength: 512
-          example: Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)
-            AppleWebKit/605.1.15
-        lastSeenAt:
-          type: string
-          format: date-time
-          example: 2026-01-10T12:34:56.789Z
+      required:
+        - platform
+        - token
+      type: object
+    MeSessionDto:
+      properties:
         createdAt:
-          type: string
-          format: date-time
           example: 2026-01-10T12:34:56.789Z
-        expiresAt:
-          type: string
           format: date-time
-          example: 2026-02-10T12:34:56.789Z
-        revokedAt:
           type: string
-          nullable: true
-          format: date-time
-          example: 2026-01-10T12:34:56.789Z
         current:
-          type: boolean
           example: true
-        status:
+          type: boolean
+        deviceId:
+          example: device-a
+          nullable: true
           type: string
+        deviceName:
+          example: iPhone 15
+          nullable: true
+          type: string
+        expiresAt:
+          example: 2026-02-10T12:34:56.789Z
+          format: date-time
+          type: string
+        id:
+          example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
+          type: string
+        ip:
+          example: 203.0.113.10
+          nullable: true
+          type: string
+        lastSeenAt:
+          example: 2026-01-10T12:34:56.789Z
+          format: date-time
+          type: string
+        revokedAt:
+          example: 2026-01-10T12:34:56.789Z
+          format: date-time
+          nullable: true
+          type: string
+        status:
           enum:
             - active
             - revoked
             - expired
           example: active
+          type: string
+        userAgent:
+          example: Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)
+            AppleWebKit/605.1.15
+          maxLength: 512
+          nullable: true
+          type: string
       required:
         - id
         - lastSeenAt
@@ -438,21 +298,161 @@ components:
         - expiresAt
         - current
         - status
-    CursorPaginationMetaDto:
       type: object
+    MeSessionsListEnvelopeDto:
       properties:
-        limit:
-          type: number
-          example: 25
-        hasMore:
-          type: boolean
-          example: true
-        nextCursor:
-          type: string
-          example: eyJ2IjoxLCJzb3J0IjoiLWNyZWF0ZWRBdCIsImFmdGVyIjp7fX0
+        data:
+          items:
+            $ref: "#/components/schemas/MeSessionDto"
+          type: array
+        meta:
+          $ref: "#/components/schemas/CursorPaginationMetaDto"
       required:
-        - limit
-        - hasMore
+        - data
+        - meta
+      type: object
+    OidcConnectRequestDto:
+      properties:
+        idToken:
+          example: <oidc-id-token>
+          type: string
+        provider:
+          enum:
+            - GOOGLE
+          example: GOOGLE
+          type: string
+      required:
+        - provider
+        - idToken
+      type: object
+    OidcExchangeRequestDto:
+      properties:
+        deviceId:
+          description: Stable per-device identifier (recommended).
+          type: string
+        deviceName:
+          description: Human-friendly device name (optional).
+          type: string
+        idToken:
+          example: <oidc-id-token>
+          type: string
+        provider:
+          enum:
+            - GOOGLE
+          example: GOOGLE
+          type: string
+      required:
+        - provider
+        - idToken
+      type: object
+    PatchMeProfileDto:
+      properties:
+        displayName:
+          example: Dante
+          maxLength: 100
+          minLength: 1
+          nullable: true
+          type: string
+        familyName:
+          example: Alighieri
+          maxLength: 100
+          minLength: 1
+          nullable: true
+          type: string
+        givenName:
+          example: Dante
+          maxLength: 100
+          minLength: 1
+          nullable: true
+          type: string
+      type: object
+    PatchMeRequestDto:
+      properties:
+        profile:
+          $ref: "#/components/schemas/PatchMeProfileDto"
+      required:
+        - profile
+      type: object
+    PresignedUploadDto:
+      properties:
+        headers:
+          description: Headers that must be sent with the upload request.
+          example:
+            Content-Type: image/webp
+          properties: {}
+          type: object
+        method:
+          enum:
+            - PUT
+          example: PUT
+          type: string
+        url:
+          example: https://<r2-presigned-url>
+          type: string
+      required:
+        - method
+        - url
+        - headers
+      type: object
+    ProfileImageUploadPlanDto:
+      properties:
+        expiresAt:
+          example: 2026-01-10T12:34:56.789Z
+          format: date-time
+          type: string
+        fileId:
+          example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
+          type: string
+        upload:
+          $ref: "#/components/schemas/PresignedUploadDto"
+      required:
+        - fileId
+        - upload
+        - expiresAt
+      type: object
+    ProfileImageUploadPlanEnvelopeDto:
+      properties:
+        data:
+          $ref: "#/components/schemas/ProfileImageUploadPlanDto"
+      required:
+        - data
+      type: object
+    ProfileImageUrlDto:
+      properties:
+        expiresAt:
+          example: 2026-01-10T12:34:56.789Z
+          format: date-time
+          type: string
+        url:
+          example: https://<r2-presigned-url>
+          type: string
+      required:
+        - url
+        - expiresAt
+      type: object
+    ProfileImageUrlEnvelopeDto:
+      properties:
+        data:
+          $ref: "#/components/schemas/ProfileImageUrlDto"
+      required:
+        - data
+      type: object
+    RefreshRequestDto:
+      properties:
+        refreshToken:
+          example: <refresh-token>
+          type: string
+      required:
+        - refreshToken
+      type: object
+    VerifyEmailRequestDto:
+      properties:
+        token:
+          example: <verification-token>
+          type: string
+      required:
+        - token
+      type: object
   parameters: {}
   securitySchemes:
     access-token:
@@ -460,110 +460,163 @@ components:
       scheme: bearer
       bearerFormat: JWT
 paths:
-  /health:
+  /.well-known/jwks.json:
     get:
-      operationId: health.get
-      tags:
-        - Health
-      summary: Liveness check
-      description: Indicates whether the process is alive.
+      description: Publishes public keys used to verify access tokens.
+      operationId: auth.jwks.get
       responses:
         "200":
-          description: Liveness check.
           content:
             application/json:
               schema:
+                properties:
+                  keys:
+                    items:
+                      properties: {}
+                      type: object
+                    type: array
+                required:
+                  - keys
                 type: object
+          description: ""
+      summary: JWKS
+      tags:
+        - Auth
+      x-error-codes:
+        - INTERNAL
+  /health:
+    get:
+      description: Indicates whether the process is alive.
+      operationId: health.get
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
                 properties:
                   status:
-                    type: string
                     example: ok
+                    type: string
                 required:
                   - status
+                type: object
+          description: Liveness check.
+      summary: Liveness check
+      tags:
+        - Health
       x-error-codes:
         - INTERNAL
   /ready:
     get:
-      operationId: ready.get
-      tags:
-        - Health
-      summary: Readiness check
       description: Indicates whether the service is ready to receive traffic.
+      operationId: ready.get
       responses:
         "200":
-          description: Readiness check.
           content:
             application/json:
               schema:
-                type: object
                 properties:
                   status:
-                    type: string
                     example: ok
+                    type: string
                 required:
                   - status
+                type: object
+          description: Readiness check.
+      summary: Readiness check
+      tags:
+        - Health
       x-error-codes:
         - INTERNAL
-  /v1/auth/oidc/exchange:
+  /v1/auth/email/verification/resend:
     post:
-      operationId: auth.oidc.exchange
+      description: Sends a fresh email verification token to the authenticated user's
+        email address. Callers can re-login afterwards to pick up the verified
+        state.
+      operationId: auth.email.verification.resend
+      responses:
+        "204":
+          description: ""
+      security:
+        - access-token: []
+      summary: Resend verification email (current user)
       tags:
         - Auth
-      summary: Exchange OIDC id_token
-      description: Verifies an OIDC id_token (e.g., Google) and issues first-party
-        access + refresh tokens. Does not auto-link to an existing password
-        account purely by email.
+      x-error-codes:
+        - UNAUTHORIZED
+        - RATE_LIMITED
+        - INTERNAL
+  /v1/auth/email/verify:
+    post:
+      description: Verifies a user email using a token sent via email.
+      operationId: auth.email.verify
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/OidcExchangeRequestDto"
+              $ref: "#/components/schemas/VerifyEmailRequestDto"
+        required: true
       responses:
-        "200":
+        "204":
           description: ""
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthResultWithMeEnvelopeDto"
+      summary: Verify email
+      tags:
+        - Auth
       x-error-codes:
         - VALIDATION_FAILED
-        - AUTH_OIDC_NOT_CONFIGURED
-        - AUTH_OIDC_TOKEN_INVALID
-        - AUTH_OIDC_EMAIL_NOT_VERIFIED
-        - AUTH_OIDC_LINK_REQUIRED
-        - AUTH_USER_SUSPENDED
+        - AUTH_EMAIL_VERIFICATION_TOKEN_INVALID
+        - AUTH_EMAIL_VERIFICATION_TOKEN_EXPIRED
+        - INTERNAL
+  /v1/auth/logout:
+    post:
+      description: Revokes the session associated with the provided refresh token.
+      operationId: auth.logout
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequestDto"
+        required: true
+      responses:
+        "204":
+          description: ""
+      summary: Logout
+      tags:
+        - Auth
+      x-error-codes:
+        - VALIDATION_FAILED
+        - AUTH_REFRESH_TOKEN_INVALID
         - INTERNAL
   /v1/auth/oidc/connect:
     post:
-      operationId: auth.oidc.connect
-      tags:
-        - Auth
-      summary: Connect OIDC identity (current user)
       description: Links an OIDC identity (e.g., Google) to the authenticated user. If
         the OIDC email matches the user email, the user email is marked
         verified.
-      security:
-        - access-token: []
+      operationId: auth.oidc.connect
       parameters:
-        - schema:
-            type: string
-            minLength: 1
-            maxLength: 128
-            description: Idempotency key for safe retries of write requests.
-          required: false
-          description: Idempotency key for safe retries of write requests.
-          name: Idempotency-Key
+        - description: Idempotency key for safe retries of write requests.
           in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            description: Idempotency key for safe retries of write requests.
+            maxLength: 128
+            minLength: 1
+            type: string
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/OidcConnectRequestDto"
+        required: true
       responses:
         "204":
           description: ""
+      security:
+        - access-token: []
+      summary: Connect OIDC identity (current user)
+      tags:
+        - Auth
       x-error-codes:
         - VALIDATION_FAILED
         - UNAUTHORIZED
@@ -575,26 +628,56 @@ paths:
         - AUTH_OIDC_IDENTITY_ALREADY_LINKED
         - AUTH_OIDC_PROVIDER_ALREADY_LINKED
         - INTERNAL
-  /v1/auth/refresh:
+  /v1/auth/oidc/exchange:
     post:
-      operationId: auth.refresh
+      description: Verifies an OIDC id_token (e.g., Google) and issues first-party
+        access + refresh tokens. Does not auto-link to an existing password
+        account purely by email.
+      operationId: auth.oidc.exchange
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OidcExchangeRequestDto"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResultWithMeEnvelopeDto"
+          description: ""
+      summary: Exchange OIDC id_token
       tags:
         - Auth
-      summary: Refresh tokens
+      x-error-codes:
+        - VALIDATION_FAILED
+        - AUTH_OIDC_NOT_CONFIGURED
+        - AUTH_OIDC_TOKEN_INVALID
+        - AUTH_OIDC_EMAIL_NOT_VERIFIED
+        - AUTH_OIDC_LINK_REQUIRED
+        - AUTH_USER_SUSPENDED
+        - INTERNAL
+  /v1/auth/refresh:
+    post:
       description: Rotates the refresh token and returns a new access + refresh token.
+      operationId: auth.refresh
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/RefreshRequestDto"
+        required: true
       responses:
         "200":
-          description: ""
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthResultEnvelopeDto"
+          description: ""
+      summary: Refresh tokens
+      tags:
+        - Auth
       x-error-codes:
         - VALIDATION_FAILED
         - AUTH_REFRESH_TOKEN_INVALID
@@ -603,189 +686,159 @@ paths:
         - AUTH_SESSION_REVOKED
         - AUTH_USER_SUSPENDED
         - INTERNAL
-  /v1/auth/logout:
-    post:
-      operationId: auth.logout
-      tags:
-        - Auth
-      summary: Logout
-      description: Revokes the session associated with the provided refresh token.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/LogoutRequestDto"
-      responses:
-        "204":
-          description: ""
-      x-error-codes:
-        - VALIDATION_FAILED
-        - AUTH_REFRESH_TOKEN_INVALID
-        - INTERNAL
-  /v1/auth/email/verify:
-    post:
-      operationId: auth.email.verify
-      tags:
-        - Auth
-      summary: Verify email
-      description: Verifies a user email using a token sent via email.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/VerifyEmailRequestDto"
-      responses:
-        "204":
-          description: ""
-      x-error-codes:
-        - VALIDATION_FAILED
-        - AUTH_EMAIL_VERIFICATION_TOKEN_INVALID
-        - AUTH_EMAIL_VERIFICATION_TOKEN_EXPIRED
-        - INTERNAL
-  /v1/auth/email/verification/resend:
-    post:
-      operationId: auth.email.verification.resend
-      tags:
-        - Auth
-      summary: Resend verification email (current user)
-      description: Sends a fresh email verification token to the authenticated user's
-        email address. Callers can re-login afterwards to pick up the verified
-        state.
-      security:
-        - access-token: []
-      responses:
-        "204":
-          description: ""
-      x-error-codes:
-        - UNAUTHORIZED
-        - RATE_LIMITED
-        - INTERNAL
-  /v1/me/push-token:
-    put:
-      operationId: users.me.pushToken.upsert
-      tags:
-        - Users
-      summary: Register/update push token (current session)
-      description: Stores the FCM registration token for the current session.
-        Idempotent; replaces any existing token for the session.
-      security:
-        - access-token: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/MePushTokenUpsertRequestDto"
-      responses:
-        "204":
-          description: ""
-      x-error-codes:
-        - VALIDATION_FAILED
-        - UNAUTHORIZED
-        - AUTH_PUSH_NOT_CONFIGURED
-        - INTERNAL
-    delete:
-      operationId: users.me.pushToken.revoke
-      tags:
-        - Users
-      summary: Revoke push token (current session)
-      description: Clears the stored push token for the current session. Idempotent.
-      security:
-        - access-token: []
-      responses:
-        "204":
-          description: ""
-      x-error-codes:
-        - UNAUTHORIZED
-        - INTERNAL
-  /.well-known/jwks.json:
+  /v1/me:
     get:
-      operationId: auth.jwks.get
-      tags:
-        - Auth
-      summary: JWKS
-      description: Publishes public keys used to verify access tokens.
+      description: Returns the authenticated user profile.
+      operationId: users.me.get
       responses:
         "200":
-          description: ""
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  keys:
-                    type: array
-                    items:
-                      type: object
-                      properties: {}
-                required:
-                  - keys
-      x-error-codes:
-        - INTERNAL
-  /v1/me/profile-image/upload:
-    post:
-      operationId: users.me.profileImage.upload
-      tags:
-        - Users
-      summary: Create profile image upload plan
-      description: Creates a stored-file record and returns a short-lived presigned
-        PUT for the current user profile image.
+                $ref: "#/components/schemas/MeEnvelopeDto"
+          description: ""
       security:
         - access-token: []
+      summary: Get current user
+      tags:
+        - Users
+      x-error-codes:
+        - UNAUTHORIZED
+        - INTERNAL
+    patch:
+      description: Partially updates the authenticated user profile. Omitted fields
+        are unchanged; null clears a field.
+      operationId: users.me.patch
       parameters:
-        - schema:
-            type: string
-            minLength: 1
-            maxLength: 128
+        - description: "Idempotency key for safe retries of write requests. Replays return
+            `Idempotency-Replayed: true`."
+          in: header
+          name: Idempotency-Key
+          required: false
+          schema:
             description: "Idempotency key for safe retries of write requests. Replays return
               `Idempotency-Replayed: true`."
-          required: false
-          description: "Idempotency key for safe retries of write requests. Replays return
-            `Idempotency-Replayed: true`."
-          name: Idempotency-Key
-          in: header
+            maxLength: 128
+            minLength: 1
+            type: string
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateProfileImageUploadRequestDto"
+              $ref: "#/components/schemas/PatchMeRequestDto"
+        required: true
       responses:
         "200":
-          description: ""
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProfileImageUploadPlanEnvelopeDto"
+                $ref: "#/components/schemas/MeEnvelopeDto"
+          description: ""
+      security:
+        - access-token: []
+      summary: Update current user profile
+      tags:
+        - Users
       x-error-codes:
         - VALIDATION_FAILED
         - UNAUTHORIZED
-        - RATE_LIMITED
         - IDEMPOTENCY_IN_PROGRESS
         - CONFLICT
-        - USERS_OBJECT_STORAGE_NOT_CONFIGURED
+        - INTERNAL
+  /v1/me/account-deletion/cancel:
+    post:
+      description: Cancels a scheduled account deletion. Idempotent; calls without a
+        pending deletion are no-ops.
+      operationId: users.me.accountDeletion.cancel
+      parameters:
+        - description: "Idempotency key for safe retries of write requests. Replays return
+            `Idempotency-Replayed: true`."
+          in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            description: "Idempotency key for safe retries of write requests. Replays return
+              `Idempotency-Replayed: true`."
+            maxLength: 128
+            minLength: 1
+            type: string
+      responses:
+        "204":
+          description: ""
+      security:
+        - access-token: []
+      summary: Cancel account deletion
+      tags:
+        - Users
+      x-error-codes:
+        - UNAUTHORIZED
+        - IDEMPOTENCY_IN_PROGRESS
+        - INTERNAL
+  /v1/me/account-deletion/request:
+    post:
+      description: Schedules the authenticated account for deletion after the grace
+        period. Idempotent; repeated calls keep the original schedule.
+      operationId: users.me.accountDeletion.request
+      parameters:
+        - description: "Idempotency key for safe retries of write requests. Replays return
+            `Idempotency-Replayed: true`."
+          in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            description: "Idempotency key for safe retries of write requests. Replays return
+              `Idempotency-Replayed: true`."
+            maxLength: 128
+            minLength: 1
+            type: string
+      responses:
+        "204":
+          description: ""
+      security:
+        - access-token: []
+      summary: Request account deletion
+      tags:
+        - Users
+      x-error-codes:
+        - UNAUTHORIZED
+        - IDEMPOTENCY_IN_PROGRESS
+        - CONFLICT
+        - USERS_CANNOT_DELETE_LAST_ADMIN
+        - INTERNAL
+  /v1/me/profile-image:
+    delete:
+      description: Removes the current profile image and schedules object cleanup.
+      operationId: users.me.profileImage.clear
+      responses:
+        "204":
+          description: ""
+      security:
+        - access-token: []
+      summary: Clear profile image
+      tags:
+        - Users
+      x-error-codes:
+        - UNAUTHORIZED
         - INTERNAL
   /v1/me/profile-image/complete:
     post:
-      operationId: users.me.profileImage.complete
-      tags:
-        - Users
-      summary: Complete profile image upload
       description: Verifies the uploaded object against the declared metadata and
         attaches it as the profile image.
-      security:
-        - access-token: []
+      operationId: users.me.profileImage.complete
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/CompleteProfileImageUploadRequestDto"
+        required: true
       responses:
         "204":
           description: ""
+      security:
+        - access-token: []
+      summary: Complete profile image upload
+      tags:
+        - Users
       x-error-codes:
         - VALIDATION_FAILED
         - UNAUTHORIZED
@@ -795,228 +848,175 @@ paths:
         - USERS_PROFILE_IMAGE_SIZE_MISMATCH
         - USERS_PROFILE_IMAGE_CONTENT_TYPE_MISMATCH
         - INTERNAL
-  /v1/me/profile-image:
-    delete:
-      operationId: users.me.profileImage.clear
-      tags:
-        - Users
-      summary: Clear profile image
-      description: Removes the current profile image and schedules object cleanup.
+  /v1/me/profile-image/upload:
+    post:
+      description: Creates a stored-file record and returns a short-lived presigned
+        PUT for the current user profile image.
+      operationId: users.me.profileImage.upload
+      parameters:
+        - description: "Idempotency key for safe retries of write requests. Replays return
+            `Idempotency-Replayed: true`."
+          in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            description: "Idempotency key for safe retries of write requests. Replays return
+              `Idempotency-Replayed: true`."
+            maxLength: 128
+            minLength: 1
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProfileImageUploadRequestDto"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileImageUploadPlanEnvelopeDto"
+          description: ""
       security:
         - access-token: []
-      responses:
-        "204":
-          description: ""
+      summary: Create profile image upload plan
+      tags:
+        - Users
       x-error-codes:
+        - VALIDATION_FAILED
         - UNAUTHORIZED
+        - RATE_LIMITED
+        - IDEMPOTENCY_IN_PROGRESS
+        - CONFLICT
+        - USERS_OBJECT_STORAGE_NOT_CONFIGURED
         - INTERNAL
   /v1/me/profile-image/url:
     get:
-      operationId: users.me.profileImage.url
-      tags:
-        - Users
-      summary: Get profile image URL
       description: Returns a short-lived presigned GET URL for the current profile
         image, or 204 when none is set.
-      security:
-        - access-token: []
+      operationId: users.me.profileImage.url
       responses:
         "200":
-          description: ""
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ProfileImageUrlEnvelopeDto"
+          description: ""
         "204":
           description: ""
+      security:
+        - access-token: []
+      summary: Get profile image URL
+      tags:
+        - Users
       x-error-codes:
         - UNAUTHORIZED
         - USERS_OBJECT_STORAGE_NOT_CONFIGURED
         - INTERNAL
-  /v1/me/account-deletion/request:
-    post:
-      operationId: users.me.accountDeletion.request
-      tags:
-        - Users
-      summary: Request account deletion
-      description: Schedules the authenticated account for deletion after the grace
-        period. Idempotent; repeated calls keep the original schedule.
-      security:
-        - access-token: []
-      parameters:
-        - schema:
-            type: string
-            minLength: 1
-            maxLength: 128
-            description: "Idempotency key for safe retries of write requests. Replays return
-              `Idempotency-Replayed: true`."
-          required: false
-          description: "Idempotency key for safe retries of write requests. Replays return
-            `Idempotency-Replayed: true`."
-          name: Idempotency-Key
-          in: header
+  /v1/me/push-token:
+    delete:
+      description: Clears the stored push token for the current session. Idempotent.
+      operationId: users.me.pushToken.revoke
       responses:
         "204":
           description: ""
-      x-error-codes:
-        - UNAUTHORIZED
-        - IDEMPOTENCY_IN_PROGRESS
-        - CONFLICT
-        - USERS_CANNOT_DELETE_LAST_ADMIN
-        - INTERNAL
-  /v1/me/account-deletion/cancel:
-    post:
-      operationId: users.me.accountDeletion.cancel
-      tags:
-        - Users
-      summary: Cancel account deletion
-      description: Cancels a scheduled account deletion. Idempotent; calls without a
-        pending deletion are no-ops.
       security:
         - access-token: []
-      parameters:
-        - schema:
-            type: string
-            minLength: 1
-            maxLength: 128
-            description: "Idempotency key for safe retries of write requests. Replays return
-              `Idempotency-Replayed: true`."
-          required: false
-          description: "Idempotency key for safe retries of write requests. Replays return
-            `Idempotency-Replayed: true`."
-          name: Idempotency-Key
-          in: header
-      responses:
-        "204":
-          description: ""
-      x-error-codes:
-        - UNAUTHORIZED
-        - IDEMPOTENCY_IN_PROGRESS
-        - INTERNAL
-  /v1/me:
-    get:
-      operationId: users.me.get
+      summary: Revoke push token (current session)
       tags:
         - Users
-      summary: Get current user
-      description: Returns the authenticated user profile.
-      security:
-        - access-token: []
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/MeEnvelopeDto"
       x-error-codes:
         - UNAUTHORIZED
         - INTERNAL
-    patch:
-      operationId: users.me.patch
-      tags:
-        - Users
-      summary: Update current user profile
-      description: Partially updates the authenticated user profile. Omitted fields
-        are unchanged; null clears a field.
-      security:
-        - access-token: []
-      parameters:
-        - schema:
-            type: string
-            minLength: 1
-            maxLength: 128
-            description: "Idempotency key for safe retries of write requests. Replays return
-              `Idempotency-Replayed: true`."
-          required: false
-          description: "Idempotency key for safe retries of write requests. Replays return
-            `Idempotency-Replayed: true`."
-          name: Idempotency-Key
-          in: header
+    put:
+      description: Stores the FCM registration token for the current session.
+        Idempotent; replaces any existing token for the session.
+      operationId: users.me.pushToken.upsert
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PatchMeRequestDto"
+              $ref: "#/components/schemas/MePushTokenUpsertRequestDto"
+        required: true
       responses:
-        "200":
+        "204":
           description: ""
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/MeEnvelopeDto"
+      security:
+        - access-token: []
+      summary: Register/update push token (current session)
+      tags:
+        - Users
       x-error-codes:
         - VALIDATION_FAILED
         - UNAUTHORIZED
-        - IDEMPOTENCY_IN_PROGRESS
-        - CONFLICT
+        - AUTH_PUSH_NOT_CONFIGURED
         - INTERNAL
   /v1/me/sessions:
     get:
-      operationId: users.me.sessions.list
-      tags:
-        - Users
-      summary: List current user sessions
       description: Lists all sessions (active, revoked, expired) for the authenticated
         user. Revoked sessions have refresh tokens revoked; access tokens remain
         valid until expiry.
-      security:
-        - access-token: []
+      operationId: users.me.sessions.list
+      parameters:
+        - description: Max results to return (default 25, max 100).
+          in: query
+          name: limit
+          required: false
+          schema:
+            default: 25
+            maximum: 100
+            minimum: 1
+            type: integer
+        - description: Opaque cursor from the previous response meta.nextCursor.
+          in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+        - description: 'Comma-separated fields; prefix "-" for descending. Max 3 fields.
+            Default: "-createdAt". Allowed: createdAt, id'
+          in: query
+          name: sort
+          required: false
+          schema:
+            example: -createdAt
+            type: string
       responses:
         "200":
-          description: ""
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/MeSessionsListEnvelopeDto"
-      parameters:
-        - name: limit
-          in: query
-          required: false
-          description: Max results to return (default 25, max 100).
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 25
-        - name: cursor
-          in: query
-          required: false
-          description: Opaque cursor from the previous response meta.nextCursor.
-          schema:
-            type: string
-        - name: sort
-          in: query
-          required: false
-          description: 'Comma-separated fields; prefix "-" for descending. Max 3 fields.
-            Default: "-createdAt". Allowed: createdAt, id'
-          schema:
-            type: string
-            example: -createdAt
+          description: ""
+      security:
+        - access-token: []
+      summary: List current user sessions
+      tags:
+        - Users
       x-error-codes:
         - VALIDATION_FAILED
         - UNAUTHORIZED
         - INTERNAL
   /v1/me/sessions/{sessionId}/revoke:
     post:
-      operationId: users.me.sessions.revoke
-      tags:
-        - Users
-      summary: Revoke a session (current user)
       description: Revokes the given session and its refresh tokens. Idempotent.
-      security:
-        - access-token: []
+      operationId: users.me.sessions.revoke
       parameters:
-        - schema:
-            type: string
-            example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
-          required: true
+        - in: path
           name: sessionId
-          in: path
+          required: true
+          schema:
+            example: 3d2c7b2a-2dd6-46a5-8f8e-3b5de8a5b0f0
+            type: string
       responses:
         "204":
           description: ""
+      security:
+        - access-token: []
+      summary: Revoke a session (current user)
+      tags:
+        - Users
       x-error-codes:
         - VALIDATION_FAILED
         - UNAUTHORIZED

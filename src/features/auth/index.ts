@@ -3,4 +3,4 @@ export {
   revokeUserSession,
   type SessionListPage,
   type SessionSortField,
-} from "./sessions.service";
+} from "./sessions/sessions.service";

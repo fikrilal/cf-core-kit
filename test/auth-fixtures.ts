@@ -4,7 +4,7 @@ import type {
   GoogleClaims,
   IdTokenVerification,
   IdTokenVerifier,
-} from "../src/features/auth/oidc";
+} from "../src/features/auth/oidc/oidc";
 import type { LimiterFactory } from "../src/platform/rate-limit/require-rate-limit";
 import {
   exportPublicJwk,

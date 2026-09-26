@@ -12,7 +12,7 @@ import {
   users,
   userStatusChangeAudits,
 } from "../../src/platform/db/schema";
-import { scrubbedEmail } from "../../src/features/users/account-deletion.repository";
+import { scrubbedEmail } from "../../src/features/users/account-deletion/account-deletion.repository";
 
 const TICK = Date.parse("2026-06-01T00:00:00.000Z");
 

@@ -1,7 +1,7 @@
-import { createSendVerificationEmailJob } from "./features/auth/email-verification.jobs";
-import { createAuthSweepJobs } from "./features/auth/sweep.jobs";
-import { createAccountDeletionJobs } from "./features/users/account-deletion.jobs";
-import { createProfileImageJobs } from "./features/users/profile-image.jobs";
+import { createSendVerificationEmailJob } from "./features/auth/email-verification/email-verification.jobs";
+import { createAuthSweepJobs } from "./features/auth/sessions/sweep.jobs";
+import { createAccountDeletionJobs } from "./features/users/account-deletion/account-deletion.jobs";
+import { createProfileImageJobs } from "./features/users/profile-image/profile-image.jobs";
 import type { Clock } from "./platform/clock/clock";
 import type { AppConfig } from "./platform/config/config";
 import type { Database } from "./platform/db/db";
