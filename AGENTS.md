@@ -45,7 +45,8 @@ src/worker.ts       fetch / queue / scheduled handlers + DO class exports
 src/app.ts          composition root (middleware + feature mounting)
 src/jobs.ts         job registry + scheduled fan-out composition
 src/platform/       cross-cutting: config, http, auth, db, cache, queue, storage, email, ...
-src/features/       vertical slices (progressive tiers)
+src/features/       vertical slices (progressive tiers); each feature is a composition root
+                    (index.ts, <feature>.routes.ts) plus subfeature folders + shared/
 src/shared/         framework-free cross-feature contracts and utilities
 contracts/          pinned backend snapshot + provenance (drift-checked)
 db/migrations/      Drizzle migrations (generated; drift-checked)

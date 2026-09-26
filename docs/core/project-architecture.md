@@ -35,6 +35,17 @@ cf-core-kit/
 │  │  ├─ errors/             # ErrorCode enum, AppErrorCode union, problem mapping
 │  │  ├─ crypto/             # WebCrypto primitives (Ed25519/RS256 verify, SHA-256, tokens)
 │  ├─ features/              # vertical slices (progressive tiers)
+│  │  ├─ auth/               # composition root (auth.routes.ts, index.ts) + subfeatures
+│  │  │  ├─ oidc/            #   exchange/connect routes, verifier, service
+│  │  │  ├─ sessions/        #   session lifecycle, list/revoke, jwks, session sweeps
+│  │  │  ├─ email-verification/  # verify/resend routes, send job
+│  │  │  ├─ push-tokens/     #   session push-token storage
+│  │  │  └─ shared/          #   repository, typed errors, rate-limit policies
+│  │  ├─ users/              # composition root (users.routes.ts, operations) + subfeatures
+│  │  │  ├─ me/              #   profile projection + get/patch routes, wire payload
+│  │  │  ├─ profile-image/   #   upload plan, complete/clear/url, cleanup + expiry jobs
+│  │  │  ├─ account-deletion/#   request/cancel routes, saga repository, finalize jobs
+│  │  │  └─ shared/          #   live-user guard
 │  └─ shared/                # framework-free: error codes, list-query, time
 ├─ test/                     # integration / contract suites (co-located unit tests live with source)
 ├─ tools/
@@ -48,6 +59,18 @@ cf-core-kit/
 ├─ docs/                     # standards, ADRs, exec plans
 └─ _WIP/                     # proposals (historical, not source of truth)
 ```
+
+### Feature layout (mirrors backend-core-kit)
+
+A feature directory is a composition root plus one folder per subfeature that is actually built —
+`auth/` and `users/` mirror the family's `libs/features/<feature>/<subfeature>/` shape. The root keeps
+only `index.ts` (the exported surface other features may import), the route registration entry
+(`<feature>.routes.ts`), the aggregated operation metadata (`users.operations.ts`), and — in auth —
+the operation aggregate. Subfeature folders own their routes, handlers, services, repositories, jobs,
+and specs; `shared/` holds cross-subfeature internals (repositories, typed error builders, guards).
+Do not create a subfolder before its subfeature exists: folder depth tracks real clusters of ~5+
+files, and the contract's dotted operation ids (`auth.email.*`, `users.me.profileImage.*`) forecast
+where a cluster will live.
 
 ## Process Model
 
