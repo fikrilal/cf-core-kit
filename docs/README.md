@@ -31,8 +31,9 @@ These docs are the source of truth for architecture, standards, and workflow; co
     smoke), which is what CI runs
   - `npm run cfkit -- …` — verify profiles, `doctor`, `scaffold`/`remove`, `task`, `handoff`,
     plus the `budget:check` / `secrets:check` / `contract:check` delegates
-- Proposals (historical, not source of truth)
-  - `_WIP/2026-10-10_cf-core-kit-architecture-proposal.md`
+- Proposals (drafts and historical records, not source of truth)
+  - `_WIP/2026-10-10_cf-core-kit-architecture-proposal.md` — v1 architecture (accepted; decisions promoted to ADRs)
+  - `_WIP/2026-10-12_harness-parity-proposal.md` — 1:1 harness parity with `backend-core-kit` (draft; §7 carries the high-level roadmap)
 
 ## Doc Conventions
 
