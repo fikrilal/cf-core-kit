@@ -126,16 +126,20 @@
       "area": "verification core",
       "family": "tools/backendkit/policy/risk-classifier.ts + verification/lane-selection.ts",
       "target": "path -> risk table, runtime reasons, raise-only",
-      "status": "declared-only",
-      "plan": 2
+      "status": "present",
+      "plan": 2,
+      "evidencePath": "tools/cfkit/risk-classifier.ts",
+      "note": "single rule table consumed by the task machine and CI; every rule carries example paths pinned by a fixture"
     },
     {
       "id": "risk.ci-classify",
       "area": "verification core",
       "family": "tools/backendkit/ci/ci-classification.ts",
       "target": "cfkit ci classify --base --head emits effective_risk and runtime_required",
-      "status": "declared-only",
-      "plan": 2
+      "status": "present",
+      "plan": 2,
+      "evidenceCommand": "ci:classify",
+      "note": "prints exactly effective_risk and runtime_required on stdout for $GITHUB_OUTPUT"
     },
     {
       "id": "sensors.config-drift",
@@ -319,7 +323,8 @@
       "family": ".github/workflows/ci.yml (risk/full/runtime/governance/required)",
       "target": "five lanes with a stable branch-protection aggregate",
       "status": "declared-only",
-      "plan": 17
+      "plan": 17,
+      "note": "the risk lane runs `cfkit ci classify`, which uses a merge-base diff: the job needs fetch-depth: 0"
     },
     {
       "id": "ci.governance",

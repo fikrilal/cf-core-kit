@@ -46,7 +46,9 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
   in six dependency-ordered batches with per-batch exit gates; entry requires acceptance, the two open-question
   answers (workspace scope, mutation placement), the ADR-0013 scope commit, and ADRs for the baseline-changing
   pieces. Progress: batch A plan 1 (`harness-core`) landed 2026-10-12 — process capture, failure taxonomy,
-  exit-code-2 usage errors, profile invariants and the parity manifest (13 of 46 rows already `present`).
+  exit-code-2 usage errors, profile invariants and the parity manifest (13 of 46 rows `present`); batch A
+  plan 2 (`risk-lanes`) landed the same day — one rule table with example paths pinned by a fixture, five
+  runtime reasons, and `cfkit ci classify` emitting `effective_risk` + `runtime_required` (15 rows `present`).
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 

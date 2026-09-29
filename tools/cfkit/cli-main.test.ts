@@ -106,6 +106,26 @@ test("cli: task and handoff usage errors surface as 2", async () => {
   assert.ok(merge.err.includes("is not available"));
 });
 
+test("cli: ci usage errors surface as 2", async () => {
+  const missing = await run(["ci", "classify"]);
+  const subcommand = await run(["ci", "wat"]);
+  const shortRevision = await run([
+    "ci",
+    "classify",
+    "--base",
+    "main",
+    "--head",
+    "a".repeat(40),
+  ]);
+
+  assert.equal(missing.code, 2);
+  assert.ok(missing.err.includes('missing required flag "--base"'));
+  assert.equal(subcommand.code, 2);
+  assert.ok(subcommand.err.includes("unknown ci subcommand"));
+  assert.equal(shortRevision.code, 2);
+  assert.ok(shortRevision.err.includes("hex revisions"));
+});
+
 test("cli: scaffold and remove usage errors surface as 2", async () => {
   const scaffold = await run(["scaffold"]);
   const feature = await run(["scaffold", "feature"]);

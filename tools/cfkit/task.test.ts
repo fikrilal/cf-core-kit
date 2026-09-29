@@ -4,12 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
+import { classifyPath, effectiveRisk, selectLanes } from "./risk-classifier.ts";
 import {
   beginTask,
-  classifyPath,
   declaredRiskFromPlan,
-  effectiveRisk,
-  laneFor,
   readTaskState,
   recordFailure,
   recordSuccess,
@@ -83,11 +81,11 @@ test("effective risk may raise the declared risk and never lower it", () => {
 });
 
 test("lanes follow the risk and runtime-relevant paths", () => {
-  assert.equal(laneFor("low", ["docs/x.md"]), "fast");
-  assert.equal(laneFor("medium", ["tools/cfkit/x.ts"]), "full");
-  assert.equal(laneFor("high", ["tools/cfkit/x.ts"]), "full");
-  assert.equal(laneFor("medium", ["src/features/auth/a.ts"]), "ci");
-  assert.equal(laneFor("high", ["db/migrations/0002.sql"]), "ci");
+  assert.equal(selectLanes("low", ["docs/x.md"]).lane, "fast");
+  assert.equal(selectLanes("medium", ["tools/cfkit/x.ts"]).lane, "full");
+  assert.equal(selectLanes("high", ["tools/cfkit/x.ts"]).lane, "full");
+  assert.equal(selectLanes("medium", ["src/features/auth/a.ts"]).lane, "ci");
+  assert.equal(selectLanes("high", ["db/migrations/0002.sql"]).lane, "ci");
 });
 
 test("task ids derive from plan file names", () => {

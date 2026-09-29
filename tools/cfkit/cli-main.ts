@@ -1,6 +1,11 @@
 import { spawnSync } from "node:child_process";
 
-import { assertFlags, flagValue } from "./cli-args.ts";
+import { assertFlags, flagValue, requireFlagValue } from "./cli-args.ts";
+import {
+  classifyChange,
+  formatClassification,
+  REVISION_PATTERN,
+} from "./ci-classify.ts";
 import { runHandoff } from "./commands-handoff.ts";
 import { runRemove } from "./commands-remove.ts";
 import { runScaffold } from "./commands-scaffold.ts";
@@ -19,6 +24,8 @@ Commands:
   contract:check                 Delegate to scripts/contract/check.mjs
   contract:lint                  Delegate to scripts/contract/lint.mjs
   harness:parity                 Validate the harness-parity manifest
+  ci classify --base <sha> --head <sha>
+                                 Print effective_risk and runtime_required for a diff
   doctor                         Read-only repository readiness check
   scaffold feature <name>        Generate a capability slice under src/features/
   scaffold endpoint <operationId>
@@ -40,6 +47,43 @@ function runScript(script: string): number {
   const result = spawnSync("node", [script], { stdio: "inherit" });
 
   return result.status ?? 1;
+}
+
+function runCi(args: readonly string[]): number {
+  const [subcommand, ...rest] = args;
+
+  if (subcommand !== "classify") {
+    throw new UsageError(
+      `unknown ci subcommand "${subcommand ?? ""}" (expected classify)`,
+    );
+  }
+
+  assertFlags(
+    rest,
+    { "--base": "value", "--head": "value" },
+    {
+      maxPositionals: 0,
+    },
+  );
+
+  const base = requireFlagValue(rest, "--base");
+  const head = requireFlagValue(rest, "--head");
+
+  if (!REVISION_PATTERN.test(base) || !REVISION_PATTERN.test(head)) {
+    throw new UsageError(
+      "--base and --head must be 40-64 character hex revisions",
+    );
+  }
+
+  const result = classifyChange({ root: process.cwd(), base, head });
+
+  // stdout is the machine interface (CI appends it to $GITHUB_OUTPUT); detail goes to stderr.
+  process.stdout.write(formatClassification(result));
+  console.error(
+    `[cfkit] ci classify: ${String(result.changedPaths.length)} changed paths; risk ${result.effectiveRisk}${result.declaredRisk === undefined ? "" : ` (declared ${result.declaredRisk})`}; rules ${result.rules.join(", ") || "none"}; reasons ${result.reasons.join(", ") || "none"}; lane ${result.lane}`,
+  );
+
+  return 0;
 }
 
 async function runVerify(args: readonly string[]): Promise<number> {
@@ -87,6 +131,7 @@ function runDoctor(): number {
 type CommandHandler = (args: readonly string[]) => number | Promise<number>;
 
 const COMMAND_HANDLERS: Readonly<Record<string, CommandHandler>> = {
+  ci: runCi,
   verify: runVerify,
   "budget:check": (args) => {
     assertFlags(args, {}, { maxPositionals: 0 });
