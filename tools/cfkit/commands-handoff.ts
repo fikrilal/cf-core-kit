@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { flagValue } from "./cli-args.ts";
+import { assertFlags, flagValue, requireFlagValue } from "./cli-args.ts";
 import {
   changedPaths,
   currentBranch,
@@ -21,13 +21,21 @@ import {
   type HandoffAction,
 } from "./handoff.ts";
 import { readTaskState } from "./task.ts";
+import { UsageError } from "./usage-error.ts";
 
-function parseAction(args: readonly string[]): HandoffAction | undefined {
+const UNAVAILABLE_NOTE =
+  "merge, deploy, migrate, and force-push are not available";
+
+function parseAction(args: readonly string[]): HandoffAction {
   const action = flagValue(args, "--action") as HandoffAction | undefined;
 
-  return action !== undefined && HANDOFF_ACTIONS.includes(action)
-    ? action
-    : undefined;
+  if (action === undefined || !HANDOFF_ACTIONS.includes(action)) {
+    throw new UsageError(
+      `handoff dry-run needs --action commit|push|draft-pr (${UNAVAILABLE_NOTE})`,
+    );
+  }
+
+  return action;
 }
 
 function requireTask(
@@ -83,18 +91,16 @@ export function scopedPaths(
 }
 
 function runDryRun(args: readonly string[], root: string): number {
-  const taskId = flagValue(args, "--task");
+  assertFlags(
+    args.slice(1),
+    { "--task": "value", "--action": "value", "--paths": "value" },
+    { maxPositionals: 0 },
+  );
+
+  const taskId = requireFlagValue(args, "--task");
   const action = parseAction(args);
 
-  if (action === undefined) {
-    console.error(
-      "[cfkit] handoff dry-run needs --action commit|push|draft-pr (merge, deploy, migrate, and force-push are not available)",
-    );
-
-    return 1;
-  }
-
-  if (!requireTask(root, taskId, true) || taskId === undefined) return 1;
+  if (!requireTask(root, taskId, true)) return 1;
 
   const challenge = randomBytes(32).toString("hex");
   const scope = scopedPaths(root, flagValue(args, "--paths"));
@@ -144,13 +150,7 @@ function runCommit(
   args: readonly string[],
   approvalPaths: readonly string[],
 ): number {
-  const message = flagValue(args, "--message");
-
-  if (message === undefined) {
-    console.error("[cfkit] handoff commit needs --message");
-
-    return 1;
-  }
+  const message = requireFlagValue(args, "--message");
 
   stageApprovedPaths(root, approvalPaths);
 
@@ -274,6 +274,8 @@ function runMutation(
           ? runPush(root)
           : runDraftPr(root, args, approvedPaths);
   } catch (error) {
+    if (error instanceof UsageError) throw error;
+
     const message = error instanceof Error ? error.message : String(error);
 
     console.error(`[cfkit] handoff ${subcommand} refused: ${message}`);
@@ -296,6 +298,44 @@ function runMutation(
   return status;
 }
 
+const MUTATION_FLAGS: Readonly<
+  Record<"commit" | "push" | "draft-pr", Readonly<Record<string, "value">>>
+> = {
+  commit: {
+    "--task": "value",
+    "--challenge": "value",
+    "--message": "value",
+    "--paths": "value",
+  },
+  push: { "--task": "value", "--challenge": "value" },
+  "draft-pr": {
+    "--task": "value",
+    "--challenge": "value",
+    "--title": "value",
+    "--paths": "value",
+  },
+};
+
+function assertMutationFlags(
+  subcommand: "commit" | "push" | "draft-pr",
+  args: readonly string[],
+): Readonly<{ taskId: string; challenge: string }> {
+  assertFlags(args.slice(1), MUTATION_FLAGS[subcommand], {
+    maxPositionals: 0,
+  });
+
+  const taskId = requireFlagValue(args, "--task");
+  const challenge = requireFlagValue(args, "--challenge");
+
+  // Validate every flag the mutation itself needs before an approval is read:
+  // a syntax error must never invalidate a valid, expiring handoff grant.
+  if (subcommand === "commit") {
+    requireFlagValue(args, "--message");
+  }
+
+  return { taskId, challenge };
+}
+
 export function runHandoff(args: readonly string[], root: string): number {
   const subcommand = args[0];
 
@@ -303,6 +343,8 @@ export function runHandoff(args: readonly string[], root: string): number {
     try {
       return runDryRun(args, root);
     } catch (error) {
+      if (error instanceof UsageError) throw error;
+
       const message = error instanceof Error ? error.message : String(error);
 
       console.error(`[cfkit] handoff refused: ${message}`);
@@ -316,25 +358,18 @@ export function runHandoff(args: readonly string[], root: string): number {
     subcommand !== "push" &&
     subcommand !== "draft-pr"
   ) {
-    console.error(
-      `[cfkit] "${subcommand ?? ""}" is not available; merge, deploy, migrate, and force-push are intentionally absent`,
+    throw new UsageError(
+      `"${subcommand ?? ""}" is not available; ${UNAVAILABLE_NOTE}`,
     );
-
-    return 1;
   }
 
-  const taskId = flagValue(args, "--task");
-  const challenge = flagValue(args, "--challenge");
-
-  if (taskId === undefined || challenge === undefined) {
-    console.error(`[cfkit] handoff ${subcommand} needs --task and --challenge`);
-
-    return 1;
-  }
+  const { taskId, challenge } = assertMutationFlags(subcommand, args);
 
   try {
     return runMutation(root, subcommand, args, taskId, challenge);
   } catch (error) {
+    if (error instanceof UsageError) throw error;
+
     const message = error instanceof Error ? error.message : String(error);
 
     console.error(`[cfkit] handoff refused: ${message}`);

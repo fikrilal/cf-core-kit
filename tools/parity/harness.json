@@ -1,0 +1,389 @@
+{
+  "schemaVersion": 1,
+  "rows": [
+    {
+      "id": "core.parity-manifest",
+      "area": "verification core",
+      "family": "tools/backendkit/oracles + verification",
+      "target": "tools/parity/harness.json is the programme checklist the checker validates",
+      "status": "present",
+      "plan": 1,
+      "evidencePath": "tools/parity/harness.json"
+    },
+    {
+      "id": "core.process-runner",
+      "area": "verification core",
+      "family": "tools/backendkit/process-runner.ts",
+      "target": "structured capture with live passthrough, tail cap and timeout",
+      "status": "present",
+      "plan": 1,
+      "evidencePath": "tools/cfkit/process-runner.ts"
+    },
+    {
+      "id": "core.failure-taxonomy",
+      "area": "verification core",
+      "family": "tools/backendkit/verification/failure-taxonomy.ts",
+      "target": "step id -> code/remediation/repairable; unknown escalates",
+      "status": "present",
+      "plan": 1,
+      "evidencePath": "tools/cfkit/failure-taxonomy.ts"
+    },
+    {
+      "id": "core.exit-codes",
+      "area": "verification core",
+      "family": "tools/backendkit/command.ts",
+      "target": "0 ok / 1 error / 2 usage with strict flag parsing",
+      "status": "present",
+      "plan": 1,
+      "evidencePath": "tools/cfkit/cli-main.ts"
+    },
+    {
+      "id": "core.profile-invariants",
+      "area": "verification core",
+      "family": "tools/backendkit/verification/profile-parity.spec.ts",
+      "target": "composition, uniqueness and taxonomy coverage fixtures",
+      "status": "present",
+      "plan": 1,
+      "evidencePath": "tools/cfkit/profiles.test.ts"
+    },
+    {
+      "id": "core.duration-policy",
+      "area": "verification core",
+      "family": "tools/backendkit/verification/duration-policy.ts",
+      "target": "advisory per-profile budgets, never failing",
+      "status": "present",
+      "plan": 1,
+      "evidencePath": "tools/cfkit/duration-policy.ts"
+    },
+    {
+      "id": "core.profile-registry",
+      "area": "verification core",
+      "family": "tools/backendkit/verification/profile-registry.ts",
+      "target": "typed registry with aliases and cycle detection",
+      "status": "present",
+      "plan": 1,
+      "evidencePath": "tools/cfkit/profiles.ts"
+    },
+    {
+      "id": "handoff.bound-approvals",
+      "area": "task and handoff",
+      "family": "tools/backendkit/handoff/*",
+      "target": "expiring approvals bound to fingerprint and exact paths, hash-only",
+      "status": "present",
+      "plan": 16,
+      "evidencePath": "tools/cfkit/handoff.ts",
+      "note": "15-minute lifetime, challenge hash, fingerprint and path binding already at parity; workspace and branch binding land with plans 15-16"
+    },
+    {
+      "id": "sensors.contract-parity",
+      "area": "gate sensors",
+      "family": "scripts/openapi-check.ts",
+      "target": "byte-stable emitted document plus provenance and parity manifest",
+      "status": "present",
+      "plan": 1,
+      "evidencePath": "scripts/contract/check.mjs",
+      "note": "superset: the family has no provenance or parity manifest"
+    },
+    {
+      "id": "sensors.duplication-core",
+      "area": "gate sensors",
+      "family": "duplication:core (jscpd 60/7)",
+      "target": "fatal core duplication gate with a reasoned allowlist",
+      "status": "present",
+      "plan": 1,
+      "evidencePath": "scripts/duplication/check.mjs"
+    },
+    {
+      "id": "sensors.budget",
+      "area": "gate sensors",
+      "family": "not applicable (no free-tier regime)",
+      "target": "free-tier budget rules for bundle, crypto, env, KV, cron, queue, storage",
+      "status": "present",
+      "plan": 1,
+      "evidencePath": "scripts/budget/check.mjs"
+    },
+    {
+      "id": "sensors.secrets-scan",
+      "area": "gate sensors",
+      "family": "verify-env-example.ts (partial)",
+      "target": "tracked-file secret scan with reasoned allowlists",
+      "status": "present",
+      "plan": 1,
+      "evidencePath": "scripts/security/secrets-scan.mjs"
+    },
+    {
+      "id": "gates.workflow-invariants",
+      "area": "CI and workflow",
+      "family": "tools/backendkit/ci/workflow-policy.spec.ts",
+      "target": "workflow meta-test (job names, pins, conditions)",
+      "status": "present",
+      "plan": 17,
+      "evidencePath": "scripts/ci/workflow.test.mjs",
+      "note": "current version covers pins and least privilege; lane invariants land with plan 17"
+    },
+    {
+      "id": "risk.lane-classifier",
+      "area": "verification core",
+      "family": "tools/backendkit/policy/risk-classifier.ts + verification/lane-selection.ts",
+      "target": "path -> risk table, runtime reasons, raise-only",
+      "status": "declared-only",
+      "plan": 2
+    },
+    {
+      "id": "risk.ci-classify",
+      "area": "verification core",
+      "family": "tools/backendkit/ci/ci-classification.ts",
+      "target": "cfkit ci classify --base --head emits effective_risk and runtime_required",
+      "status": "declared-only",
+      "plan": 2
+    },
+    {
+      "id": "sensors.config-drift",
+      "area": "gate sensors",
+      "family": "scripts/verify-env-example.ts",
+      "target": "config:check reconciles wrangler vars/secrets with the config schema",
+      "status": "declared-only",
+      "plan": 3
+    },
+    {
+      "id": "sensors.dependency-audit",
+      "area": "gate sensors",
+      "family": "audit:prod",
+      "target": "npm audit --omit=dev --audit-level=high in the full profile and CI",
+      "status": "declared-only",
+      "plan": 3
+    },
+    {
+      "id": "sensors.repo-hygiene",
+      "area": "gate sensors",
+      "family": ".gitattributes (LF for checksum-sensitive paths)",
+      "target": "db/migrations/** pinned to LF",
+      "status": "declared-only",
+      "plan": 3
+    },
+    {
+      "id": "sensors.smells",
+      "area": "gate sensors",
+      "family": "scripts/architecture-smells.ts (+ baseline, --ci new-findings-only)",
+      "target": "scanner, baseline and report for our trap rules",
+      "status": "declared-only",
+      "plan": 4
+    },
+    {
+      "id": "sensors.duplication-small-helpers",
+      "area": "gate sensors",
+      "family": "duplication:small-helpers (jscpd 24/4)",
+      "target": "report-only small-helper profile with its own allowlist",
+      "status": "declared-only",
+      "plan": 5
+    },
+    {
+      "id": "gates.honesty-meta",
+      "area": "gate sensors",
+      "family": "scripts/gates-honesty.ts",
+      "target": "planted violations prove the wired gates fail with markers",
+      "status": "declared-only",
+      "plan": 6
+    },
+    {
+      "id": "test.tiers",
+      "area": "test harness",
+      "family": "test/jest-{int,e2e}.json + scripts",
+      "target": "named unit/int/contract tier scripts",
+      "status": "declared-only",
+      "plan": 7
+    },
+    {
+      "id": "test.assertions",
+      "area": "test harness",
+      "family": "test/auth/auth-e2e.harness.ts helpers",
+      "target": "shared envelope/problem/rate-limit/object assertion helpers",
+      "status": "declared-only",
+      "plan": 7
+    },
+    {
+      "id": "test.env-isolation",
+      "area": "test harness",
+      "family": "test/jest-unit.setup.ts",
+      "target": "fixture asserting the ambient test env is unconfigured",
+      "status": "declared-only",
+      "plan": 7
+    },
+    {
+      "id": "test.coverage-reporters",
+      "area": "test harness",
+      "family": "jest coverageReporters + CI artifact",
+      "target": "lcov and json-summary reporters plus a CI coverage artifact",
+      "status": "declared-only",
+      "plan": 7
+    },
+    {
+      "id": "test.oracles",
+      "area": "test harness",
+      "family": "tools/backendkit/oracles/high-risk-oracles.ts",
+      "target": "registry of high-risk behaviours bound to real-transport evidence",
+      "status": "declared-only",
+      "plan": 8
+    },
+    {
+      "id": "test.mutation-pilot",
+      "area": "test harness",
+      "family": "stryker.config.mjs (thresholds 80/60/70)",
+      "target": "seeded-mutation pilot over pure policy files, never in a profile",
+      "status": "declared-only",
+      "plan": 9
+    },
+    {
+      "id": "knowledge.plan-contract",
+      "area": "knowledge and evidence",
+      "family": "tools/backendkit/knowledge/knowledge-check.ts",
+      "target": "plan metadata contract, lifecycle and single-active-plan fixtures",
+      "status": "declared-only",
+      "plan": 10
+    },
+    {
+      "id": "evidence.episodes",
+      "area": "knowledge and evidence",
+      "family": "tools/backendkit/evidence/episode.ts + diagnostics.ts",
+      "target": "schema-validated episodes and redacted <=16 KiB diagnostics per attempt",
+      "status": "declared-only",
+      "plan": 11
+    },
+    {
+      "id": "evidence.operating-ledger",
+      "area": "knowledge and evidence",
+      "family": "tools/backendkit/evidence/operating-ledger.ts",
+      "target": "operating ledger + eligibility thresholds + evidence check",
+      "status": "declared-only",
+      "plan": 12
+    },
+    {
+      "id": "evidence.improvement-gating",
+      "area": "knowledge and evidence",
+      "family": "tools/backendkit/improvement/*",
+      "target": "improvement ledger and shadow evaluation, disabled until eligible",
+      "status": "declared-only",
+      "plan": 12
+    },
+    {
+      "id": "events.intake",
+      "area": "knowledge and evidence",
+      "family": "tools/backendkit/events/event-intake.ts",
+      "target": "queued plan promotion with single-flight receipts",
+      "status": "declared-only",
+      "plan": 13
+    },
+    {
+      "id": "maintenance.registry",
+      "area": "knowledge and evidence",
+      "family": "tools/backendkit/maintenance/maintenance-service.ts",
+      "target": "one-shot maintenance registry under the repository lock",
+      "status": "declared-only",
+      "plan": 13
+    },
+    {
+      "id": "task.state-machine",
+      "area": "task and handoff",
+      "family": "tools/backendkit/task/task-*.ts",
+      "target": "eleven-state machine with append-only transitions",
+      "status": "declared-only",
+      "plan": 14
+    },
+    {
+      "id": "task.preflight",
+      "area": "task and handoff",
+      "family": "tools/backendkit/task/task-verification.ts",
+      "target": "authority/scope/risk preflight with fingerprints and bounded repair",
+      "status": "declared-only",
+      "plan": 14
+    },
+    {
+      "id": "task.workspace-lock",
+      "area": "task and handoff",
+      "family": "tools/backendkit/workspace/*",
+      "target": "repository lock plus workspace manifest (worktree per open question 1)",
+      "status": "declared-only",
+      "plan": 15
+    },
+    {
+      "id": "handoff.workspace-binding",
+      "area": "task and handoff",
+      "family": "tools/backendkit/handoff/handoff-approval.ts",
+      "target": "workspace and branch binding for approvals",
+      "status": "declared-only",
+      "plan": 16
+    },
+    {
+      "id": "ci.lanes",
+      "area": "CI and workflow",
+      "family": ".github/workflows/ci.yml (risk/full/runtime/governance/required)",
+      "target": "five lanes with a stable branch-protection aggregate",
+      "status": "declared-only",
+      "plan": 17
+    },
+    {
+      "id": "ci.governance",
+      "area": "CI and workflow",
+      "family": "CI Governance job",
+      "target": "dependency review, secret scanning action, dependabot",
+      "status": "declared-only",
+      "plan": 17
+    },
+    {
+      "id": "workflow.commit-conventions",
+      "area": "CI and workflow",
+      "family": "commitlint + .githooks + scope enum",
+      "target": "local commitlint hook and documented scopes",
+      "status": "declared-only",
+      "plan": 17
+    },
+    {
+      "id": "workflow.pr-template",
+      "area": "CI and workflow",
+      "family": ".github/pull_request_template.md",
+      "target": "risk/impact/runtime-evidence/checks-not-run template",
+      "status": "declared-only",
+      "plan": 17
+    },
+    {
+      "id": "doctor.checklist",
+      "area": "doctor and scaffolding",
+      "family": "tools/backendkit/doctor/harness-doctor.ts",
+      "target": "identity, ignored state, policy and state schema checks",
+      "status": "declared-only",
+      "plan": 18
+    },
+    {
+      "id": "scaffold.tiers",
+      "area": "doctor and scaffolding",
+      "family": "feature-scaffold tiers + removal pruning",
+      "target": "tier/queue/dry-run flags, baseline pruning, smoke coverage",
+      "status": "declared-only",
+      "plan": 18
+    },
+    {
+      "id": "docs.engineering-set",
+      "area": "documentation",
+      "family": "docs/engineering/**",
+      "target": "cfkit reference, guardrails, runtime-evidence, ledgers, workflow docs",
+      "status": "declared-only",
+      "plan": 19
+    },
+    {
+      "id": "docs.standards-additions",
+      "area": "documentation",
+      "family": "docs/standards/** (15 files)",
+      "target": "the missing standards (response, errors, configuration, code quality, security, ...)",
+      "status": "declared-only",
+      "plan": 19
+    },
+    {
+      "id": "parity.tree-check",
+      "area": "verification core",
+      "family": "no family equivalent (our falsifiability device)",
+      "target": "harness:parity compares this manifest with the live tree",
+      "status": "declared-only",
+      "plan": 20
+    }
+  ]
+}

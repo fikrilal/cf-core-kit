@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
+import { assertFlags } from "./cli-args.ts";
 import { formatPaths } from "./format.ts";
 import { applyRemovePlan } from "./remove-apply.ts";
 import {
@@ -10,6 +11,7 @@ import {
   type RemovePlan,
 } from "./remove.ts";
 import type { RepoAccess } from "./scaffold.ts";
+import { UsageError } from "./usage-error.ts";
 
 export function repoAccess(root: string): RepoAccess {
   const list = (dir: string): readonly string[] => {
@@ -53,41 +55,80 @@ function printRemovePlan(plan: RemovePlan): void {
   }
 }
 
+function positionalTarget(subcommand: string, args: readonly string[]): string {
+  const target = args.slice(1).find((arg) => !arg.startsWith("--"));
+
+  if (target === undefined || target === "") {
+    throw new UsageError(
+      `remove ${subcommand} needs an argument (feature <name> | endpoint <operationId>)`,
+    );
+  }
+
+  return target;
+}
+
+function removePreflight(
+  subcommand: string,
+  target: string,
+  flags: ReadonlySet<string>,
+): number | undefined {
+  if (subcommand === "feature" && !flags.has("--yes")) {
+    console.error(
+      "[cfkit] refusing to remove a feature without --yes (nothing was changed)",
+    );
+
+    return 1;
+  }
+
+  return undefined;
+}
+
+function buildRemovePlan(
+  subcommand: string,
+  target: string,
+  root: string,
+  flags: ReadonlySet<string>,
+): RemovePlan {
+  if (subcommand !== "endpoint" && subcommand !== "feature") {
+    throw new UsageError(
+      `unknown remove target "${subcommand}" (expected feature|endpoint)`,
+    );
+  }
+
+  if (subcommand === "endpoint") {
+    return buildEndpointRemoval({
+      operationId: target,
+      repo: repoAccess(root),
+    });
+  }
+
+  return buildFeatureRemoval({
+    rawName: target,
+    repo: repoAccess(root),
+    forceCore: flags.has("--force-core"),
+    force: flags.has("--force"),
+  });
+}
+
 export function runRemove(args: readonly string[]): number {
   const subcommand = args[0];
   const root = process.cwd();
+  const flagSpec = {
+    "--yes": "boolean",
+    "--force-core": "boolean",
+    "--force": "boolean",
+  } as const;
   const flags = new Set(args.slice(1).filter((arg) => arg.startsWith("--")));
 
   try {
-    let plan: RemovePlan;
+    assertFlags(args.slice(1), flagSpec, { maxPositionals: 1 });
 
-    if (subcommand === "endpoint") {
-      plan = buildEndpointRemoval({
-        operationId: args[1] ?? "",
-        repo: repoAccess(root),
-      });
-    } else if (subcommand === "feature") {
-      if (!flags.has("--yes")) {
-        console.error(
-          "[cfkit] refusing to remove a feature without --yes (nothing was changed)",
-        );
+    const target = positionalTarget(subcommand ?? "<target>", args);
+    const preflight = removePreflight(subcommand ?? "<target>", target, flags);
 
-        return 1;
-      }
+    if (preflight !== undefined) return preflight;
 
-      plan = buildFeatureRemoval({
-        rawName: args[1] ?? "",
-        repo: repoAccess(root),
-        forceCore: flags.has("--force-core"),
-        force: flags.has("--force"),
-      });
-    } else {
-      console.error(
-        `[cfkit] unknown remove target "${subcommand ?? ""}" (expected feature|endpoint)`,
-      );
-
-      return 1;
-    }
+    const plan = buildRemovePlan(subcommand ?? "", target, root, flags);
 
     printRemovePlan(plan);
     applyRemovePlan(root, plan, { format: formatPaths });
@@ -104,6 +145,8 @@ export function runRemove(args: readonly string[]): number {
       }
     }
   } catch (error) {
+    if (error instanceof UsageError) throw error;
+
     const message = error instanceof Error ? error.message : String(error);
 
     console.error(`[cfkit] remove refused: ${message}`);

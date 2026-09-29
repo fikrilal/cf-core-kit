@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { assertFlags, requireFlagValue } from "./cli-args.ts";
 import { changedPaths } from "./git.ts";
 import { expandProfile } from "./profiles.ts";
 import { runProfile } from "./runner.ts";
@@ -12,11 +13,25 @@ import {
   writeTaskState,
   type TaskState,
 } from "./task.ts";
+import { UsageError } from "./usage-error.ts";
 
-function flagValue(args: readonly string[], flag: string): string | undefined {
-  const index = args.indexOf(flag);
+type TaskLookup =
+  | Readonly<{ ok: true; state: TaskState }>
+  | Readonly<{ ok: false; exitCode: number }>;
 
-  return index === -1 ? undefined : args[index + 1];
+function lookupTask(args: readonly string[], root: string): TaskLookup {
+  assertFlags(args.slice(1), { "--task": "value" }, { maxPositionals: 0 });
+
+  const taskId = requireFlagValue(args, "--task");
+  const state = readTaskState(root, taskId);
+
+  if (state === undefined) {
+    console.error(`[cfkit] unknown task "${taskId}"`);
+
+    return { ok: false, exitCode: 1 };
+  }
+
+  return { ok: true, state };
 }
 
 function printTaskState(state: TaskState): void {
@@ -39,13 +54,9 @@ function printTaskState(state: TaskState): void {
 }
 
 function runTaskBegin(args: readonly string[], root: string): number {
-  const planPath = flagValue(args, "--plan");
+  assertFlags(args.slice(1), { "--plan": "value" }, { maxPositionals: 0 });
 
-  if (planPath === undefined) {
-    console.error("[cfkit] task begin needs --plan <path>");
-
-    return 1;
-  }
+  const planPath = requireFlagValue(args, "--plan");
 
   const state = beginTask({
     root,
@@ -60,17 +71,16 @@ function runTaskBegin(args: readonly string[], root: string): number {
   return 0;
 }
 
-function runTaskVerify(args: readonly string[], root: string): number {
-  const taskId = flagValue(args, "--task");
-  const state = taskId === undefined ? undefined : readTaskState(root, taskId);
+async function runTaskVerify(
+  args: readonly string[],
+  root: string,
+): Promise<number> {
+  const lookup = lookupTask(args, root);
 
-  if (taskId === undefined || state === undefined) {
-    console.error(`[cfkit] unknown task "${taskId ?? ""}"`);
+  if (!lookup.ok) return lookup.exitCode;
 
-    return 1;
-  }
-
-  const result = runProfile({
+  const state = lookup.state;
+  const result = await runProfile({
     name: state.lane,
     steps: expandProfile(state.lane),
   });
@@ -100,28 +110,28 @@ function runTaskVerify(args: readonly string[], root: string): number {
 }
 
 function runTaskStatus(args: readonly string[], root: string): number {
-  const taskId = flagValue(args, "--task");
-  const state = taskId === undefined ? undefined : readTaskState(root, taskId);
+  const lookup = lookupTask(args, root);
 
-  if (state === undefined) {
-    console.error(`[cfkit] unknown task "${taskId ?? ""}"`);
+  if (!lookup.ok) return lookup.exitCode;
 
-    return 1;
-  }
-
-  printTaskState(state);
+  printTaskState(lookup.state);
 
   return 0;
 }
 
-export function runTask(args: readonly string[], root: string): number {
+export async function runTask(
+  args: readonly string[],
+  root: string,
+): Promise<number> {
   const subcommand = args[0];
 
   try {
     if (subcommand === "begin") return runTaskBegin(args, root);
-    if (subcommand === "verify") return runTaskVerify(args, root);
+    if (subcommand === "verify") return await runTaskVerify(args, root);
     if (subcommand === "status") return runTaskStatus(args, root);
   } catch (error) {
+    if (error instanceof UsageError) throw error;
+
     const message = error instanceof Error ? error.message : String(error);
 
     console.error(`[cfkit] task refused: ${message}`);
@@ -129,9 +139,7 @@ export function runTask(args: readonly string[], root: string): number {
     return 1;
   }
 
-  console.error(
-    `[cfkit] unknown task subcommand "${subcommand ?? ""}" (expected begin|verify|status)`,
+  throw new UsageError(
+    `unknown task subcommand "${subcommand ?? ""}" (expected begin|verify|status)`,
   );
-
-  return 1;
 }

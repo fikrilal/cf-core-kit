@@ -31,6 +31,7 @@ test("profiles: fast, full, runtime, and ci compose as documented", () => {
       "drift:check",
       "contract:check",
       "contract:lint",
+      "harness:parity",
     ],
   );
   assert.deepEqual(
@@ -95,7 +96,7 @@ test("duration policy: budgets are advisory only", () => {
   assert.ok(message?.includes("took 999999ms"));
 });
 
-test("runner: runs steps in order and stops at the first failure", () => {
+test("runner: runs steps in order and stops at the first failure", async () => {
   const calls: string[] = [];
   const outcomes: Record<string, number> = {
     "step-a": 0,
@@ -108,7 +109,7 @@ test("runner: runs steps in order and stops at the first failure", () => {
     return outcomes[script] ?? 1;
   };
 
-  const result = runProfile(
+  const result = await runProfile(
     {
       name: "fast",
       steps: [
@@ -126,9 +127,17 @@ test("runner: runs steps in order and stops at the first failure", () => {
     result.results.map((entry) => `${entry.id}:${entry.status}`),
     ["step-a:passed", "step-b:failed"],
   );
+
+  // A failed step carries its taxonomy descriptor; an unmapped id escalates.
+  const failed = result.results.at(-1);
+
+  assert.ok(failed !== undefined);
+  assert.ok(failed.descriptor !== undefined);
+  assert.equal(failed.descriptor.code, "harness.unknown-step");
+  assert.equal(failed.descriptor.repairable, false);
 });
 
-test("runner: a passing profile returns zero and reports durations", () => {
+test("runner: a passing profile returns zero and reports durations", async () => {
   const calls: string[] = [];
   const runner: StepRunner = (script) => {
     calls.push(script);
@@ -136,7 +145,7 @@ test("runner: a passing profile returns zero and reports durations", () => {
     return 0;
   };
 
-  const result = runProfile(
+  const result = await runProfile(
     {
       name: "full",
       steps: [
@@ -152,6 +161,7 @@ test("runner: a passing profile returns zero and reports durations", () => {
   assert.equal(result.results.length, 2);
   assert.ok(result.durationMs >= 0);
   assert.ok(result.results.every((entry) => entry.durationMs >= 0));
+  assert.ok(result.results.every((entry) => entry.descriptor === undefined));
 });
 
 const GOOD_FACTS: DoctorFacts = {

@@ -35,11 +35,18 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
   `auth.email.verification.resend` but no magic-link sign-in operations.
 - **Backlog #2 — Password revival**: M0 spike first (DO CPU budget on the free plan + WASM Argon2id), then the `CredentialHasher` port with `do-argon2` / `inline-argon2` adapters; `auth.password.*` stays descoped until then.
 - **Backlog #3 — Passkeys**: needs `auth.passkeys.*` superset endpoints in the family contract.
-- **Phase 6 surfaces — `admin`, `merchant-onboarding`**: deferred until a product needs them; 8 pending
-  pinned operations remain (the `admin.*` and `merchantOnboarding.*` groups — the tier-2 parity
-  backlog; `cfkit scaffold endpoint` implements the simple ones in one command once a product wants
-  them).
+- **Out-of-scope surfaces — `admin`, `merchant-onboarding`**: descoped by ADR-0013 (they are separate
+  products with their own authorization models); the parity manifest therefore carries no `pending`
+  operations — implemented + descoped covers the whole pinned snapshot.
 - **Credentialed lanes**: dashboard CPU per route class, a live R2 upload, and the first real deploy — each tracked in its plan.
+- **Harness parity (proposed, not scheduled)**: a 1:1 programme against `backend-core-kit`'s harness — verification
+  core, gate sensors, test harness, CI lanes, knowledge/evidence machinery, task/workspace/handoff orchestration,
+  doctor/scaffolding and the engineering doc set — is drafted in
+  `_WIP/2026-10-12_harness-parity-proposal.md`. Its high-level roadmap (proposal §7) sequences twenty exec plans
+  in six dependency-ordered batches with per-batch exit gates; entry requires acceptance, the two open-question
+  answers (workspace scope, mutation placement), the ADR-0013 scope commit, and ADRs for the baseline-changing
+  pieces. Progress: batch A plan 1 (`harness-core`) landed 2026-10-12 — process capture, failure taxonomy,
+  exit-code-2 usage errors, profile invariants and the parity manifest (13 of 46 rows already `present`).
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
@@ -122,7 +129,9 @@ Exit gate: a fresh clone scaffolds a working endpoint in one command (proven on 
 
 ## Phase 6 — Remaining parity (tier 2, optional)
 
-Deferred until a product needs it: `admin`, `merchant-onboarding`. The parity manifest `pending` shrinks to empty or an explicit descope.
+Out of scope by decision, not backlog: `admin`, `merchant-onboarding` (ADR-0013). The parity manifest
+`pending` is empty — every pinned operation is implemented or explicitly descoped with a reason and an
+ADR.
 
 ## Backlog (ordered, from ADR-0006)
 

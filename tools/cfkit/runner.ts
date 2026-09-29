@@ -1,14 +1,19 @@
-import { spawnSync } from "node:child_process";
-
 import { durationAdvisory } from "./duration-policy.ts";
+import {
+  failureDescriptor,
+  type FailureDescriptor,
+} from "./failure-taxonomy.ts";
+import { PROCESS_TIMEOUT_MS, runProcess } from "./process-runner.ts";
 import type { VerifyProfile, VerifyStep } from "./profiles.ts";
 
-export type StepRunner = (script: string) => number;
+export type StepRunner = (script: string) => number | Promise<number>;
 
 export type StepResult = Readonly<{
   id: string;
   status: "passed" | "failed";
   durationMs: number;
+  exitCode: number;
+  descriptor?: FailureDescriptor;
 }>;
 
 export type ProfileRunResult = Readonly<{
@@ -18,42 +23,55 @@ export type ProfileRunResult = Readonly<{
   durationMs: number;
 }>;
 
-export function defaultStepRunner(script: string): number {
-  const result = spawnSync("npm", ["run", script], { stdio: "inherit" });
+export async function defaultStepRunner(script: string): Promise<number> {
+  const capture = await runProcess({
+    command: "npm",
+    args: ["run", script],
+    timeoutMs: PROCESS_TIMEOUT_MS,
+  });
 
-  return result.status ?? 1;
+  return capture.exitCode;
 }
 
-function reportStep(
-  id: string,
-  status: StepResult["status"],
-  durationMs: number,
-): void {
-  const seconds = (durationMs / 1000).toFixed(1);
-  const marker = status === "passed" ? "\u2713" : "x";
+function reportStep(result: StepResult): void {
+  const seconds = (result.durationMs / 1000).toFixed(1);
+  const marker = result.status === "passed" ? "\u2713" : "x";
 
-  console.log(`  ${marker} ${id} (${seconds}s)`);
+  console.log(`  ${marker} ${result.id} (${seconds}s)`);
+
+  if (result.descriptor !== undefined) {
+    const verdict = result.descriptor.repairable ? "repairable" : "escalate";
+
+    console.log(
+      `    \u2192 ${result.descriptor.code}: ${result.descriptor.remediation} (${verdict})`,
+    );
+  }
 }
 
-export function runProfile(
+export async function runProfile(
   profile: Readonly<{
     name: VerifyProfile["name"];
     steps: readonly VerifyStep[];
   }>,
   runStep: StepRunner = defaultStepRunner,
-): ProfileRunResult {
+): Promise<ProfileRunResult> {
   const results: StepResult[] = [];
   const startedAt = Date.now();
 
   for (const step of profile.steps) {
     const start = Date.now();
-    const exitCode = runStep(step.script);
+    const exitCode = await runStep(step.script);
     const durationMs = Date.now() - start;
-    const status = exitCode === 0 ? "passed" : "failed";
-    const result: StepResult = { id: step.id, status, durationMs };
+    const result: StepResult = {
+      id: step.id,
+      status: exitCode === 0 ? "passed" : "failed",
+      durationMs,
+      exitCode,
+      ...(exitCode === 0 ? {} : { descriptor: failureDescriptor(step.id) }),
+    };
 
     results.push(result);
-    reportStep(step.id, status, durationMs);
+    reportStep(result);
 
     if (exitCode !== 0) {
       return {

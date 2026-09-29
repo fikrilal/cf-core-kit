@@ -23,6 +23,7 @@ const SCRIPT_IDS: readonly string[] = [
   "drift:check",
   "contract:check",
   "contract:lint",
+  "harness:parity",
 ];
 
 function scriptStep(id: string): VerifyStep {

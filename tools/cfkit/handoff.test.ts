@@ -135,11 +135,16 @@ test("unavailable handoff actions are refused", () => {
 
   try {
     for (const action of ["merge", "deploy", "migrate", "delete-branch"]) {
-      assert.equal(runHandoff([action], root), 1, `${action} must be refused`);
+      assert.throws(
+        () => runHandoff([action], root),
+        /is not available/,
+        `${action} must be refused as a usage error`,
+      );
     }
 
-    assert.equal(runHandoff(["commit"], root), 1);
-    assert.equal(runHandoff(["dry-run"], root), 1);
+    // Missing required flags are usage errors, not domain refusals.
+    assert.throws(() => runHandoff(["commit"], root), /missing required flag/);
+    assert.throws(() => runHandoff(["dry-run"], root), /missing required flag/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
