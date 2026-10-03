@@ -176,8 +176,10 @@
       "area": "gate sensors",
       "family": "scripts/architecture-smells.ts (+ baseline, --ci new-findings-only)",
       "target": "scanner, baseline and report for our trap rules",
-      "status": "declared-only",
-      "plan": 4
+      "status": "present",
+      "plan": 4,
+      "evidenceCommand": "smells:check",
+      "note": "six rules over the working tree with a baseline, a generated report and a high-severity floor; a noisy batch-query heuristic was dropped rather than shipped"
     },
     {
       "id": "sensors.duplication-small-helpers",

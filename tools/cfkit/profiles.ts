@@ -37,6 +37,7 @@ const FULL_STEPS: readonly VerifyStep[] = [
   scriptStep("test:coverage"),
   scriptStep("duplication:check"),
   scriptStep("build"),
+  scriptStep("smells:check"),
   scriptStep("audit:prod"),
 ];
 const RUNTIME_STEPS: readonly VerifyStep[] = [

@@ -21,3 +21,6 @@ coverage/
 .vscode/
 *.swp
 .cfkit/
+
+# Generated harness reports (regenerate with smells:report / duplication:report)
+_WIP/architecture-smells.md

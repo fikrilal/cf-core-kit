@@ -51,7 +51,9 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
   runtime reasons, and `cfkit ci classify` emitting `effective_risk` + `runtime_required` (15 rows `present`);
   batch A plan 3 (`sensors-config`) added `config:check` (wrangler vars, documented secrets and the ConfigKey
   union against the zod schema), `audit:prod` in the full profile, LF pinning for migration snapshots, and the
-  first calibrated duration baselines (18 rows `present`).
+  first calibrated duration baselines (18 rows `present`); batch A plan 4 (`sensors-smells`) added the
+  architecture smell scanner (six precise rules, empty reviewed baseline, generated report, high-severity
+  floor; the wall-clock property moved here from plan B7) (19 rows `present`).
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 

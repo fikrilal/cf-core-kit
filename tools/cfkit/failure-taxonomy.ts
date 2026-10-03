@@ -99,6 +99,12 @@ const DESCRIPTORS: Readonly<Record<string, FailureDescriptor>> = {
       "Reconcile wrangler.jsonc vars, the documented secrets and src/platform/config/config.ts: the schema is the source of truth.",
     repairable: true,
   },
+  "smells:check": {
+    code: "verify.architecture",
+    remediation:
+      "Fix the reported smell or baseline it with SMELLS_BASELINE_APPROVED=true after review; report-only runs use smells:report.",
+    repairable: true,
+  },
   "audit:prod": {
     code: "verify.security",
     remediation:

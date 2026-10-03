@@ -42,6 +42,7 @@ test("profiles: fast, full, runtime, and ci compose as documented", () => {
       "test:coverage",
       "duplication:check",
       "build",
+      "smells:check",
       "audit:prod",
     ],
   );
