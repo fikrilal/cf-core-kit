@@ -146,24 +146,30 @@
       "area": "gate sensors",
       "family": "scripts/verify-env-example.ts",
       "target": "config:check reconciles wrangler vars/secrets with the config schema",
-      "status": "declared-only",
-      "plan": 3
+      "status": "present",
+      "plan": 3,
+      "evidenceCommand": "config:check",
+      "note": "reconciles wrangler vars per scope, the documented secrets and the ConfigKey union against the zod schema"
     },
     {
       "id": "sensors.dependency-audit",
       "area": "gate sensors",
       "family": "audit:prod",
       "target": "npm audit --omit=dev --audit-level=high in the full profile and CI",
-      "status": "declared-only",
-      "plan": 3
+      "status": "present",
+      "plan": 3,
+      "evidenceCommand": "audit:prod",
+      "note": "a registry that cannot be reached is not an advisory; runs in the full profile"
     },
     {
       "id": "sensors.repo-hygiene",
       "area": "gate sensors",
       "family": ".gitattributes (LF for checksum-sensitive paths)",
       "target": "db/migrations/** pinned to LF",
-      "status": "declared-only",
-      "plan": 3
+      "status": "present",
+      "plan": 3,
+      "evidencePath": ".gitattributes",
+      "note": "db/migrations/** pinned to LF so Drizzle snapshots stay byte-stable across platforms"
     },
     {
       "id": "sensors.smells",

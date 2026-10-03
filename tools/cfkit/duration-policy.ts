@@ -5,14 +5,21 @@ export type ProfileDurationBudget = Readonly<{
   advisoryMs: number;
 }>;
 
+/**
+ * Calibrated 2026-10-12 from clean runs on this repository (fast 98.2s, ci 207.1s,
+ * runtime.smoke 2.5s, scaffold.smoke 53.1s; full derived as ci minus the two composed
+ * profiles = 151.5s). Advisories are roughly twice the observed baseline, except the
+ * second-scale runtime smoke, which gets a 30s floor so shared runners do not trip it.
+ * Advisory only, never failing; re-calibrate from reviewed clean runs.
+ */
 export const PROFILE_DURATION_BUDGETS: Readonly<
   Record<VerifyProfileName, ProfileDurationBudget>
 > = {
-  fast: { observedMs: 70_000, advisoryMs: 120_000 },
-  full: { observedMs: 125_000, advisoryMs: 240_000 },
-  runtime: { observedMs: 3_000, advisoryMs: 120_000 },
-  smoke: { observedMs: 40_000, advisoryMs: 120_000 },
-  ci: { observedMs: 170_000, advisoryMs: 360_000 },
+  fast: { observedMs: 98_000, advisoryMs: 200_000 },
+  full: { observedMs: 150_000, advisoryMs: 300_000 },
+  runtime: { observedMs: 3_000, advisoryMs: 30_000 },
+  smoke: { observedMs: 53_000, advisoryMs: 120_000 },
+  ci: { observedMs: 207_000, advisoryMs: 420_000 },
 };
 
 export function durationAdvisory(

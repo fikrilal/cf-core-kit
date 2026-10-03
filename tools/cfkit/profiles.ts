@@ -23,6 +23,7 @@ const SCRIPT_IDS: readonly string[] = [
   "drift:check",
   "contract:check",
   "contract:lint",
+  "config:check",
   "harness:parity",
 ];
 
@@ -36,6 +37,7 @@ const FULL_STEPS: readonly VerifyStep[] = [
   scriptStep("test:coverage"),
   scriptStep("duplication:check"),
   scriptStep("build"),
+  scriptStep("audit:prod"),
 ];
 const RUNTIME_STEPS: readonly VerifyStep[] = [
   { id: "runtime.smoke", script: "runtime:check" },

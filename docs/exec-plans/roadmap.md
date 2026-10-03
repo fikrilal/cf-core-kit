@@ -48,7 +48,10 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
   pieces. Progress: batch A plan 1 (`harness-core`) landed 2026-10-12 — process capture, failure taxonomy,
   exit-code-2 usage errors, profile invariants and the parity manifest (13 of 46 rows `present`); batch A
   plan 2 (`risk-lanes`) landed the same day — one rule table with example paths pinned by a fixture, five
-  runtime reasons, and `cfkit ci classify` emitting `effective_risk` + `runtime_required` (15 rows `present`).
+  runtime reasons, and `cfkit ci classify` emitting `effective_risk` + `runtime_required` (15 rows `present`);
+  batch A plan 3 (`sensors-config`) added `config:check` (wrangler vars, documented secrets and the ConfigKey
+  union against the zod schema), `audit:prod` in the full profile, LF pinning for migration snapshots, and the
+  first calibrated duration baselines (18 rows `present`).
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 

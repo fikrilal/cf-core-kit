@@ -93,6 +93,18 @@ const DESCRIPTORS: Readonly<Record<string, FailureDescriptor>> = {
       "Fix the build error (imports, bundle, wrangler configuration).",
     repairable: true,
   },
+  "config:check": {
+    code: "verify.environment",
+    remediation:
+      "Reconcile wrangler.jsonc vars, the documented secrets and src/platform/config/config.ts: the schema is the source of truth.",
+    repairable: true,
+  },
+  "audit:prod": {
+    code: "verify.security",
+    remediation:
+      "Address the reported production dependency advisory (upgrade or replace the package); a registry that cannot be reached is not an advisory.",
+    repairable: true,
+  },
   "harness:parity": {
     code: "verify.parity",
     remediation:

@@ -1,0 +1,2 @@
+# Drizzle migration snapshots are byte-compared by drift:check; keep them LF everywhere.
+db/migrations/** text eol=lf
