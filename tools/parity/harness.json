@@ -186,8 +186,10 @@
       "area": "gate sensors",
       "family": "duplication:small-helpers (jscpd 24/4)",
       "target": "report-only small-helper profile with its own allowlist",
-      "status": "declared-only",
-      "plan": 5
+      "status": "present",
+      "plan": 5,
+      "evidenceCommand": "duplication:report",
+      "note": "24/4 profile scoped to src/** (scripts are entrypoint boilerplate), report-only with --fatal-found available, own allowlist, categorised report"
     },
     {
       "id": "gates.honesty-meta",

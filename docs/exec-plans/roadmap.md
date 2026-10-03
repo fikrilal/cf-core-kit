@@ -53,7 +53,8 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
   union against the zod schema), `audit:prod` in the full profile, LF pinning for migration snapshots, and the
   first calibrated duration baselines (18 rows `present`); batch A plan 4 (`sensors-smells`) added the
   architecture smell scanner (six precise rules, empty reviewed baseline, generated report, high-severity
-  floor; the wall-clock property moved here from plan B7) (19 rows `present`).
+  floor; the wall-clock property moved here from plan B7) and batch A plan 5 (`sensors-duplication`) added a
+  report-only small-helper duplication profile with categories and its own allowlist (20 rows `present`).
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 

@@ -41,6 +41,7 @@ test("profiles: fast, full, runtime, and ci compose as documented", () => {
       ...VERIFY_PROFILES.fast.steps.map((step) => step.id),
       "test:coverage",
       "duplication:check",
+      "duplication:report",
       "build",
       "smells:check",
       "audit:prod",

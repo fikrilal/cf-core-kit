@@ -39,7 +39,9 @@
     "audit:prod": "npm audit --omit=dev --audit-level=high",
     "smells:check": "node scripts/smells/check.mjs",
     "smells:report": "node scripts/smells/check.mjs --report-only",
-    "smells:baseline": "node scripts/smells/check.mjs --write-baseline"
+    "smells:baseline": "node scripts/smells/check.mjs --write-baseline",
+    "duplication:small-helpers": "node scripts/duplication/check.mjs --profile small-helpers",
+    "duplication:report": "node scripts/duplication/check.mjs --report"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.4.0",
