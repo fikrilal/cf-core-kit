@@ -13,6 +13,10 @@ import { dirname, join } from "node:path";
 
 export const PROBE_TIMEOUT_MS = 240_000;
 
+// Assembled at runtime: the probe must plant a real PEM header, while this file itself must not contain one
+// (the secrets scanner reads tracked files, so a literal header here would fail secrets:check once committed).
+const PEM_HEADER = ["-----BEGIN", "RSA PRIVATE KEY-----"].join(" ");
+
 const DUPLICATION_PROBE = `
 function probeDuplicationNormalize(input: string): string {
   const trimmed = input.trim();
@@ -53,8 +57,7 @@ export const GATE_PROBES = [
       {
         file: "src/platform/crypto/crypto.ts",
         mode: "append",
-        content:
-          '\n// gate probe: a PEM header must never reach the repository\nconst probeGatePem = "-----BEGIN RSA PRIVATE KEY-----";\nvoid probeGatePem;\n',
+        content: `\n// gate probe: a PEM header must never reach the repository\nconst probeGatePem = "${PEM_HEADER}";\nvoid probeGatePem;\n`,
       },
     ],
   },

@@ -76,6 +76,12 @@ runs the **wired** npm script, asserts the gate's own failure marker, and restor
 - 2026-10-12: created-parent pruning was added after a probe left an empty `src/features/probe-gate/` behind and
   the boundary-zones fixture caught it. -> the honesty suite must leave no trace, and the fast profile is what
   proved it.
+- 2026-10-12: the PEM header the secrets probe plants is assembled at runtime
+  (`["-----BEGIN", "RSA PRIVATE KEY-----"].join(" ")`). -> the probe must plant a real header, but a literal one in
+  this file failed `secrets:check` the moment the file became tracked, because the secrets scan reads **tracked**
+  files only (a deliberate design from ADR-0008's posture, and the reason the first verification run looked
+  green: the harness was still untracked). The concatenation keeps the probe honest and the scanner quiet;
+  the same trap is now covered by the repository-clean fixture in `scripts/security/secrets-scan.test.mjs`.
 
 ## Verification
 
@@ -94,6 +100,9 @@ Batch A closes with the honesty suite biting on all eight custom gates in about 
 self-correcting three times over — each time the harness reported that a probe could not fail, the probe was
 wrong, not the gate (a drifted marker, a plant outside budget's actual rule, a job module without `defineJob(`).
 One genuine gap surfaced only because the wired fast profile ran afterwards: probes that create files left empty
-directories behind, which the boundary-zones fixture caught; restore now prunes them. Exit gate for batch A:
+directories behind, which the boundary-zones fixture caught; restore now prunes them. A second gap surfaced after
+the first commit: the secrets probe's literal PEM header failed `secrets:check` once the harness file became
+tracked (the scan reads the index, so an untracked file is invisible and the pre-commit run looked green);
+the header is now assembled at runtime, and the follow-up commit carries the fix and this record. Exit gate for batch A:
 `npm run verify`, `npm run verify:gates` and `npm run verify:ci` all green, with the parity manifest at 21 of 46
 rows `present`.
