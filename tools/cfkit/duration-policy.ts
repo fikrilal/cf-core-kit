@@ -7,9 +7,10 @@ export type ProfileDurationBudget = Readonly<{
 
 /**
  * Calibrated 2026-10-12 from clean runs on this repository (fast 98.2s, ci 207.1s,
- * runtime.smoke 2.5s, scaffold.smoke 53.1s; full derived as ci minus the two composed
- * profiles = 151.5s). Advisories are roughly twice the observed baseline, except the
- * second-scale runtime smoke, which gets a 30s floor so shared runners do not trip it.
+ * runtime.smoke 2.5s, scaffold.smoke 53.1s; full derived as ci minus the composed
+ * profiles = 151.5s; the gates profile measured 6.1s when it landed in plan A6).
+ * Advisories are roughly twice the observed baseline, except the second-scale runtime
+ * smoke and gates profiles, which get a 30s floor so shared runners do not trip them.
  * Advisory only, never failing; re-calibrate from reviewed clean runs.
  */
 export const PROFILE_DURATION_BUDGETS: Readonly<
@@ -17,6 +18,7 @@ export const PROFILE_DURATION_BUDGETS: Readonly<
 > = {
   fast: { observedMs: 98_000, advisoryMs: 200_000 },
   full: { observedMs: 150_000, advisoryMs: 300_000 },
+  gates: { observedMs: 6_000, advisoryMs: 30_000 },
   runtime: { observedMs: 3_000, advisoryMs: 30_000 },
   smoke: { observedMs: 53_000, advisoryMs: 120_000 },
   ci: { observedMs: 207_000, advisoryMs: 420_000 },

@@ -15,6 +15,7 @@ import {
 const NAMES: readonly VerifyProfileName[] = [
   "fast",
   "full",
+  "gates",
   "runtime",
   "smoke",
   "ci",
@@ -44,10 +45,11 @@ test("profiles: every registry entry is well formed", () => {
   assert.equal(resolveProfile("nope"), undefined);
 });
 
-test("profiles: ci expands to full + runtime + smoke in order", () => {
+test("profiles: ci expands to full + gates + runtime + smoke in order", () => {
   const ci = expandProfile("ci").map((step) => step.id);
   const expected = [
     ...expandProfile("full"),
+    ...expandProfile("gates"),
     ...expandProfile("runtime"),
     ...expandProfile("smoke"),
   ].map((step) => step.id);

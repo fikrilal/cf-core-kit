@@ -54,7 +54,10 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
   first calibrated duration baselines (18 rows `present`); batch A plan 4 (`sensors-smells`) added the
   architecture smell scanner (six precise rules, empty reviewed baseline, generated report, high-severity
   floor; the wall-clock property moved here from plan B7) and batch A plan 5 (`sensors-duplication`) added a
-  report-only small-helper duplication profile with categories and its own allowlist (20 rows `present`).
+  report-only small-helper duplication profile with categories and its own allowlist (20 rows `present`); batch A
+  plan 6 (`gate-honesty`) closed the batch with a planted-violation harness over all eight custom gates, a `gates`
+  profile composed by `ci`, byte-level restore with empty-parent pruning (21 rows `present`). **Batch A is
+  complete**: `verify`, `verify:gates` and `verify:ci` are green, so the programme continues with batch B.
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 

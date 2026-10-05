@@ -99,6 +99,12 @@ const DESCRIPTORS: Readonly<Record<string, FailureDescriptor>> = {
       "Reconcile wrangler.jsonc vars, the documented secrets and src/platform/config/config.ts: the schema is the source of truth.",
     repairable: true,
   },
+  "verify:gates": {
+    code: "verify.gates",
+    remediation:
+      "A gate stopped biting. Read the probe output above: plant, marker or restore drifted from the wired script (see scripts/gates/check.mjs).",
+    repairable: true,
+  },
   "duplication:report": {
     code: "verify.duplication",
     remediation:

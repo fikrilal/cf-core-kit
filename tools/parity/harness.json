@@ -196,8 +196,10 @@
       "area": "gate sensors",
       "family": "scripts/gates-honesty.ts",
       "target": "planted violations prove the wired gates fail with markers",
-      "status": "declared-only",
-      "plan": 6
+      "status": "present",
+      "plan": 6,
+      "evidenceCommand": "verify:gates",
+      "note": "eight probes plant a known violation, run the wired npm script and assert its own marker; plants restore byte-identically, created parents are pruned, and a gate that stops biting fails the harness"
     },
     {
       "id": "test.tiers",

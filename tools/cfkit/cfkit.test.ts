@@ -48,6 +48,10 @@ test("profiles: fast, full, runtime, and ci compose as documented", () => {
     ],
   );
   assert.deepEqual(
+    VERIFY_PROFILES.gates.steps.map((step) => step.id),
+    ["verify:gates"],
+  );
+  assert.deepEqual(
     VERIFY_PROFILES.runtime.steps.map((step) => step.id),
     ["runtime.smoke"],
   );
@@ -59,6 +63,7 @@ test("profiles: fast, full, runtime, and ci compose as documented", () => {
     expandProfile("ci").map((step) => step.id),
     [
       ...VERIFY_PROFILES.full.steps.map((step) => step.id),
+      "verify:gates",
       "runtime.smoke",
       "scaffold.smoke",
     ],

@@ -1,4 +1,5 @@
-export type VerifyProfileName = "fast" | "full" | "runtime" | "smoke" | "ci";
+export type VerifyProfileName =
+  "fast" | "full" | "gates" | "runtime" | "smoke" | "ci";
 
 export type VerifyStep = Readonly<{
   id: string;
@@ -47,21 +48,32 @@ const RUNTIME_STEPS: readonly VerifyStep[] = [
 const SMOKE_STEPS: readonly VerifyStep[] = [
   { id: "scaffold.smoke", script: "scaffold:smoke" },
 ];
+// Gate-honesty probes plant violations in the working tree, so they run in their own profile: `ci`
+// composes it, `full` never does, and a developer can run `npm run verify:gates` directly.
+const GATE_STEPS: readonly VerifyStep[] = [
+  { id: "verify:gates", script: "verify:gates" },
+];
 
 export const VERIFY_PROFILES: Readonly<
   Record<VerifyProfileName, VerifyProfile>
 > = {
   fast: { name: "fast", steps: FAST_STEPS, composes: [] },
   full: { name: "full", steps: FULL_STEPS, composes: [] },
+  gates: { name: "gates", steps: GATE_STEPS, composes: [] },
   runtime: { name: "runtime", steps: RUNTIME_STEPS, composes: [] },
   smoke: { name: "smoke", steps: SMOKE_STEPS, composes: [] },
-  ci: { name: "ci", steps: [], composes: ["full", "runtime", "smoke"] },
+  ci: {
+    name: "ci",
+    steps: [],
+    composes: ["full", "gates", "runtime", "smoke"],
+  },
 };
 
 export function resolveProfile(name: string): VerifyProfile | undefined {
   if (
     name === "fast" ||
     name === "full" ||
+    name === "gates" ||
     name === "runtime" ||
     name === "smoke" ||
     name === "ci"
