@@ -5,6 +5,7 @@ import {
   TEST_TOKEN_INSTANT,
 } from "../../../../test/auth-fixtures";
 import { capturingLogger, type LogLine } from "../../../../test/queue-fixtures";
+import { expectObjectDeleted } from "../../../../test/support/assertions";
 import {
   db,
   fileRow,
@@ -84,7 +85,7 @@ describe("users.profileImage.expireUpload", () => {
       CONTEXT,
     );
 
-    expect(calls.map((call) => call.method)).toEqual(["DELETE"]);
+    expectObjectDeleted(calls, fileId);
     const row = await fileRow(fileId);
     expect(row.status).toBe("DELETED");
     expect(row.deletedAt?.getTime()).toBe(TEST_TOKEN_INSTANT.getTime());

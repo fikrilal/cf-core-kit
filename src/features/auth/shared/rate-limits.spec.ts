@@ -6,6 +6,7 @@ import {
   TEST_TOKEN_INSTANT,
 } from "../../../../test/auth-fixtures";
 import { send } from "../../../../test/app-request";
+import { expectRateLimited } from "../../../../test/support/assertions";
 import { fixedClock } from "../../../platform/clock/clock";
 import { createApp } from "../../../platform/http/app";
 import type { RateLimitRequest } from "../../../platform/rate-limit/rate-limiter";
@@ -127,13 +128,7 @@ describe("auth rate limiting: enforcement", () => {
 
     expect(first.status).toBe(401);
     expect(second.status).toBe(401);
-    expect(third.status).toBe(429);
-    expect(Number(third.headers.get("Retry-After"))).toBeGreaterThanOrEqual(1);
-    await expect(third.json()).resolves.toMatchObject({
-      code: "RATE_LIMITED",
-      title: "Too Many Requests",
-      status: 429,
-    });
+    await expectRateLimited(third);
   });
 
   it("isolates buckets per client address", async () => {

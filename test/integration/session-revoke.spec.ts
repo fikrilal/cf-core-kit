@@ -1,13 +1,19 @@
 import { env } from "cloudflare:workers";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, expect, it } from "vitest";
 
 import {
   authEnv,
-  cleanAuthTables,
   fakeVerifier,
   permissiveLimiterFactory,
   userAccessToken,
 } from "../auth-fixtures";
+import {
+  expectNoContent,
+  expectProblem,
+  sessionIdFromToken,
+  uniqueEmail,
+} from "../support/assertions";
+import { describeIntegration } from "../support/suite";
 import { send } from "../app-request";
 import { registerAuthRoutes } from "../../src/features/auth/auth.routes";
 import { registerUsersRoutes } from "../../src/features/users/users.routes";
@@ -35,9 +41,9 @@ function buildApp() {
   return app;
 }
 
-describe("session revocation across features", () => {
+describeIntegration("session revocation across features", (suite) => {
   beforeEach(async () => {
-    await cleanAuthTables(db());
+    await suite.clean();
   });
 
   it("users revoke makes auth refresh fail with SESSION_REVOKED", async () => {
@@ -50,7 +56,7 @@ describe("session revocation across features", () => {
       .insert(users)
       .values({
         id: userId,
-        email: `revoke-${userId}@example.com`,
+        email: uniqueEmail("revoke"),
         emailVerifiedAt: now,
         createdAt: now,
         updatedAt: now,
@@ -77,19 +83,21 @@ describe("session revocation across features", () => {
       });
 
     const app = buildApp();
+    const accessToken = await userAccessToken(userId, { sessionId });
+
+    expect(sessionIdFromToken(accessToken)).toBe(sessionId);
+
     const revoke = await send(
       app,
       `https://example.com/v1/me/sessions/${sessionId}/revoke`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${await userAccessToken(userId)}`,
-        },
+        headers: { Authorization: `Bearer ${accessToken}` },
       },
       authEnv(),
     );
 
-    expect(revoke.status).toBe(204);
+    await expectNoContent(revoke);
 
     const refresh = await send(
       app,
@@ -102,9 +110,6 @@ describe("session revocation across features", () => {
       authEnv(),
     );
 
-    expect(refresh.status).toBe(401);
-    await expect(refresh.json()).resolves.toMatchObject({
-      code: "AUTH_SESSION_REVOKED",
-    });
+    await expectProblem(refresh, 401, "AUTH_SESSION_REVOKED");
   });
 });

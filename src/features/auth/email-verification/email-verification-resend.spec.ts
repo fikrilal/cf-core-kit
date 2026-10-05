@@ -11,6 +11,7 @@ import {
 } from "../../../../test/auth-fixtures";
 import { send } from "../../../../test/app-request";
 import { fakeQueue } from "../../../../test/queue-fixtures";
+import { expectProblem } from "../../../../test/support/assertions";
 import { fixedClock } from "../../../platform/clock/clock";
 import { parseConfig } from "../../../platform/config/config";
 import { createDb } from "../../../platform/db/db";
@@ -119,10 +120,7 @@ describe("auth.email.verification.resend", () => {
       authEnv(),
     );
 
-    expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toMatchObject({
-      code: "UNAUTHORIZED",
-    });
+    await expectProblem(response, 401, "UNAUTHORIZED");
     expect(sent).toHaveLength(0);
   });
 
@@ -174,11 +172,8 @@ describe("auth.email.verification.resend identity guards", () => {
       options,
     );
 
-    expect(unknown.status).toBe(401);
-    expect(deleted.status).toBe(401);
-    await expect(deleted.json()).resolves.toMatchObject({
-      code: "UNAUTHORIZED",
-    });
+    await expectProblem(unknown, 401, "UNAUTHORIZED");
+    await expectProblem(deleted, 401, "UNAUTHORIZED");
     expect(sent).toHaveLength(0);
     expect(limits).toHaveLength(0);
   });

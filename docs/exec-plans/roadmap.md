@@ -57,7 +57,10 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
   report-only small-helper duplication profile with categories and its own allowlist (20 rows `present`); batch A
   plan 6 (`gate-honesty`) closed the batch with a planted-violation harness over all eight custom gates, a `gates`
   profile composed by `ci`, byte-level restore with empty-parent pruning (21 rows `present`). **Batch A is
-  complete**: `verify`, `verify:gates` and `verify:ci` are green, so the programme continues with batch B.
+  complete**: `verify`, `verify:gates` and `verify:ci` are green, so the programme continues with batch B, which opened with `test-ergonomics`: named vitest tiers with a
+  spec-coverage fixture, a suite contract that asserts bindings, eight envelope/dialect assertion helpers
+  adopted across the loudest inline sites, an env-isolation guard, `lcov`/`json-summary` coverage reporters
+  with a commit-pinned CI artifact, and three recorded non-ports (25 rows `present`).
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 

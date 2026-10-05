@@ -12,6 +12,7 @@ import {
   TEST_USER_EMAIL,
 } from "../../../../test/auth-fixtures";
 import { send, type RuntimeEnv } from "../../../../test/app-request";
+import { expectProblem } from "../../../../test/support/assertions";
 import { issueAccessToken } from "../../../platform/auth/access-token";
 import { buildKeyRing } from "../../../platform/auth/keys";
 import { createDb } from "../../../platform/db/db";
@@ -132,10 +133,7 @@ describe("connect: authentication", () => {
   it("requires a bearer token", async () => {
     const response = await connectRequest();
 
-    expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toMatchObject({
-      code: "UNAUTHORIZED",
-    });
+    await expectProblem(response, 401, "UNAUTHORIZED");
   });
 
   it("rejects an invalid bearer token", async () => {

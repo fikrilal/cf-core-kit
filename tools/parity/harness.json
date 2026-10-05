@@ -206,32 +206,40 @@
       "area": "test harness",
       "family": "test/jest-{int,e2e}.json + scripts",
       "target": "named unit/int/contract tier scripts",
-      "status": "declared-only",
-      "plan": 7
+      "status": "present",
+      "plan": 7,
+      "evidenceCommand": "test:unit",
+      "note": "vitest tiers test:unit/test:int/test:contract, with a fixture that fails if a spec lands outside every tier"
     },
     {
       "id": "test.assertions",
       "area": "test harness",
       "family": "test/auth/auth-e2e.harness.ts helpers",
       "target": "shared envelope/problem/rate-limit/object assertion helpers",
-      "status": "declared-only",
-      "plan": 7
+      "status": "present",
+      "plan": 7,
+      "evidenceCommand": "test:unit",
+      "note": "expectData/expectDataArray/expectNoContent/expectProblem/expectRateLimited/expectObjectDeleted/uniqueEmail/sessionIdFromToken in test/support/assertions.ts, adopted across the loudest inline sites"
     },
     {
       "id": "test.env-isolation",
       "area": "test harness",
       "family": "test/jest-unit.setup.ts",
       "target": "fixture asserting the ambient test env is unconfigured",
-      "status": "declared-only",
-      "plan": 7
+      "status": "present",
+      "plan": 7,
+      "evidenceCommand": "test:unit",
+      "note": "env-isolation.spec.ts pins that the ambient pool configures no optional service, so \"disabled\" paths stay deterministic"
     },
     {
       "id": "test.coverage-reporters",
       "area": "test harness",
       "family": "jest coverageReporters + CI artifact",
       "target": "lcov and json-summary reporters plus a CI coverage artifact",
-      "status": "declared-only",
-      "plan": 7
+      "status": "present",
+      "plan": 7,
+      "evidenceCommand": "test:coverage",
+      "note": "text-summary + lcov + json-summary reporters, pinned floors, and a 7-day coverage artifact uploaded by the pinned CI action"
     },
     {
       "id": "test.oracles",

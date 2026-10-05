@@ -11,6 +11,7 @@ import {
   userAccessToken,
 } from "../../../../test/auth-fixtures";
 import { send } from "../../../../test/app-request";
+import { expectData } from "../../../../test/support/assertions";
 import { createDb } from "../../../platform/db/db";
 import { oidcIdentities, users } from "../../../platform/db/schema";
 import { createApp } from "../../../platform/http/app";
@@ -120,10 +121,9 @@ describe("users.me.get", () => {
 
     const response = await getMe(await userAccessToken(userId));
 
-    expect(response.status).toBe(200);
-    const body = await jsonRecord(response);
+    const data = await expectData(response);
 
-    expect(pick(body, "data")).toEqual({
+    expect(data).toEqual({
       id: userId,
       email: `me-${userId}@example.com`,
       emailVerified: true,
@@ -174,9 +174,8 @@ describe("users.me.patch: updates", () => {
       profile: { displayName: "  Beatrice  " },
     });
 
-    expect(response.status).toBe(200);
-    const body = await jsonRecord(response);
-    const profile = pick(body, "data", "profile");
+    const data = await expectData(response);
+    const profile = pick(data, "profile");
 
     expect(profile).toMatchObject({
       displayName: "Beatrice",

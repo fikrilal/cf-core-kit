@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { expectNoContent } from "../support/assertions";
 
 import {
   authEnv,
@@ -92,7 +93,7 @@ describe("email verification across features", () => {
       },
       authEnv(),
     );
-    expect(verify.status).toBe(204);
+    await expectNoContent(verify);
 
     const after = await send(
       app,
@@ -148,7 +149,7 @@ describe("resend job delivery across features", () => {
         }),
       );
 
-      expect(response.status).toBe(204);
+      await expectNoContent(response);
 
       await vi.waitFor(
         () => {

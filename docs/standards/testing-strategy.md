@@ -15,6 +15,34 @@ they do not drift.
 | Scaffold smoke    | `scripts/scaffold/smoke.mjs`    | live tree, byte-compared restoration                 | `smoke` profile            |
 | Coverage          | v8 provider through the pool    | `src/**` minus specs, threshold floors               | `full`/`ci`                |
 
+## Suite and assertion contract
+
+- **Suite contract**: integration suites open with `describeIntegration(name, register)` from
+  `test/support/suite.ts`. It asserts the bindings the pool must provide (`DB`, `TEST_MIGRATIONS`,
+  `JOBS`) in a `beforeAll`, so a suite run outside the Workers pool fails with a legible message
+  instead of a wall of `undefined`, and it hands back `suite.db()` and `suite.clean()` so table cleanup
+  is one implementation, not one per suite.
+- **Assertions**: envelope and dialect assertions come from `test/support/assertions.ts` —
+  `expectData`, `expectDataArray`, `expectNoContent`, `expectProblem` (RFC7807 plus the
+  `X-Request-Id`/`traceId` echo), `expectRateLimited` (429 plus a truthful `Retry-After`),
+  `expectObjectDeleted`, `uniqueEmail`, `sessionIdFromToken`. Inline re-derivations of those shapes are
+  the duplication the duplication report keeps flagging; new specs use the helpers.
+- **Env isolation**: `test/support/env-isolation.spec.ts` pins that the ambient pool configures no
+  optional service (`RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO`, `R2_ACCESS_KEY_ID`,
+  `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT`, `PUSH_PROVIDER`, `AUTH_SIGNING_KEYS_JSON(_BASE64)`). Specs
+  inject what they need through `authEnv()`/overrides, so every "not configured" path stays
+  deterministic. If that spec fails, remove the key from `.dev.vars` or `wrangler.jsonc` — do not relax
+  the assertion.
+- **No snapshots**: envelopes and problems are asserted structurally; snapshot files are not used.
+- **Coverage**: reporters are `text-summary`, `lcov` and `json-summary`, floors are pinned in
+  `vitest.config.ts`, and the CI workflow uploads `coverage/` as an artifact with 7-day retention
+  (action pinned by commit). Coverage is a sensor, not a proof (ADR-0011).
+- **Not ported, recorded**: dependency-tier gating (`SKIP_DEPS_TESTS`-style) has no analogue because
+  Miniflare bindings are always present; DI/execution-context stubs have no counterpart because seams
+  are injected through dependency objects and handlers are driven through HTTP or the job handler;
+  tracked-ID cleanup stacks are unnecessary while isolation is per-file — revisit only if a real
+  cross-suite collision appears.
+
 ## Rules
 
 - **Determinism**: time comes from an injected `Clock` (fixed instants in specs); `Date.now()`
