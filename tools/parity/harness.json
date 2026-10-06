@@ -256,8 +256,10 @@
       "area": "test harness",
       "family": "stryker.config.mjs (thresholds 80/60/70)",
       "target": "seeded-mutation pilot over pure policy files, never in a profile",
-      "status": "declared-only",
-      "plan": 9
+      "status": "present",
+      "plan": 9,
+      "evidenceCommand": "test:mutation",
+      "note": "seven seeded mutations over tools/cfkit/risk-classifier.ts and tools/cfkit/duration-policy.ts, byte-verified restores, survivors fail the run, report under .cfkit/mutation/; never wired into a profile"
     },
     {
       "id": "knowledge.plan-contract",

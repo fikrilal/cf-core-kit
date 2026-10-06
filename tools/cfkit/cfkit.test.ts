@@ -4,7 +4,10 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { evaluateDoctor, type DoctorFacts } from "./doctor.ts";
-import { durationAdvisory } from "./duration-policy.ts";
+import {
+  durationAdvisory,
+  PROFILE_DURATION_BUDGETS,
+} from "./duration-policy.ts";
 import {
   expandProfile,
   resolveProfile,
@@ -99,11 +102,24 @@ test("profiles: composition cycles are rejected", () => {
 test("duration policy: budgets are advisory only", () => {
   assert.equal(durationAdvisory("fast", 10_000), undefined);
   assert.equal(durationAdvisory("ci", 10_000), undefined);
+  assert.equal(
+    durationAdvisory("fast", PROFILE_DURATION_BUDGETS.fast.advisoryMs),
+    undefined,
+    "the budget itself is not an overrun",
+  );
+  assert.ok(
+    durationAdvisory(
+      "fast",
+      PROFILE_DURATION_BUDGETS.fast.advisoryMs + 1,
+    )?.includes("Duration advisory: fast"),
+    "one millisecond past the budget is an overrun",
+  );
 
   const message = durationAdvisory("fast", 999_999);
 
   assert.ok(message?.includes("Duration advisory: fast"));
   assert.ok(message?.includes("took 999999ms"));
+  assert.ok(message?.includes("observed baseline"));
 });
 
 test("runner: runs steps in order and stops at the first failure", async () => {

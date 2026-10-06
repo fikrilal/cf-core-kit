@@ -63,7 +63,10 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
   with a commit-pinned CI artifact, and three recorded non-ports (25 rows `present`); `oracles` added a
   validity-checked registry of the eight high-risk behaviours with four covered (two of them newly evidenced
   end to end through the composed worker) and four pending with the exact mechanism each gap needs, running as a
-  `full`-profile step (26 rows `present`).
+  `full`-profile step (26 rows `present`); `mutation-pilot` closed batch B with a seven-entry seeded catalogue
+  over the risk classifier and the duration policy, run locally and never in a profile, whose first run found a
+  real survivor (the unknown-rule id was asserted through the constant itself) and fixed the assertion rather than
+  the mutation (27 rows `present`). **Batch B is complete.**
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 

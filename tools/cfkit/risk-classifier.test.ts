@@ -8,7 +8,6 @@ import {
   RISK_RULES,
   runtimeReasons,
   selectLanes,
-  UNKNOWN_RULE_ID,
 } from "./risk-classifier.ts";
 
 test("risk rules: every example exists and classifies to its own rule", () => {
@@ -114,10 +113,15 @@ test("classifier: representative paths and the unknown default", () => {
     id: "high.ci",
     level: "high",
   });
+  // Pinned as a literal: "medium.unknown" is the id the CI annotation and every report carry, so a
+  // rename is a policy change, not an implementation detail (the mutation pilot caught exactly that).
   assert.deepEqual(classifyPath("mystery.txt"), {
-    id: UNKNOWN_RULE_ID,
+    id: "medium.unknown",
     level: "medium",
   });
+  assert.deepEqual(effectiveRisk("low", ["mystery.txt"]).rules, [
+    "medium.unknown",
+  ]);
 });
 
 test("classifier: effective risk is raise-only", () => {

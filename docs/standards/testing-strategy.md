@@ -43,6 +43,22 @@ they do not drift.
   tracked-ID cleanup stacks are unnecessary while isolation is per-file — revisit only if a real
   cross-suite collision appears.
 
+## Mutation pilot (are the assertions real?)
+
+`npm run test:mutation` (`scripts/mutation/pilot.mjs`) applies a seeded catalogue of behaviour-changing edits to
+two pure policy files — `tools/cfkit/risk-classifier.ts` and `tools/cfkit/duration-policy.ts` — runs the spec
+that is supposed to notice, and reports any mutation that **survives**. A survivor is the finding: it names an
+assertion that does not exist yet.
+
+- The pilot is **never** wired into a verify profile: it edits sources while it runs, so it is a deliberate,
+  local, on-demand check (`npm run test:mutation`, or `--list` to print the catalogue).
+- Restores are byte-verified (sha256) and happen in a `finally`, so a survivor or a crash cannot leave a
+  mutated file behind.
+- The report lands in the gitignored `.cfkit/mutation/report.json`.
+- Threshold policy: the family's Stryker pilot allows a survivor budget (80/60/70). Ours does not — the
+  catalogue is hand-picked and small, so **every** seeded mutation must be killed; the count is recorded in the
+  report, and the honest way to add headroom is to keep the catalogue at zero survivors.
+
 ## Oracles (high-risk behaviour evidence)
 
 `npm run oracles:check` (a `full`-profile step, registry in `tools/cfkit/oracles.ts`) names the high-risk
