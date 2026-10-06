@@ -60,7 +60,10 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
   complete**: `verify`, `verify:gates` and `verify:ci` are green, so the programme continues with batch B, which opened with `test-ergonomics`: named vitest tiers with a
   spec-coverage fixture, a suite contract that asserts bindings, eight envelope/dialect assertion helpers
   adopted across the loudest inline sites, an env-isolation guard, `lcov`/`json-summary` coverage reporters
-  with a commit-pinned CI artifact, and three recorded non-ports (25 rows `present`).
+  with a commit-pinned CI artifact, and three recorded non-ports (25 rows `present`); `oracles` added a
+  validity-checked registry of the eight high-risk behaviours with four covered (two of them newly evidenced
+  end to end through the composed worker) and four pending with the exact mechanism each gap needs, running as a
+  `full`-profile step (26 rows `present`).
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 

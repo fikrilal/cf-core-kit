@@ -43,6 +43,19 @@ they do not drift.
   tracked-ID cleanup stacks are unnecessary while isolation is per-file — revisit only if a real
   cross-suite collision appears.
 
+## Oracles (high-risk behaviour evidence)
+
+`npm run oracles:check` (a `full`-profile step, registry in `tools/cfkit/oracles.ts`) names the high-risk
+behaviours and where their end-to-end proof lives. Two states, both honest:
+
+- **covered** — at least one evidence path under `test/integration/**` or `test/contract/**`; single-feature
+  specs are structurally ineligible, because the claim is that the whole surface runs together.
+- **pending** — the strongest evidence we have today plus the reason it is not end-to-end. Pending entries are
+  printed by every check, so the gap is visible rather than assumed closed.
+
+Every evidence path must exist, ids are dotted lowercase and unique, and an acceptance statement must describe
+the behaviour. Changing an oracle to `covered` without adding end-to-end evidence fails the check.
+
 ## Rules
 
 - **Determinism**: time comes from an injected `Clock` (fixed instants in specs); `Date.now()`

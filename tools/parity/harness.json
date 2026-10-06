@@ -246,8 +246,10 @@
       "area": "test harness",
       "family": "tools/backendkit/oracles/high-risk-oracles.ts",
       "target": "registry of high-risk behaviours bound to real-transport evidence",
-      "status": "declared-only",
-      "plan": 8
+      "status": "present",
+      "plan": 8,
+      "evidenceCommand": "oracles:check",
+      "note": "eight high-risk behaviours with a validity-checked registry: covered entries must cite test/integration or test/contract evidence, pending entries carry the reason their evidence is not end-to-end; runs in the full profile"
     },
     {
       "id": "test.mutation-pilot",

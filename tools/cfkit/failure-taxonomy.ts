@@ -111,6 +111,12 @@ const DESCRIPTORS: Readonly<Record<string, FailureDescriptor>> = {
       "Review the generated report (core stays fatal via duplication:check); extract the repeated helper or allowlist it with a reason.",
     repairable: true,
   },
+  "oracles:check": {
+    code: "verify.oracles",
+    remediation:
+      "Fix the reported registry entry: a covered oracle needs evidence under test/integration/** or test/contract/**, and a pending oracle needs its gap recorded (tools/cfkit/oracles.ts).",
+    repairable: true,
+  },
   "smells:check": {
     code: "verify.architecture",
     remediation:

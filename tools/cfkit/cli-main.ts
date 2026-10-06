@@ -11,6 +11,7 @@ import { runRemove } from "./commands-remove.ts";
 import { runScaffold } from "./commands-scaffold.ts";
 import { runTask } from "./commands-task.ts";
 import { evaluateDoctor, gatherDoctorFacts } from "./doctor.ts";
+import { formatOracleReport, ORACLES, validateOracles } from "./oracles.ts";
 import { expandProfile, resolveProfile } from "./profiles.ts";
 import { runProfile } from "./runner.ts";
 import { UsageError } from "./usage-error.ts";
@@ -24,6 +25,7 @@ Commands:
   contract:check                 Delegate to scripts/contract/check.mjs
   contract:lint                  Delegate to scripts/contract/lint.mjs
   harness:parity                 Validate the harness-parity manifest
+  oracles check                  Validate the end-to-end oracle registry
   ci classify --base <sha> --head <sha>
                                  Print effective_risk and runtime_required for a diff
   doctor                         Read-only repository readiness check
@@ -152,6 +154,32 @@ const COMMAND_HANDLERS: Readonly<Record<string, CommandHandler>> = {
     assertFlags(args, {}, { maxPositionals: 0 });
 
     return runScript("scripts/parity/harness.mjs");
+  },
+  oracles: (args) => {
+    const [subcommand, ...rest] = args;
+
+    if (subcommand !== "check") {
+      throw new UsageError(
+        `unknown oracles subcommand "${subcommand ?? ""}" (expected check)`,
+      );
+    }
+
+    assertFlags(rest, {}, { maxPositionals: 0 });
+
+    const problems = validateOracles(ORACLES, process.cwd());
+
+    console.log(formatOracleReport(ORACLES));
+
+    if (problems.length > 0) {
+      console.error("[oracles] violations:");
+      for (const problem of problems) console.error(`  x ${problem}`);
+
+      return 1;
+    }
+
+    console.log("[oracles] all checks passed");
+
+    return 0;
   },
   doctor: (args) => {
     assertFlags(args, {}, { maxPositionals: 0 });
