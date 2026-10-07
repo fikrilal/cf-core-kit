@@ -32,7 +32,10 @@ function scriptStep(id: string): VerifyStep {
   return { id, script: id };
 }
 
-const FAST_STEPS: readonly VerifyStep[] = SCRIPT_IDS.map(scriptStep);
+const FAST_STEPS: readonly VerifyStep[] = [
+  scriptStep("plans:check"),
+  ...SCRIPT_IDS.map(scriptStep),
+];
 const FULL_STEPS: readonly VerifyStep[] = [
   ...FAST_STEPS,
   scriptStep("test:coverage"),

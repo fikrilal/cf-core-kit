@@ -6,6 +6,13 @@
 - Date: 2026-10-11
 - Related ADRs / proposals: ADR-0005 (budget), ADR-0010 (deployment); roadmap Phase 6 follow-up
 
+## Objective
+
+Structural section added 2026-10-13, when `plans:check` began requiring it. It restates what the plan's own
+sections below record: document the paid-only Tail Worker finding and the native Workers OpenTelemetry export
+path as off by default, rather than wiring an export that the free plan cannot run. The outcome is a standard
+section plus the pinned fact that no `wrangler.jsonc` scope declares a destination.
+
 ## Findings (live docs, pages dated 2026-10-02)
 
 - Tail Workers: "available to all customers on the Workers Paid and Enterprise tiers" — not a

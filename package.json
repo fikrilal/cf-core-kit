@@ -19,7 +19,7 @@
     "db:migrate:local": "wrangler d1 migrations apply cf-core-kit-dev --local",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:scripts": "node --test scripts/auth/generate-keys.test.mjs scripts/budget/check.test.mjs scripts/drift/check.test.mjs scripts/contract/check.test.mjs scripts/contract/lint.test.mjs scripts/lint/zones.test.mjs scripts/ci/workflow.test.mjs scripts/security/secrets-scan.test.mjs scripts/duplication/check.test.mjs scripts/parity/harness.test.mjs tools/cfkit/cfkit.test.ts tools/cfkit/cli-main.test.ts tools/cfkit/failure-taxonomy.test.ts tools/cfkit/process-runner.test.ts tools/cfkit/profiles.test.ts tools/cfkit/scaffold.test.ts tools/cfkit/remove.test.ts tools/cfkit/task.test.ts tools/cfkit/handoff.test.ts tools/cfkit/ci-classify.test.ts tools/cfkit/risk-classifier.test.ts scripts/config/check.test.mjs scripts/smells/check.test.mjs scripts/gates/check.test.mjs scripts/tests/tiers.test.mjs tools/cfkit/oracles.test.ts scripts/mutation/pilot.test.mjs",
+    "test:scripts": "node --test scripts/auth/generate-keys.test.mjs scripts/budget/check.test.mjs scripts/drift/check.test.mjs scripts/contract/check.test.mjs scripts/contract/lint.test.mjs scripts/lint/zones.test.mjs scripts/ci/workflow.test.mjs scripts/security/secrets-scan.test.mjs scripts/duplication/check.test.mjs scripts/parity/harness.test.mjs tools/cfkit/cfkit.test.ts tools/cfkit/cli-main.test.ts tools/cfkit/failure-taxonomy.test.ts tools/cfkit/process-runner.test.ts tools/cfkit/profiles.test.ts tools/cfkit/scaffold.test.ts tools/cfkit/remove.test.ts tools/cfkit/task.test.ts tools/cfkit/handoff.test.ts tools/cfkit/ci-classify.test.ts tools/cfkit/risk-classifier.test.ts scripts/config/check.test.mjs scripts/smells/check.test.mjs scripts/gates/check.test.mjs scripts/tests/tiers.test.mjs tools/cfkit/oracles.test.ts scripts/mutation/pilot.test.mjs tools/cfkit/plans.test.ts",
     "budget:check": "node scripts/budget/check.mjs",
     "drift:check": "node scripts/drift/check.mjs",
     "duplication:check": "node scripts/duplication/check.mjs",
@@ -47,7 +47,8 @@
     "test:int": "vitest run test/integration",
     "test:contract": "vitest run test/contract",
     "oracles:check": "node tools/cfkit/cli.ts oracles check",
-    "test:mutation": "node scripts/mutation/pilot.mjs"
+    "test:mutation": "node scripts/mutation/pilot.mjs",
+    "plans:check": "node tools/cfkit/cli.ts plans check"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.4.0",

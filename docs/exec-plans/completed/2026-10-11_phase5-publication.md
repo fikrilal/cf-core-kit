@@ -60,6 +60,23 @@ commit --paths <scope> --challenge <c>`; no scope commits files outside its list
 - 2026-10-11: no push. -> publication here is local history; remote effects need their own approval
 - 2026-10-11: the scoped dry-run probe found an uncaught scope error (CLI crash instead of a refusal); the dry-run path now shares the mutation path's refusal handling, pinned by the probe and the scope tests
 
+## Verification
+
+Structural section added 2026-10-13, when `plans:check` began requiring it (the plan contract in
+`docs/exec-plans/README.md`). The evidence below is quoted from this plan's own Publication Record; nothing
+new is claimed.
+
+```bash
+cfkit task verify --task 2026-10-11_phase5-publication   # ci lane; verified three times (twice after edits,
+                                                         # once on the frozen content) before approval
+cfkit handoff dry-run --task 2026-10-11_phase5-publication --action commit --paths <scope>
+cfkit handoff commit --task 2026-10-11_phase5-publication --challenge <c>
+```
+
+- Classifier result on the final diff: `high` risk, `ci` lane, 77 changed files.
+- Commits landed per scope: `4d7b016` (gates, 14 files), `94b7320` (tooling, 26 files), `675e8ac`
+  (docs, 38 files).
+
 ## Publication Record
 
 Executed under the user's explicit instruction ("ok I think we can commit and split based on scope

@@ -2,9 +2,17 @@
 
 - Status: queued | active | completed
 - Owner: <name>
+- Task ID: <kebab-case, 3-80 chars, unique across exec-plans>
 - Risk: low | medium | high
+- Maximum risk: low | medium | high
+- Authority: edit, verify[, commit, push, draft-pr]
+- Repair limit: <int> # unchanged reruns allowed
+- Task timeout: <Ns|Nm|Nh, <= 24h>
 - Date: YYYY-MM-DD
 - Related ADRs / proposals:
+- Impact areas: API/contract: yes|no - DB/migrations: yes|no - Auth/session: yes|no - Queue/jobs: yes|no - Config/secrets: yes|no - Observability: yes|no - External integrations: yes|no - Harness/CI: yes|no
+- Allowed paths: <comma list, no globs, no whitespace>
+- Allowed actions: edit, verify
 
 ## Objective
 

@@ -23,6 +23,7 @@ test("profiles: fast, full, runtime, and ci compose as documented", () => {
   assert.deepEqual(
     VERIFY_PROFILES.fast.steps.map((step) => step.id),
     [
+      "plans:check",
       "format:check",
       "lint",
       "typecheck",

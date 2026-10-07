@@ -266,8 +266,10 @@
       "area": "knowledge and evidence",
       "family": "tools/backendkit/knowledge/knowledge-check.ts",
       "target": "plan metadata contract, lifecycle and single-active-plan fixtures",
-      "status": "declared-only",
-      "plan": 10
+      "status": "present",
+      "plan": 10,
+      "evidenceCommand": "plans:check",
+      "note": "plan contract validated first in the fast profile: slug task ids, status-to-folder agreement, required sections, unchecked execution steps, one active plan, and the metadata block for active/queued plans; the completed corpus is grandfathered with the reason recorded"
     },
     {
       "id": "evidence.episodes",

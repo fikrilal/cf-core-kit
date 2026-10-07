@@ -111,6 +111,12 @@ const DESCRIPTORS: Readonly<Record<string, FailureDescriptor>> = {
       "Review the generated report (core stays fatal via duplication:check); extract the repeated helper or allowlist it with a reason.",
     repairable: true,
   },
+  "plans:check": {
+    code: "verify.plans",
+    remediation:
+      "Fix the reported plan: status must match the folder, ids must be unique kebab-case, active plans need the full metadata block, and completed plans need every step checked (docs/exec-plans/README.md).",
+    repairable: true,
+  },
   "oracles:check": {
     code: "verify.oracles",
     remediation:

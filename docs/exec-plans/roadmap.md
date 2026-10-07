@@ -66,7 +66,10 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
   `full`-profile step (26 rows `present`); `mutation-pilot` closed batch B with a seven-entry seeded catalogue
   over the risk classifier and the duration policy, run locally and never in a profile, whose first run found a
   real survivor (the unknown-rule id was asserted through the constant itself) and fixed the assertion rather than
-  the mutation (27 rows `present`). **Batch B is complete.**
+  the mutation (27 rows `present`). **Batch B is complete.** Batch C opened with `plan-contract`: the exec-plan contract is validated as the first
+  step of the `fast` profile (unique slug task ids, status ↔ folder, required sections, unchecked execution steps,
+  one active plan, and the full §5.5.1 metadata block for active/queued plans), with the completed corpus
+  grandfathered rather than back-filled — the rule set was shaped by the corpus it measured (28 rows `present`).
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
