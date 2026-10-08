@@ -276,8 +276,10 @@
       "area": "knowledge and evidence",
       "family": "tools/backendkit/evidence/episode.ts + diagnostics.ts",
       "target": "schema-validated episodes and redacted <=16 KiB diagnostics per attempt",
-      "status": "declared-only",
-      "plan": 11
+      "status": "present",
+      "plan": 11,
+      "evidencePath": "tools/cfkit/episodes.ts",
+      "note": "task verify writes a schema-validated episode (forbidden-key regex, no prompts/reasoning/streams/env) and a sanitized <=16 KiB tail-kept diagnostic under .cfkit/tasks/<id>/ as atomic 0600 files in 0700 directories"
     },
     {
       "id": "evidence.operating-ledger",

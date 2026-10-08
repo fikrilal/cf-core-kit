@@ -29,5 +29,11 @@ conventions below are enforced, not advisory:
   the effective risk is the higher of the two (risk may raise, never lower).
 - Tasks track their lane (`fast`/`full`/`ci`), attempts, and failures under gitignored `.cfkit/`;
   `cfkit task verify` runs the lane profile with bounded repair.
+- Every attempt also records **structured memory** under `.cfkit/tasks/<id>/`: an episode
+  (`episodes/attempt-<n>.json`, schema-validated, and it may not contain prompts, reasoning, streams,
+  environment or credentials — a forbidden key anywhere fails validation) and a sanitized diagnostic
+  (`diagnostics/attempt-<n>.txt`, ≤ 16 KiB, tail-kept with `[TRUNCATED]`, with bearer tokens, provider keys,
+  JWTs, signed-URL signatures, secret assignments and addresses redacted). Both are written atomically as
+  0600 files inside 0700 directories: the harness keeps memory of _what failed_, never of what you typed.
 - The `Impact Areas` list should be answered honestly — it is what a reviewer checks the diff
   against — and `Verification` records exact commands with their real outcomes.

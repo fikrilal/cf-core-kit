@@ -6,7 +6,11 @@ import {
 import { PROCESS_TIMEOUT_MS, runProcess } from "./process-runner.ts";
 import type { VerifyProfile, VerifyStep } from "./profiles.ts";
 
-export type StepRunner = (script: string) => number | Promise<number>;
+/** A runner may report just an exit code, or an exit code with the output it captured. */
+export type StepOutcome =
+  number | Readonly<{ exitCode: number; output?: string }>;
+
+export type StepRunner = (script: string) => StepOutcome | Promise<StepOutcome>;
 
 export type StepResult = Readonly<{
   id: string;
@@ -14,6 +18,8 @@ export type StepResult = Readonly<{
   durationMs: number;
   exitCode: number;
   descriptor?: FailureDescriptor;
+  /** Sanitized at write time; kept here so an episode can name the first failing line. */
+  output?: string;
 }>;
 
 export type ProfileRunResult = Readonly<{
@@ -23,14 +29,19 @@ export type ProfileRunResult = Readonly<{
   durationMs: number;
 }>;
 
-export async function defaultStepRunner(script: string): Promise<number> {
+export async function defaultStepRunner(script: string): Promise<StepOutcome> {
   const capture = await runProcess({
     command: "npm",
     args: ["run", script],
     timeoutMs: PROCESS_TIMEOUT_MS,
   });
 
-  return capture.exitCode;
+  return {
+    exitCode: capture.exitCode,
+    output: [capture.stdout, capture.stderr]
+      .filter((part) => part !== "")
+      .join("\n"),
+  };
 }
 
 function reportStep(result: StepResult): void {
@@ -60,14 +71,19 @@ export async function runProfile(
 
   for (const step of profile.steps) {
     const start = Date.now();
-    const exitCode = await runStep(step.script);
+    const outcome = await runStep(step.script);
     const durationMs = Date.now() - start;
+    const { exitCode, output } =
+      typeof outcome === "number"
+        ? { exitCode: outcome, output: undefined }
+        : outcome;
     const result: StepResult = {
       id: step.id,
       status: exitCode === 0 ? "passed" : "failed",
       durationMs,
       exitCode,
       ...(exitCode === 0 ? {} : { descriptor: failureDescriptor(step.id) }),
+      ...(output === undefined ? {} : { output }),
     };
 
     results.push(result);

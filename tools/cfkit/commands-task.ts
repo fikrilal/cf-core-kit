@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { assertFlags, requireFlagValue } from "./cli-args.ts";
+import { recordAttempt } from "./episodes.ts";
 import { changedPaths } from "./git.ts";
 import { expandProfile } from "./profiles.ts";
 import { runProfile } from "./runner.ts";
@@ -84,6 +85,17 @@ async function runTaskVerify(
     name: state.lane,
     steps: expandProfile(state.lane),
   });
+  const attempt = recordAttempt(root, {
+    taskId: state.taskId,
+    attempt: state.attempt + 1,
+    lane: state.lane,
+    durationMs: result.durationMs,
+    steps: result.results,
+  });
+
+  console.log(
+    `[cfkit] episode ${attempt.episodePath} · diagnostics ${attempt.diagnosticsPath}`,
+  );
 
   if (result.exitCode !== 0) {
     const failed = result.results.at(-1);

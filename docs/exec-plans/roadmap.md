@@ -69,7 +69,10 @@ Rules: findings gate on **new vs baseline**, and baseline updates require explic
   the mutation (27 rows `present`). **Batch B is complete.** Batch C opened with `plan-contract`: the exec-plan contract is validated as the first
   step of the `fast` profile (unique slug task ids, status ↔ folder, required sections, unchecked execution steps,
   one active plan, and the full §5.5.1 metadata block for active/queued plans), with the completed corpus
-  grandfathered rather than back-filled — the rule set was shaped by the corpus it measured (28 rows `present`).
+  grandfathered rather than back-filled — the rule set was shaped by the corpus it measured (28 rows `present`); `episodes-diagnostics` gave the harness structured memory — a schema-validated episode
+  (forbidden keys rejected anywhere in the document) and a sanitized, tail-kept ≤16 KiB diagnostic per attempt,
+  written atomically as 0600 files, with the step runner carrying the output capture A1 already made (29 rows
+  `present`).
 
 ## Phase 0 — Foundation (complete, 2026-10-10)
 
