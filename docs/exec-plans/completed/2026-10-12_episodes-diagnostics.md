@@ -76,6 +76,12 @@ both written atomically as 0600 files in 0700 directories.
   leak in place for the next consumer.
 - 2026-10-12: `firstFailingLine` looks for a failure-looking line rather than taking line one. -> the first line
   of npm output is usually a banner; a fixture now pins both the preference and the fallback.
+- 2026-10-12: the fixture's key-shaped strings are assembled at runtime. -> the first version embedded a
+  literal JWK and a literal secret assignment, and `secrets:check` failed on `tools/cfkit/episodes.test.ts`
+  the moment the file became **tracked** (the scan reads the index, so the pre-commit run was green and the
+  isolated-tree verify caught it right after the commit — the same trap A6 hit). The fixture now builds the
+  values from constants, which keeps the sanitizer's patterns under test while the file itself matches
+  nothing, exactly as the testing standard's fixture-hygiene rule prescribes.
 - 2026-10-12: the live probe used two active plans as the forced failure. -> it fails `plans:check` at the first
   step in ~200 ms, so the wired write path is proven at almost no cost and the tree is restored by deleting two
   scratch files.
@@ -94,6 +100,13 @@ npm run verify                             # fast profile green
 npm run verify:gates                       # 8/8 gates bite
 npm run verify:ci                          # ci profile green
 ```
+
+## Post-review fixes (2026-10-13)
+
+- `tools/cfkit/episodes.test.ts` no longer contains a literal JWK or a literal secret assignment: the values
+  are assembled at runtime, and `secrets:check` is clean on the tracked corpus. The plan's own verification
+  section records that the isolated-tree run caught it after the first commit, and the follow-up commit carries
+  the fix.
 
 ## Completion Notes
 

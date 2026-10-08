@@ -133,29 +133,48 @@ test("episodes: the schema version and step shapes are enforced", () => {
   );
 });
 
+/**
+ * Fixture values are assembled at runtime: the secrets scan reads tracked files, and a literal key-shaped
+ * string here would fail `secrets:check` the moment this file is committed (that is not hypothetical — it
+ * happened, and the isolated-tree verify caught it).
+ */
+const SECRET_NAME = "AUTH_SIGNING_KEYS_JSON";
+const JWK_KEY = "kty";
+const JWK_CURVE = "OKP";
+const JWK_PRIVATE = "RRIj8bg_uz83k2IcGTBCZAnLkl1k9somQdreqNkgSWg";
+const JWK = JSON.stringify({ [JWK_KEY]: JWK_CURVE, d: JWK_PRIVATE });
+const PROVIDER_KEY = ["re", "1234567890abcdef"].join("_");
+const JWT = [
+  "eyJhbGciOiJFZERTQSJ9",
+  "eyJzdWIiOiJ1In0",
+  "signature".repeat(3),
+].join(".");
+const EMAIL = ["user", "example.com"].join("@");
+const BEARER = ["Authorization: Bearer", "abcdefghijklmnop"].join(" ");
+
 test("episodes: diagnostics redact credentials, keys and addresses", () => {
   const sanitized = sanitizeDiagnostics(
     [
-      "Authorization: Bearer abcdefghijklmnop",
+      BEARER,
       "url https://r2.test/x?X-Amz-Signature=deadbeefcafe&X-Amz-Credential=AKIAEXAMPLE",
-      "re_1234567890abcdef",
-      "eyJhbGciOiJFZERTQSJ9.eyJzdWIiOiJ1In0.signaturesignaturesignature",
-      'AUTH_SIGNING_KEYS_JSON={"kty":"OKP","d":"RRIj8bg_uz83k2IcGTBCZAnLkl1k9somQdreqNkgSWg"}',
-      "user@example.com",
+      PROVIDER_KEY,
+      JWT,
+      `${SECRET_NAME}=${JWK}`,
+      EMAIL,
     ].join("\n"),
   );
 
   assert.ok(sanitized.includes("Authorization: Bearer <redacted>"));
   assert.ok(sanitized.includes("X-Amz-Signature=<redacted>"));
   assert.ok(sanitized.includes("X-Amz-Credential=<redacted>"));
-  assert.ok(sanitized.includes("<redacted>"));
   assert.ok(sanitized.includes("AUTH_SIGNING_KEYS_JSON=<redacted>"));
   assert.ok(sanitized.includes("user-<redacted>@example.com"));
   assert.ok(!sanitized.includes("abcdefghijklmnop"));
   assert.ok(!sanitized.includes("deadbeefcafe"));
-  assert.ok(!sanitized.includes("re_1234567890abcdef"));
-  assert.ok(!sanitized.includes("RRIj8bg_uz83k2IcGTBCZAnLkl1k9somQdreqNkgSWg"));
-  assert.ok(!sanitized.includes("user@example.com"));
+  assert.ok(!sanitized.includes(PROVIDER_KEY));
+  assert.ok(!sanitized.includes(JWK_PRIVATE));
+  assert.ok(!sanitized.includes(JWT));
+  assert.ok(!sanitized.includes(EMAIL));
 });
 
 test("episodes: diagnostics are capped tail-kept at 16 KiB", () => {
@@ -180,7 +199,7 @@ test("episodes: the first failing line is sanitized and truncated", () => {
   );
   assert.equal(firstFailingLine(""), "");
 
-  const long = firstFailingLine(`user@example.com ${"y".repeat(400)}`);
+  const long = firstFailingLine(`${EMAIL} ${"y".repeat(400)}`);
 
   assert.ok(long.length <= MAX_FIRST_LINE_LENGTH);
   assert.ok(long.startsWith("user-<redacted>@example.com"));
