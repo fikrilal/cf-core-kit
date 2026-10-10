@@ -304,16 +304,20 @@
       "area": "knowledge and evidence",
       "family": "tools/backendkit/events/event-intake.ts",
       "target": "queued plan promotion with single-flight receipts",
-      "status": "declared-only",
-      "plan": 13
+      "status": "present",
+      "plan": 13,
+      "evidenceCommand": "events:run",
+      "note": "queued plans promote one per run behind guards (no active file, no tracked task, contract-valid as active), with identity = source + task id + queued-bytes hash, mode-0600 receipts under .cfkit/events/ and fail-closed recovery of a claimed receipt"
     },
     {
       "id": "maintenance.registry",
       "area": "knowledge and evidence",
       "family": "tools/backendkit/maintenance/maintenance-service.ts",
       "target": "one-shot maintenance registry under the repository lock",
-      "status": "declared-only",
-      "plan": 13
+      "status": "present",
+      "plan": 13,
+      "evidenceCommand": "maintenance:run",
+      "note": "plans:check + smells:check + duplication:report + audit:prod run in order under the repository lock (pid-based, stale-reclaiming) with one receipt per run; read-only by design"
     },
     {
       "id": "task.state-machine",

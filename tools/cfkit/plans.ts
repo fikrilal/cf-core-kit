@@ -13,6 +13,8 @@ import { join } from "node:path";
  */
 export const PLAN_FOLDERS = ["active", "queued", "completed"] as const;
 export const PLAN_TEMPLATE_FILE = "_template.md";
+/** Folder documentation is not a plan: it is skipped wherever plans are listed (including `queued/`). */
+export const PLAN_README_FILE = "README.md";
 export const PLANS_DIRECTORY = "docs/exec-plans";
 export const TASK_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const MIN_TASK_ID_LENGTH = 3;
@@ -134,7 +136,12 @@ export function listPlans(root: string): PlanFile[] {
 
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
-      if (entry.name === PLAN_TEMPLATE_FILE) continue;
+      if (
+        entry.name === PLAN_TEMPLATE_FILE ||
+        entry.name === PLAN_README_FILE
+      ) {
+        continue;
+      }
 
       const path = `${PLANS_DIRECTORY}/${folder}/${entry.name}`;
 

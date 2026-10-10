@@ -19,6 +19,8 @@ import {
   parseLedger,
   validateLedger,
 } from "./evidence.ts";
+import { formatIntakeReport, runIntake } from "./events.ts";
+import { formatMaintenanceReport, runMaintenance } from "./maintenance.ts";
 import { formatOracleReport, ORACLES, validateOracles } from "./oracles.ts";
 import { formatPlanReport, listPlans, validatePlans } from "./plans.ts";
 import { expandProfile, resolveProfile } from "./profiles.ts";
@@ -37,6 +39,8 @@ Commands:
   oracles check                  Validate the end-to-end oracle registry
   plans check                    Validate the exec-plan contract (docs/exec-plans/)
   evidence check                 Validate the operating-evidence ledger
+  events run --once [--dry-run]  Promote one queued plan into active/ (single-flight, receipts)
+  maintenance run --once         Run the read-only maintenance steps under the repository lock
   ci classify --base <sha> --head <sha>
                                  Print effective_risk and runtime_required for a diff
   doctor                         Read-only repository readiness check
@@ -165,6 +169,57 @@ const COMMAND_HANDLERS: Readonly<Record<string, CommandHandler>> = {
     assertFlags(args, {}, { maxPositionals: 0 });
 
     return runScript("scripts/parity/harness.mjs");
+  },
+  events: (args) => {
+    const [subcommand, ...rest] = args;
+
+    if (subcommand !== "run") {
+      throw new UsageError(
+        `unknown events subcommand "${subcommand ?? ""}" (expected run)`,
+      );
+    }
+
+    const once = rest.includes("--once");
+    const dryRun = rest.includes("--dry-run");
+
+    assertFlags(
+      rest.filter((entry) => entry !== "--once"),
+      { "--dry-run": "boolean" },
+      { maxPositionals: 0 },
+    );
+
+    if (!once) {
+      throw new UsageError(
+        "events run requires --once (the intake promotes exactly one plan per run)",
+      );
+    }
+
+    const outcome = runIntake(process.cwd(), { dryRun });
+
+    console.log(formatIntakeReport(outcome));
+
+    return 0;
+  },
+  maintenance: async (args) => {
+    const [subcommand, ...rest] = args;
+
+    if (subcommand !== "run") {
+      throw new UsageError(
+        `unknown maintenance subcommand "${subcommand ?? ""}" (expected run)`,
+      );
+    }
+
+    assertFlags(rest, { "--once": "boolean" }, { maxPositionals: 0 });
+
+    if (!rest.includes("--once")) {
+      throw new UsageError("maintenance run requires --once");
+    }
+
+    const run = await runMaintenance(process.cwd());
+
+    console.log(formatMaintenanceReport(run));
+
+    return run.exitCode;
   },
   evidence: (args) => {
     const [subcommand, ...rest] = args;
