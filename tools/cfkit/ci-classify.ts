@@ -6,7 +6,7 @@ import {
   selectLanes,
   type RiskLevel,
 } from "./risk-classifier.ts";
-import { readDeclaredRisk } from "./task.ts";
+import { readDeclaredRisk } from "./task-state.ts";
 
 export const REVISION_PATTERN = /^[0-9a-f]{40,64}$/;
 export const PLAN_PATH_PATTERN =

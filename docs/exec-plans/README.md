@@ -29,6 +29,17 @@ conventions below are enforced, not advisory:
   the effective risk is the higher of the two (risk may raise, never lower).
 - Tasks track their lane (`fast`/`full`/`ci`), attempts, and failures under gitignored `.cfkit/`;
   `cfkit task verify` runs the lane profile with bounded repair.
+- The task machine has eleven phases (`queued`, `authorized`, `preparing`, `running`, `verifying`,
+  `repairing`, `ready_for_review`, `escalated`, `cancelled`, `failed`, `handed_off`) with **append-only**
+  transitions in `state.json` (schema 2, mode 0600): every hop records when it happened and why, and an illegal
+  hop is refused rather than written.
+- `cfkit task preflight --task <id> [--action verify]` re-checks five bindings before any work runs: the plan is
+  still there and still declares this task; its `Authority` list hashes to what the state recorded; the action is
+  authorised; the paths the _task itself_ touched (pre-existing changes and controller artifacts are excluded)
+  are inside `Allowed paths`; and the effective risk has not climbed past `Maximum risk`.
+- Budgets come from the plan: `Repair limit` counts repeats **per failure fingerprint**
+  (`sha256(stepId:code)`), and `Task timeout` escalates the task with stop reason `task.timeout` instead of
+  running forever.
 - Every attempt also records **structured memory** under `.cfkit/tasks/<id>/`: an episode
   (`episodes/attempt-<n>.json`, schema-validated, and it may not contain prompts, reasoning, streams,
   environment or credentials — a forbidden key anywhere fails validation) and a sanitized diagnostic

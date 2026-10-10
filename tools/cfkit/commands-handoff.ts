@@ -20,7 +20,8 @@ import {
   writeApproval,
   type HandoffAction,
 } from "./handoff.ts";
-import { readTaskState } from "./task.ts";
+import { transition } from "./task.ts";
+import { readTaskState, writeTaskState, type TaskState } from "./task-state.ts";
 import { UsageError } from "./usage-error.ts";
 
 const UNAVAILABLE_NOTE =
@@ -42,24 +43,24 @@ function requireTask(
   root: string,
   taskId: string | undefined,
   verified: boolean,
-): boolean {
+): TaskState | undefined {
   const state = taskId === undefined ? undefined : readTaskState(root, taskId);
 
   if (state === undefined) {
     console.error(`[cfkit] unknown task "${taskId ?? ""}"`);
 
-    return false;
+    return undefined;
   }
 
-  if (verified && state.status !== "verified") {
+  if (verified && state.phase !== "ready_for_review") {
     console.error(
-      `[cfkit] task "${state.taskId}" is "${state.status}"; handoff requires a verified task`,
+      `[cfkit] task "${state.taskId}" is "${state.phase}"; handoff requires a task in ready_for_review`,
     );
 
-    return false;
+    return undefined;
   }
 
-  return true;
+  return state;
 }
 
 export function scopedPaths(
@@ -100,7 +101,7 @@ function runDryRun(args: readonly string[], root: string): number {
   const taskId = requireFlagValue(args, "--task");
   const action = parseAction(args);
 
-  if (!requireTask(root, taskId, true)) return 1;
+  if (requireTask(root, taskId, true) === undefined) return 1;
 
   const challenge = randomBytes(32).toString("hex");
   const scope = scopedPaths(root, flagValue(args, "--paths"));
@@ -240,6 +241,47 @@ function runDraftPr(
   return 0;
 }
 
+/** A completed handoff is a phase, not a note: the task is done until it is re-verified. */
+function markHandedOff(
+  root: string,
+  taskId: string,
+  subcommand: "commit" | "push" | "draft-pr",
+): void {
+  const state = readTaskState(root, taskId);
+
+  if (state?.phase !== "ready_for_review") return;
+
+  writeTaskState(
+    root,
+    transition(state, "handed_off", {
+      reason: `handoff ${subcommand} applied`,
+    }),
+  );
+}
+
+/** The action itself, with the refusal handling the dry-run path shares. */
+function applyAction(
+  root: string,
+  subcommand: "commit" | "push" | "draft-pr",
+  args: readonly string[],
+  approvedPaths: readonly string[],
+): number {
+  try {
+    if (subcommand === "commit") return runCommit(root, args, approvedPaths);
+    if (subcommand === "push") return runPush(root);
+
+    return runDraftPr(root, args, approvedPaths);
+  } catch (error) {
+    if (error instanceof UsageError) throw error;
+
+    const message = error instanceof Error ? error.message : String(error);
+
+    console.error(`[cfkit] handoff ${subcommand} refused: ${message}`);
+
+    return 1;
+  }
+}
+
 function runMutation(
   root: string,
   subcommand: "commit" | "push" | "draft-pr",
@@ -264,23 +306,7 @@ function runMutation(
   }
 
   const approvedPaths = approval?.changedPaths ?? [];
-  let status: number;
-
-  try {
-    status =
-      subcommand === "commit"
-        ? runCommit(root, args, approvedPaths)
-        : subcommand === "push"
-          ? runPush(root)
-          : runDraftPr(root, args, approvedPaths);
-  } catch (error) {
-    if (error instanceof UsageError) throw error;
-
-    const message = error instanceof Error ? error.message : String(error);
-
-    console.error(`[cfkit] handoff ${subcommand} refused: ${message}`);
-    status = 1;
-  }
+  const status = applyAction(root, subcommand, args, approvedPaths);
 
   if (status !== 0 && approval !== undefined) {
     writeApproval(root, markUncertain(approval));
@@ -290,6 +316,8 @@ function runMutation(
   }
 
   if (status === 0) {
+    markHandedOff(root, taskId, subcommand);
+
     console.log(
       `[cfkit] handoff ${subcommand} applied; revision ${currentRevision(root)}`,
     );

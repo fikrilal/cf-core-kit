@@ -324,16 +324,20 @@
       "area": "task and handoff",
       "family": "tools/backendkit/task/task-*.ts",
       "target": "eleven-state machine with append-only transitions",
-      "status": "declared-only",
-      "plan": 14
+      "status": "present",
+      "plan": 14,
+      "note": "eleven phases with append-only transitions in state.json (schema 2, mode 0600): plan-derived authority, scope, maximum risk, repair limit and timeout; failures counted per sha256(stepId:code) fingerprint; schema 1 states migrate on read",
+      "evidencePath": "tools/cfkit/task.ts"
     },
     {
       "id": "task.preflight",
       "area": "task and handoff",
       "family": "tools/backendkit/task/task-verification.ts",
       "target": "authority/scope/risk preflight with fingerprints and bounded repair",
-      "status": "declared-only",
-      "plan": 14
+      "status": "present",
+      "plan": 14,
+      "note": "five bindings re-checked before work runs: the plan and its task id, the Authority hash, the action, the task-scoped paths (pre-existing changes and controller artifacts excluded), and the effective risk against Maximum risk; repository identity is bound, a moved revision is a note",
+      "evidencePath": "tools/cfkit/preflight.ts"
     },
     {
       "id": "task.workspace-lock",

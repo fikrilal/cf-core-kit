@@ -1,123 +1,146 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-
+import { parsePlan } from "./plans.ts";
+import { effectiveRisk, selectLanes } from "./risk-classifier.ts";
 import {
-  effectiveRisk,
-  selectLanes,
-  type LaneName,
-  type RiskLevel,
-} from "./risk-classifier.ts";
+  authorityHash,
+  DEFAULT_REPAIR_LIMIT,
+  declaredRiskFromPlan,
+  failureFingerprint,
+  listFromPlan,
+  parseTimeoutSeconds,
+  readTaskState,
+  riskFromPlan,
+  taskIdFromPlan,
+  TASK_STATE_VERSION,
+  type StopReason,
+  type TaskPhase,
+  type TaskState,
+} from "./task-state.ts";
 
-export type { LaneName, RiskLevel };
+export type {
+  StopReason,
+  TaskFailure,
+  TaskPhase,
+  TaskState,
+  TaskTransition,
+} from "./task-state.ts";
+export type { LaneName, RiskLevel } from "./risk-classifier.ts";
 
-export function readDeclaredRisk(planSource: string): RiskLevel | undefined {
-  const match = /^- Risk: (low|medium|high)$/m.exec(planSource);
+/** Legal transitions; the table is the policy, and a phase absent from the keys is terminal. */
+export const TRANSITIONS: Readonly<Record<TaskPhase, readonly TaskPhase[]>> = {
+  queued: ["authorized", "cancelled"],
+  authorized: ["preparing", "cancelled"],
+  preparing: ["running", "failed", "cancelled"],
+  running: ["verifying", "failed", "cancelled"],
+  verifying: [
+    "repairing",
+    "ready_for_review",
+    "escalated",
+    "failed",
+    "cancelled",
+  ],
+  repairing: ["running", "escalated", "failed", "cancelled"],
+  ready_for_review: ["handed_off", "running", "cancelled"],
+  escalated: ["authorized", "cancelled"],
+  cancelled: [],
+  failed: [],
+  handed_off: [],
+};
 
-  return match === null ? undefined : (match[1] as RiskLevel);
+export function canTransition(from: TaskPhase, to: TaskPhase): boolean {
+  return TRANSITIONS[from].includes(to);
 }
 
-export function taskIdFromPlan(planPath: string): string {
-  const file = planPath.split("/").pop() ?? "";
-  const slug = file.replace(/\.md$/, "").replace(/^\d{4}-\d{2}-\d{2}_/, "");
-
-  if (!/^[a-z][a-z0-9-]*$/.test(slug)) {
-    throw new Error(`cannot derive a task id from "${planPath}"`);
-  }
-
-  return slug;
-}
-
-export function declaredRiskFromPlan(planSource: string): RiskLevel {
-  const risk = readDeclaredRisk(planSource);
-
-  if (risk === undefined) {
-    throw new Error("plan is missing a `- Risk: low|medium|high` header");
-  }
-
-  return risk;
-}
-
-export type TaskFailure = Readonly<{
-  stepId: string;
-  repeatCount: number;
+export type TransitionInput = Readonly<{
+  now?: Date;
+  reason?: string;
+  stopReason?: StopReason;
 }>;
 
-export type TaskStatus = "active" | "verified" | "escalated";
-
-export type TaskState = Readonly<{
-  version: 1;
-  taskId: string;
-  planPath: string;
-  declaredRisk: RiskLevel;
-  effectiveRisk: RiskLevel;
-  rules: readonly string[];
-  lane: LaneName;
-  repairLimit: number;
-  status: TaskStatus;
-  attempt: number;
-  failures: readonly TaskFailure[];
-  updatedAt: string;
-}>;
-
-export const DEFAULT_REPAIR_LIMIT = 3;
-
-export function recordFailure(state: TaskState, stepId: string): TaskState {
-  const failures: TaskFailure[] = state.failures.map((failure) =>
-    failure.stepId === stepId
-      ? { stepId, repeatCount: failure.repeatCount + 1 }
-      : failure,
-  );
-
-  if (!failures.some((failure) => failure.stepId === stepId)) {
-    failures.push({ stepId, repeatCount: 1 });
+export function transition(
+  state: TaskState,
+  to: TaskPhase,
+  input: TransitionInput = {},
+): TaskState {
+  if (!canTransition(state.phase, to)) {
+    throw new Error(
+      `illegal task transition ${state.phase} -> ${to} (allowed: ${TRANSITIONS[state.phase].join(", ") || "none"})`,
+    );
   }
 
-  const exhausted = failures.some(
-    (failure) => failure.repeatCount > state.repairLimit,
-  );
+  const at = (input.now ?? new Date()).toISOString();
 
   return {
     ...state,
-    attempt: state.attempt + 1,
-    failures,
-    status: exhausted ? "escalated" : "active",
-    updatedAt: new Date().toISOString(),
+    phase: to,
+    history: [
+      ...state.history,
+      {
+        at,
+        from: state.phase,
+        to,
+        ...(input.reason === undefined ? {} : { reason: input.reason }),
+      },
+    ],
+    ...(input.stopReason === undefined ? {} : { stopReason: input.stopReason }),
+    updatedAt: at,
   };
 }
 
-export function recordSuccess(state: TaskState): TaskState {
+export function recordFailure(
+  state: TaskState,
+  failure: Readonly<{ stepId: string; code: string }>,
+  now: Date = new Date(),
+): TaskState {
+  const fingerprint = failureFingerprint(failure);
+  const existing = state.failures.find(
+    (entry) => entry.fingerprint === fingerprint,
+  );
+  const failures =
+    existing === undefined
+      ? [
+          ...state.failures,
+          {
+            stepId: failure.stepId,
+            fingerprint,
+            code: failure.code,
+            repeatCount: 1,
+          },
+        ]
+      : state.failures.map((entry) =>
+          entry.fingerprint === fingerprint
+            ? { ...entry, repeatCount: entry.repeatCount + 1 }
+            : entry,
+        );
+  const exhausted = failures.some(
+    (entry) => entry.repeatCount > state.repairLimit,
+  );
+  const next: TaskState = {
+    ...state,
+    attempt: state.attempt + 1,
+    failures,
+    updatedAt: now.toISOString(),
+  };
+
+  if (!exhausted) return next;
+  if (state.phase !== "repairing" && state.phase !== "verifying") return next;
+
+  return transition(next, "escalated", {
+    now,
+    reason: `repair limit reached for ${failure.stepId}`,
+    stopReason: "task.repair-limit",
+  });
+}
+
+export function recordSuccess(
+  state: TaskState,
+  now: Date = new Date(),
+): TaskState {
   return {
     ...state,
     attempt: state.attempt + 1,
     failures: [],
-    status: "verified",
-    updatedAt: new Date().toISOString(),
+    updatedAt: now.toISOString(),
   };
-}
-
-export function statePath(taskId: string): string {
-  return join(".cfkit", "tasks", taskId, "state.json");
-}
-
-export function readTaskState(
-  root: string,
-  taskId: string,
-): TaskState | undefined {
-  const path = join(root, statePath(taskId));
-
-  if (!existsSync(path)) return undefined;
-
-  return JSON.parse(readFileSync(path, "utf8")) as TaskState;
-}
-
-export function writeTaskState(root: string, state: TaskState): string {
-  const relative = statePath(state.taskId);
-  const path = join(root, relative);
-
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, `${JSON.stringify(state, null, 2)}\n`);
-
-  return relative;
 }
 
 export type BeginTaskInput = Readonly<{
@@ -125,7 +148,9 @@ export type BeginTaskInput = Readonly<{
   planPath: string;
   planSource: string;
   changedPaths: readonly string[];
-  repairLimit?: number;
+  repositoryIdentity: string;
+  baseRevision: string;
+  now?: Date;
 }>;
 
 export function beginTask(input: BeginTaskInput): TaskState {
@@ -145,22 +170,49 @@ export function beginTask(input: BeginTaskInput): TaskState {
     throw new Error(`task "${taskId}" is already tracked`);
   }
 
+  const plan = parsePlan(input.planPath, "active", input.planSource);
+
+  if (plan.taskId !== taskId) {
+    throw new Error(
+      `plan declares task id "${plan.taskId}" but the file name derives "${taskId}"`,
+    );
+  }
+
   const declaredRisk = declaredRiskFromPlan(input.planSource);
+  const maximumRisk = riskFromPlan(plan, "Maximum risk", declaredRisk);
   const { risk, rules } = effectiveRisk(declaredRisk, input.changedPaths);
   const lanes = selectLanes(risk, input.changedPaths);
+  const authority = listFromPlan(plan, "Authority");
+  const now = (input.now ?? new Date()).toISOString();
 
-  return {
-    version: 1,
-    taskId,
-    planPath: input.planPath,
-    declaredRisk,
-    effectiveRisk: risk,
-    rules,
-    lane: lanes.lane,
-    repairLimit: input.repairLimit ?? DEFAULT_REPAIR_LIMIT,
-    status: "active",
-    attempt: 0,
-    failures: [],
-    updatedAt: new Date().toISOString(),
-  };
+  return transition(
+    {
+      version: TASK_STATE_VERSION,
+      taskId,
+      planPath: input.planPath,
+      declaredRisk,
+      effectiveRisk: risk,
+      maximumRisk,
+      rules,
+      lane: lanes.lane,
+      authority,
+      authorityHash: authorityHash(authority),
+      allowedPaths: listFromPlan(plan, "Allowed paths"),
+      allowedActions: listFromPlan(plan, "Allowed actions"),
+      repairLimit: Number(
+        plan.headers["Repair limit"] ?? String(DEFAULT_REPAIR_LIMIT),
+      ),
+      taskTimeoutSeconds: parseTimeoutSeconds(plan.headers["Task timeout"]),
+      repositoryIdentity: input.repositoryIdentity,
+      baseRevision: input.baseRevision,
+      preexistingPaths: [...input.changedPaths].sort(),
+      phase: "queued",
+      attempt: 0,
+      failures: [],
+      history: [],
+      updatedAt: now,
+    },
+    "authorized",
+    { now: input.now, reason: "task begun from an active plan" },
+  );
 }
