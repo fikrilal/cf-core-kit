@@ -117,6 +117,12 @@ const DESCRIPTORS: Readonly<Record<string, FailureDescriptor>> = {
       "Fix the reported plan: status must match the folder, ids must be unique kebab-case, active plans need the full metadata block, and completed plans need every step checked (docs/exec-plans/README.md).",
     repairable: true,
   },
+  "evidence:check": {
+    code: "verify.evidence",
+    remediation:
+      "Fix the ledger entry: fields are ids, enums, hashes, a revision, a CI run URL and dates — no prose, no addresses, no unknown keys (docs/engineering/operating-evidence.md).",
+    repairable: true,
+  },
   "oracles:check": {
     code: "verify.oracles",
     remediation:

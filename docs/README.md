@@ -20,6 +20,9 @@ These docs are the source of truth for architecture, standards, and workflow; co
 - Execution plans
   - `docs/exec-plans/README.md`
   - `docs/exec-plans/roadmap.md` — high-level phases and task tracking
+- Engineering (harness contracts)
+  - `docs/engineering/operating-evidence.md` — what the ledger records, and what it may never contain
+    (`docs/engineering/operating-evidence-ledger.json`, checked by `npm run evidence:check`)
 - Contract
   - `contracts/backend.openapi.yaml` + `contracts/provenance.json` — the pinned backend snapshot (repo, commits, SHA-256)
   - `docs/openapi/openapi.yaml` — emitted from route definitions (`npm run contract:emit`); drift-, parity-, and lint-gated

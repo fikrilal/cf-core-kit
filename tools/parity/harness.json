@@ -286,8 +286,10 @@
       "area": "knowledge and evidence",
       "family": "tools/backendkit/evidence/operating-ledger.ts",
       "target": "operating ledger + eligibility thresholds + evidence check",
-      "status": "declared-only",
-      "plan": 12
+      "status": "present",
+      "plan": 12,
+      "evidenceCommand": "evidence:check",
+      "note": "schema 1 ledger (empty by design) checked for unique task ids, enum/pattern/hash/date shapes, consistency of counts, no unknown keys and no address-like values; advisory eligibility prints the shortfall list"
     },
     {
       "id": "evidence.improvement-gating",

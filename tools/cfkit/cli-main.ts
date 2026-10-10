@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { assertFlags, flagValue, requireFlagValue } from "./cli-args.ts";
 import {
@@ -11,6 +13,12 @@ import { runRemove } from "./commands-remove.ts";
 import { runScaffold } from "./commands-scaffold.ts";
 import { runTask } from "./commands-task.ts";
 import { evaluateDoctor, gatherDoctorFacts } from "./doctor.ts";
+import {
+  formatLedgerReport,
+  LEDGER_PATH,
+  parseLedger,
+  validateLedger,
+} from "./evidence.ts";
 import { formatOracleReport, ORACLES, validateOracles } from "./oracles.ts";
 import { formatPlanReport, listPlans, validatePlans } from "./plans.ts";
 import { expandProfile, resolveProfile } from "./profiles.ts";
@@ -28,6 +36,7 @@ Commands:
   harness:parity                 Validate the harness-parity manifest
   oracles check                  Validate the end-to-end oracle registry
   plans check                    Validate the exec-plan contract (docs/exec-plans/)
+  evidence check                 Validate the operating-evidence ledger
   ci classify --base <sha> --head <sha>
                                  Print effective_risk and runtime_required for a diff
   doctor                         Read-only repository readiness check
@@ -156,6 +165,35 @@ const COMMAND_HANDLERS: Readonly<Record<string, CommandHandler>> = {
     assertFlags(args, {}, { maxPositionals: 0 });
 
     return runScript("scripts/parity/harness.mjs");
+  },
+  evidence: (args) => {
+    const [subcommand, ...rest] = args;
+
+    if (subcommand !== "check") {
+      throw new UsageError(
+        `unknown evidence subcommand "${subcommand ?? ""}" (expected check)`,
+      );
+    }
+
+    assertFlags(rest, {}, { maxPositionals: 0 });
+
+    const root = process.cwd();
+    const source = readFileSync(join(root, LEDGER_PATH), "utf8");
+    const ledger = parseLedger(source);
+    const problems = validateLedger(ledger, Buffer.byteLength(source, "utf8"));
+
+    console.log(formatLedgerReport(ledger));
+
+    if (problems.length > 0) {
+      console.error("[evidence] violations:");
+      for (const problem of problems) console.error(`  x ${problem}`);
+
+      return 1;
+    }
+
+    console.log("[evidence] all checks passed");
+
+    return 0;
   },
   plans: (args) => {
     const [subcommand, ...rest] = args;
