@@ -1,14 +1,12 @@
 import { randomBytes } from "node:crypto";
-import { spawnSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { assertFlags, flagValue, requireFlagValue } from "./cli-args.ts";
+import { applyAction } from "./handoff-actions.ts";
 import {
   changedPaths,
   currentBranch,
   currentRevision,
-  git,
   taskFingerprint,
 } from "./git.ts";
 import {
@@ -23,6 +21,7 @@ import {
 import { transition } from "./task.ts";
 import { readTaskState, writeTaskState, type TaskState } from "./task-state.ts";
 import { UsageError } from "./usage-error.ts";
+import { readWorkspace } from "./workspace.ts";
 
 const UNAVAILABLE_NOTE =
   "merge, deploy, migrate, and force-push are not available";
@@ -37,6 +36,49 @@ function parseAction(args: readonly string[]): HandoffAction {
   }
 
   return action;
+}
+
+/** A completed handoff is a phase, not a note: the task is done until it is re-verified. */
+function markHandedOff(
+  root: string,
+  taskId: string,
+  subcommand: "commit" | "push" | "draft-pr",
+): void {
+  const state = readTaskState(root, taskId);
+
+  if (state?.phase !== "ready_for_review") return;
+
+  writeTaskState(
+    root,
+    transition(state, "handed_off", {
+      reason: `handoff ${subcommand} applied`,
+    }),
+  );
+}
+
+/** The action itself, with the refusal handling the dry-run path shares. */
+export type HandoffContext = Readonly<{
+  /** Where git runs: the task's workspace when it has one, otherwise the repository root. */
+  cwd: string;
+  branch: string;
+  workspacePath: string | undefined;
+}>;
+
+/**
+ * The handoff happens where the task lives. A task with a prepared workspace hands off *inside* it, so the
+ * commit lands on `cfkit/<taskId>`; a single-tree task hands off in the repository, as before. Either way the
+ * approval is bound to the branch and to the workspace it was issued in.
+ */
+export function handoffContext(root: string, taskId: string): HandoffContext {
+  const workspace = readWorkspace(root, taskId);
+  const prepared = workspace?.state === "prepared" ? workspace : undefined;
+  const cwd = prepared === undefined ? root : join(root, prepared.path);
+
+  return {
+    cwd,
+    branch: currentBranch(cwd),
+    workspacePath: prepared?.path,
+  };
 }
 
 function requireTask(
@@ -104,12 +146,17 @@ function runDryRun(args: readonly string[], root: string): number {
   if (requireTask(root, taskId, true) === undefined) return 1;
 
   const challenge = randomBytes(32).toString("hex");
-  const scope = scopedPaths(root, flagValue(args, "--paths"));
+  const context = handoffContext(root, taskId);
+  const scope = scopedPaths(context.cwd, flagValue(args, "--paths"));
   const approval = createApproval({
     taskId,
     action,
     changedPaths: scope,
-    taskFingerprint: taskFingerprint(root),
+    taskFingerprint: taskFingerprint(context.cwd),
+    branch: context.branch,
+    ...(context.workspacePath === undefined
+      ? {}
+      : { workspacePath: context.workspacePath }),
     challenge,
     nowMs: Date.now(),
   });
@@ -117,169 +164,13 @@ function runDryRun(args: readonly string[], root: string): number {
   writeApproval(root, approval);
 
   console.log(
-    `[cfkit] handoff dry-run: ${taskId}; ${action}; ${String(approval.changedPaths.length)} of ${String(changedPaths(root).length)} changed paths${flagValue(args, "--paths") === undefined ? "" : " (scoped by --paths)"}; branch ${currentBranch(root)}`,
+    `[cfkit] handoff dry-run: ${taskId}; ${action}; ${String(approval.changedPaths.length)} of ${String(changedPaths(context.cwd).length)} changed paths${flagValue(args, "--paths") === undefined ? "" : " (scoped by --paths)"}; branch ${context.branch}${context.workspacePath === undefined ? "" : `; workspace ${context.workspacePath}`}`,
   );
   for (const path of approval.changedPaths) console.log(`  ${path}`);
   console.log(`  expires ${new Date(approval.expiresAt).toISOString()}`);
   console.log(`Approval: ${challenge}`);
 
   return 0;
-}
-
-function stageApprovedPaths(root: string, paths: readonly string[]): void {
-  git(["add", "--", ...paths], root);
-
-  const staged = git(["diff", "--cached", "--name-only"], root)
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line !== "")
-    .sort();
-  const expected = [...paths].sort();
-
-  if (
-    staged.length !== expected.length ||
-    staged.some((path, index) => path !== expected[index])
-  ) {
-    throw new Error(
-      "staged changes outside the approved paths; refusing to commit",
-    );
-  }
-}
-
-function runCommit(
-  root: string,
-  args: readonly string[],
-  approvalPaths: readonly string[],
-): number {
-  const message = requireFlagValue(args, "--message");
-
-  stageApprovedPaths(root, approvalPaths);
-
-  const commit = spawnSync("git", ["commit", "-m", message], {
-    cwd: root,
-    stdio: "inherit",
-  });
-
-  if (commit.status !== 0) {
-    console.error(
-      "[cfkit] commit failed; inspect local state before any retry",
-    );
-
-    return commit.status ?? 1;
-  }
-
-  return 0;
-}
-
-function runPush(root: string): number {
-  const remote = spawnSync("git", ["remote", "get-url", "origin"], {
-    cwd: root,
-    encoding: "utf8",
-  });
-
-  if (remote.status !== 0) {
-    console.error("[cfkit] no origin remote configured");
-
-    return 1;
-  }
-
-  const branch = currentBranch(root);
-  const push = spawnSync(
-    "git",
-    ["push", "origin", `refs/heads/${branch}:refs/heads/${branch}`],
-    { cwd: root, stdio: "inherit" },
-  );
-
-  if (push.status !== 0) {
-    console.error(
-      "[cfkit] push failed; inspect local and remote state before any retry",
-    );
-
-    return push.status ?? 1;
-  }
-
-  return 0;
-}
-
-function runDraftPr(
-  root: string,
-  args: readonly string[],
-  paths: readonly string[],
-): number {
-  const title = flagValue(args, "--title") ?? "Draft change";
-  const bodyPath = join(root, ".cfkit", "handoff-draft-pr-body.md");
-  const hasGh =
-    spawnSync("gh", ["--version"], { encoding: "utf8" }).status === 0;
-
-  writeFileSync(
-    bodyPath,
-    `Changed paths:\n\n${paths.map((path) => `- ${path}`).join("\n")}\n`,
-  );
-
-  if (!hasGh) {
-    console.error(
-      `[cfkit] gh is not available; create the draft PR manually with:\n  gh pr create --draft --title "${title}" --body-file ${bodyPath}`,
-    );
-
-    return 1;
-  }
-
-  const created = spawnSync(
-    "gh",
-    ["pr", "create", "--draft", "--title", title, "--body-file", bodyPath],
-    { cwd: root, stdio: "inherit" },
-  );
-
-  if (created.status !== 0) {
-    console.error(
-      "[cfkit] draft PR creation failed; inspect local and remote state before any retry",
-    );
-
-    return created.status ?? 1;
-  }
-
-  return 0;
-}
-
-/** A completed handoff is a phase, not a note: the task is done until it is re-verified. */
-function markHandedOff(
-  root: string,
-  taskId: string,
-  subcommand: "commit" | "push" | "draft-pr",
-): void {
-  const state = readTaskState(root, taskId);
-
-  if (state?.phase !== "ready_for_review") return;
-
-  writeTaskState(
-    root,
-    transition(state, "handed_off", {
-      reason: `handoff ${subcommand} applied`,
-    }),
-  );
-}
-
-/** The action itself, with the refusal handling the dry-run path shares. */
-function applyAction(
-  root: string,
-  subcommand: "commit" | "push" | "draft-pr",
-  args: readonly string[],
-  approvedPaths: readonly string[],
-): number {
-  try {
-    if (subcommand === "commit") return runCommit(root, args, approvedPaths);
-    if (subcommand === "push") return runPush(root);
-
-    return runDraftPr(root, args, approvedPaths);
-  } catch (error) {
-    if (error instanceof UsageError) throw error;
-
-    const message = error instanceof Error ? error.message : String(error);
-
-    console.error(`[cfkit] handoff ${subcommand} refused: ${message}`);
-
-    return 1;
-  }
 }
 
 function runMutation(
@@ -290,13 +181,18 @@ function runMutation(
   challenge: string,
 ): number {
   const approval = readApproval(root, taskId, subcommand);
+  const context = handoffContext(root, taskId);
   const verdict = verifyApproval({
     approval,
     action: subcommand,
     challenge,
     nowMs: Date.now(),
-    changedPaths: scopedPaths(root, flagValue(args, "--paths")),
-    taskFingerprint: taskFingerprint(root),
+    changedPaths: scopedPaths(context.cwd, flagValue(args, "--paths")),
+    taskFingerprint: taskFingerprint(context.cwd),
+    branch: context.branch,
+    ...(context.workspacePath === undefined
+      ? {}
+      : { workspacePath: context.workspacePath }),
   });
 
   if (!verdict.ok) {
@@ -306,7 +202,7 @@ function runMutation(
   }
 
   const approvedPaths = approval?.changedPaths ?? [];
-  const status = applyAction(root, subcommand, args, approvedPaths);
+  const status = applyAction(context.cwd, subcommand, args, approvedPaths);
 
   if (status !== 0 && approval !== undefined) {
     writeApproval(root, markUncertain(approval));

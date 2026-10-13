@@ -354,8 +354,10 @@
       "area": "task and handoff",
       "family": "tools/backendkit/handoff/handoff-approval.ts",
       "target": "workspace and branch binding for approvals",
-      "status": "declared-only",
-      "plan": 16
+      "status": "present",
+      "plan": 16,
+      "evidencePath": "tools/cfkit/handoff.ts",
+      "note": "approvals bind the task fingerprint, exact paths, branch and (when present) the workspace; only the challenge hash is stored, lifetime 15 minutes; commit stages exactly the approved paths and runs in the bound workspace, push is non-force, draft-pr is the only PR action, and the refusal set is pinned by a fixture"
     },
     {
       "id": "ci.lanes",

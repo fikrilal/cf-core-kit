@@ -37,6 +37,13 @@ conventions below are enforced, not advisory:
   still there and still declares this task; its `Authority` list hashes to what the state recorded; the action is
   authorised; the paths the _task itself_ touched (pre-existing changes and controller artifacts are excluded)
   are inside `Allowed paths`; and the effective risk has not climbed past `Maximum risk`.
+- **Handoff approvals are bound, single-use and short-lived.** `cfkit handoff dry-run` issues an approval that
+  records the task fingerprint, the **exact paths**, the **branch** and (when the task has one) the **workspace**
+  it was issued in; only the challenge _hash_ is written to disk (mode 0600), and the approval expires after
+  15 minutes. `handoff commit|push|draft-pr` re-checks every binding, refuses when the checkout moved to another
+  branch or workspace, and runs git **in the workspace** when one is bound, so the commit lands on
+  `cfkit/<taskId>`. The action set is fixed: exact-path staging and a commit, a non-force push, or a _draft_ pull
+  request — merge, deploy, force-push and ready-for-review are not implemented, and a fixture pins that.
 - **Isolated workspaces are opt-in.** `cfkit task workspace prepare --task <id>` creates a linked worktree at
   `.cfkit/worktrees/<taskId>` on branch `cfkit/<taskId>` at the task's base revision, and records a mode-0600
   `workspace.json` next to the state binding the task id, plan path, authority hash and base revision. `status`

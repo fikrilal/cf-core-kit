@@ -64,7 +64,7 @@ port the family's engineering-doc set so every mechanism has one documented home
 ### 2.3 The gap in one number
 
 Family: 27 commands / 19 gate sensors / 5 CI jobs / 4 test support modules / 6 oracles / 2 ledgers / 4 policy
-JSONs / 15 standards + 10 engineering docs. Ours (after plan D15): 27 commands / 28 sensors / 6 profiles / 1 CI job / 4 fixtures /
+JSONs / 15 standards + 10 engineering docs. Ours (after plan D16): 27 commands / 29 sensors / 6 profiles / 1 CI job / 4 fixtures /
 0 oracles / 0 ledgers / 0 policy JSONs / 6 standards. Nothing on our side is _wrong_ — the stack-specific
 sensors (Miniflare reality, contract parity, free-tier budget) are stronger than the family's equivalents —
 but the surrounding system that makes those sensors **governed, honest and portable** is missing.

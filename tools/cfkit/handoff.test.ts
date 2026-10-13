@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -15,6 +16,9 @@ import { runHandoff, scopedPaths } from "./commands-handoff.ts";
 import { changedPaths, taskFingerprint } from "./git.ts";
 import {
   createApproval,
+  FORBIDDEN_GH_FLAGS,
+  FORBIDDEN_GIT_FLAGS,
+  GH_DRAFT_PR_ARGS,
   markUncertain,
   readApproval,
   verifyApproval,
@@ -22,6 +26,13 @@ import {
 } from "./handoff.ts";
 
 const NOW = 1_000_000;
+
+/** Narrowing lives here, so the assertions can read straight through. */
+function reasonOf(verdict: ReturnType<typeof verifyApproval>): string {
+  if (verdict.ok) throw new Error("expected the approval to be refused");
+
+  return verdict.reason;
+}
 
 function approvalWith(
   overrides: Readonly<Record<string, unknown>> = {},
@@ -31,6 +42,7 @@ function approvalWith(
     action: "commit",
     changedPaths: ["src/a.ts", "docs/b.md"],
     taskFingerprint: "fingerprint-1",
+    branch: "main",
     challenge: "challenge-1",
     nowMs: NOW,
     ...overrides,
@@ -47,6 +59,7 @@ function verify(
     nowMs: NOW + 1_000,
     changedPaths: ["src/a.ts", "docs/b.md"],
     taskFingerprint: "fingerprint-1",
+    branch: "main",
     ...overrides,
   });
 }
@@ -174,5 +187,89 @@ test("scopedPaths returns everything, or exactly the validated scope", () => {
     assert.throws(() => scopedPaths(root, " , "), /lists no paths/);
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("approval verification refuses a checkout on another branch", () => {
+  const verdict = verify({ branch: "feature/other" });
+
+  assert.match(
+    reasonOf(verdict),
+    /issued on branch main, the checkout is on feature\/other/,
+  );
+});
+
+test("approval verification binds the workspace in both directions", () => {
+  const bound = approvalWith({ workspacePath: ".cfkit/worktrees/demo" });
+
+  assert.deepEqual(
+    verify({ approval: bound, workspacePath: ".cfkit/worktrees/demo" }),
+    { ok: true },
+  );
+
+  const elsewhere = verify({
+    approval: bound,
+    workspacePath: ".cfkit/worktrees/other",
+  });
+
+  assert.match(
+    reasonOf(elsewhere),
+    /bound to workspace \.cfkit\/worktrees\/demo/,
+  );
+
+  // An approval issued without a workspace cannot spend itself once the task has one.
+  const singleTree = verify({ workspacePath: ".cfkit/worktrees/demo" });
+
+  assert.match(
+    reasonOf(singleTree),
+    /without a workspace, but this task now has one/,
+  );
+});
+
+test("approvals store the challenge hash, never the challenge", () => {
+  const root = mkdtempSync(join(tmpdir(), "cfkit-handoff-"));
+
+  try {
+    const relative = writeApproval(root, approvalWith());
+    const raw = readFileSync(join(root, relative), "utf8");
+
+    assert.ok(raw.includes("challengeHash"));
+    assert.ok(!raw.includes("challenge-1"));
+    assert.match(raw, /"branch": "main"/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("the adapter's refusal set is data, and the source carries no forbidden flag", () => {
+  assert.deepEqual([...GH_DRAFT_PR_ARGS].slice(0, 3), [
+    "pr",
+    "create",
+    "--draft",
+  ]);
+
+  for (const flag of [...FORBIDDEN_GH_FLAGS, ...FORBIDDEN_GIT_FLAGS]) {
+    assert.ok(
+      !GH_DRAFT_PR_ARGS.includes(flag),
+      `the draft-PR adapter must not pass ${flag}`,
+    );
+  }
+
+  const source = readFileSync(
+    join(process.cwd(), "tools", "cfkit", "commands-handoff.ts"),
+    "utf8",
+  );
+
+  for (const flag of FORBIDDEN_GIT_FLAGS) {
+    assert.ok(
+      !source.includes(`"${flag}"`),
+      `commands-handoff.ts must not use ${flag}`,
+    );
+  }
+  for (const flag of ["merge", "ready", "--web", "--auto-merge"]) {
+    assert.ok(
+      !source.includes(`"${flag}"`),
+      `commands-handoff.ts must not use ${flag}`,
+    );
   }
 });

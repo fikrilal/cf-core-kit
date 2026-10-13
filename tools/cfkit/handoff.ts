@@ -21,6 +21,11 @@ export type HandoffApproval = Readonly<{
   expiresAt: number;
   changedPaths: readonly string[];
   taskFingerprint: string;
+  /** The branch the approval was issued on; a checkout on another branch cannot spend it. */
+  branch: string;
+  /** The workspace it was issued in, when the task had one: the approval is bound to that worktree. */
+  workspacePath?: string;
+  /** Only the hash is stored: the challenge itself never touches disk. */
   challengeHash: string;
 }>;
 
@@ -38,6 +43,8 @@ export function createApproval(
     action: HandoffAction;
     changedPaths: readonly string[];
     taskFingerprint: string;
+    branch: string;
+    workspacePath?: string;
     challenge: string;
     nowMs: number;
   }>,
@@ -51,9 +58,41 @@ export function createApproval(
     expiresAt: input.nowMs + HANDOFF_LIFETIME_MS,
     changedPaths: [...input.changedPaths],
     taskFingerprint: input.taskFingerprint,
+    branch: input.branch,
+    ...(input.workspacePath === undefined
+      ? {}
+      : { workspacePath: input.workspacePath }),
     challengeHash: challengeHash(input.challenge),
   };
 }
+
+/**
+ * The refusal set, as data: a handoff may create a draft PR, never merge, deploy, force-push or mark one ready.
+ * A fixture asserts these lists are exactly what the adapter runs.
+ */
+export const GH_DRAFT_PR_ARGS: readonly string[] = [
+  "pr",
+  "create",
+  "--draft",
+  "--title",
+  "--body-file",
+];
+export const FORBIDDEN_GIT_FLAGS: readonly string[] = [
+  "--force",
+  "-f",
+  "--force-with-lease",
+  "--force-if-includes",
+  "--no-verify",
+  "--no-gpg-sign",
+];
+export const FORBIDDEN_GH_FLAGS: readonly string[] = [
+  "merge",
+  "ready",
+  "--web",
+  "--auto-merge",
+  "--squash",
+  "--rebase",
+];
 
 export type ApprovalVerdict =
   Readonly<{ ok: true }> | Readonly<{ ok: false; reason: string }>;
@@ -76,6 +115,8 @@ export function verifyApproval(
     nowMs: number;
     changedPaths: readonly string[];
     taskFingerprint: string;
+    branch: string;
+    workspacePath?: string;
   }>,
 ): ApprovalVerdict {
   const approval = input.approval;
@@ -122,6 +163,23 @@ export function verifyApproval(
     return {
       ok: false,
       reason: "approval is stale (changed paths differ); run dry-run again",
+    };
+  }
+
+  if (approval.branch !== input.branch) {
+    return {
+      ok: false,
+      reason: `approval was issued on branch ${approval.branch}, the checkout is on ${input.branch}`,
+    };
+  }
+
+  if (approval.workspacePath !== input.workspacePath) {
+    return {
+      ok: false,
+      reason:
+        approval.workspacePath === undefined
+          ? "approval was issued in a context without a workspace, but this task now has one"
+          : `approval is bound to workspace ${approval.workspacePath}`,
     };
   }
 
