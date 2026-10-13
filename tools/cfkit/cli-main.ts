@@ -51,6 +51,8 @@ Commands:
   remove feature <name> --yes    Reverse a feature scaffold (--force-core for auth/users)
   task begin --plan <path>       Track a task from an active exec plan
   task preflight --task <id>     Check authority, scope, risk and repository bindings
+  task workspace prepare|status|cancel|cleanup --task <id>
+                                 Isolated worktree for a task (single-tree stays the default)
   task cancel --task <id>        Cancel a task (terminal)
   task verify --task <id>        Run the task's lane profile with bounded repair
   task status --task <id>        Print the tracked task state

@@ -37,6 +37,12 @@ conventions below are enforced, not advisory:
   still there and still declares this task; its `Authority` list hashes to what the state recorded; the action is
   authorised; the paths the _task itself_ touched (pre-existing changes and controller artifacts are excluded)
   are inside `Allowed paths`; and the effective risk has not climbed past `Maximum risk`.
+- **Isolated workspaces are opt-in.** `cfkit task workspace prepare --task <id>` creates a linked worktree at
+  `.cfkit/worktrees/<taskId>` on branch `cfkit/<taskId>` at the task's base revision, and records a mode-0600
+  `workspace.json` next to the state binding the task id, plan path, authority hash and base revision. `status`
+  prints it (and flags a stale binding), `cancel` releases the claim but leaves the worktree for salvage, and
+  `cleanup` removes the worktree and the branch. A task without a workspace keeps the single-tree flow; only one
+  task may hold a workspace at a time, and the repository lock (C13) guards the git mutations.
 - Budgets come from the plan: `Repair limit` counts repeats **per failure fingerprint**
   (`sha256(stepId:code)`), and `Task timeout` escalates the task with stop reason `task.timeout` instead of
   running forever.

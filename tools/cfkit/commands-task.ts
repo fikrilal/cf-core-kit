@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { assertFlags, requireFlagValue } from "./cli-args.ts";
+import { runTaskWorkspace } from "./commands-workspace.ts";
 import { recordAttempt } from "./episodes.ts";
 import { changedPaths, currentRevision, repositoryIdentity } from "./git.ts";
 import { evaluatePreflight, readPlanSource } from "./preflight.ts";
@@ -339,6 +340,9 @@ export async function runTask(
     }
     if (subcommand === "verify") return await runTaskVerify(args, root);
     if (subcommand === "status") return runTaskStatus(args, root);
+    if (subcommand === "workspace") {
+      return runTaskWorkspace(args.slice(1), root);
+    }
     if (subcommand === "cancel") return runTaskCancel(args, root);
   } catch (error) {
     if (error instanceof UsageError) throw error;
@@ -351,6 +355,6 @@ export async function runTask(
   }
 
   throw new UsageError(
-    `unknown task subcommand "${subcommand ?? ""}" (expected begin|preflight|verify|status|cancel)`,
+    `unknown task subcommand "${subcommand ?? ""}" (expected begin|preflight|verify|status|workspace|cancel)`,
   );
 }

@@ -344,8 +344,10 @@
       "area": "task and handoff",
       "family": "tools/backendkit/workspace/*",
       "target": "repository lock plus workspace manifest (worktree per open question 1)",
-      "status": "declared-only",
-      "plan": 15
+      "status": "present",
+      "plan": 15,
+      "evidencePath": "tools/cfkit/workspace.ts",
+      "note": "opt-in linked worktree per task at .cfkit/worktrees/<taskId> on branch cfkit/<taskId>, with a mode-0600 workspace.json binding task id, plan path, authority hash and base revision; prepare refuses while another task holds one or the repository lock is held; cancel releases the claim, cleanup removes worktree and branch"
     },
     {
       "id": "handoff.workspace-binding",
