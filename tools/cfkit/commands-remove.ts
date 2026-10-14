@@ -4,6 +4,8 @@ import { join } from "node:path";
 
 import { assertFlags } from "./cli-args.ts";
 import { formatPaths } from "./format.ts";
+import { pruneBaselines } from "./baseline-pruner.ts";
+import { confirmRemoval } from "./removal-confirmation.ts";
 import { applyRemovePlan } from "./remove-apply.ts";
 import {
   buildEndpointRemoval,
@@ -67,20 +69,46 @@ function positionalTarget(subcommand: string, args: readonly string[]): string {
   return target;
 }
 
+/** What the plan would prune is printed with the plan, and pruned only when the plan is applied. */
+function printPrunePlan(root: string, plan: RemovePlan): void {
+  for (const outcome of pruneBaselines(root, {
+    files: plan.deleteFiles,
+    directories: plan.removeDirectories,
+    write: false,
+  })) {
+    console.log(
+      `  prune  ${outcome.path} (${String(outcome.entriesBefore)} -> ${String(outcome.entriesAfter)})`,
+    );
+    for (const entry of outcome.removed) console.log(`         ${entry}`);
+  }
+}
+
+function applyPruning(root: string, plan: RemovePlan): void {
+  for (const outcome of pruneBaselines(root, {
+    files: plan.deleteFiles,
+    directories: plan.removeDirectories,
+    write: true,
+  })) {
+    console.log(
+      `[cfkit] pruned ${String(outcome.removed.length)} entr${outcome.removed.length === 1 ? "y" : "ies"} from ${outcome.path}`,
+    );
+  }
+}
+
 function removePreflight(
   subcommand: string,
   target: string,
   flags: ReadonlySet<string>,
 ): number | undefined {
-  if (subcommand === "feature" && !flags.has("--yes")) {
-    console.error(
-      "[cfkit] refusing to remove a feature without --yes (nothing was changed)",
-    );
+  if (subcommand !== "feature" && subcommand !== "endpoint") return undefined;
 
-    return 1;
-  }
+  const verdict = confirmRemoval({ kind: subcommand, target, flags });
 
-  return undefined;
+  if (verdict.ok) return undefined;
+
+  console.error(verdict.message);
+
+  return 1;
 }
 
 function buildRemovePlan(
@@ -131,7 +159,9 @@ export function runRemove(args: readonly string[]): number {
     const plan = buildRemovePlan(subcommand ?? "", target, root, flags);
 
     printRemovePlan(plan);
+    printPrunePlan(root, plan);
     applyRemovePlan(root, plan, { format: formatPaths });
+    applyPruning(root, plan);
 
     if (plan.returnOperations.length > 0) {
       const emitted = spawnSync("node", ["scripts/contract/emit.mjs"], {

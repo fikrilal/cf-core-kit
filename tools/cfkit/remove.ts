@@ -147,6 +147,11 @@ export type RemoveFeatureInput = Readonly<{
   force: boolean;
 }>;
 
+/**
+ * The shapes `scaffold feature` emits, in both tiers: the simple trio, the clean tier's composition root,
+ * operations aggregate and surface, and the optional job module. Removal may delete what scaffolding created —
+ * and only that.
+ */
 function isScaffoldTrio(file: string, content: string): boolean {
   if (file.endsWith("/service.ts")) {
     return content.includes("// TODO: replace this slice with the real");
@@ -157,7 +162,20 @@ function isScaffoldTrio(file: string, content: string): boolean {
   }
 
   if (file.endsWith("/index.ts")) {
-    return content.includes('from "./service"');
+    return (
+      content.includes('from "./service"') ||
+      content.includes('.routes";') ||
+      content.includes('.operations";')
+    );
+  }
+  if (file.endsWith(".jobs.ts")) {
+    return content.includes("Replace the probe with real work");
+  }
+  if (file.endsWith(".operations.ts")) {
+    return content.includes("Operation metadata for the");
+  }
+  if (/\/[^/]+\.routes\.ts$/.test(file)) {
+    return content.includes("Composition root for the");
   }
 
   return false;
@@ -244,13 +262,31 @@ export function buildFeatureRemoval(input: RemoveFeatureInput): RemovePlan {
   const zoneEdits: RemovalEdit[] = input.repo.exists("eslint.config.mjs")
     ? [{ kind: "zone-block", path: "eslint.config.mjs", feature: name }]
     : [];
+  // `scaffold feature --with-queue` inserts an import into src/jobs.ts; removal takes it back out, or the
+  // registry would import a module that no longer exists.
+  const jobImportEdits: RemovalEdit[] = files.some((file) =>
+    file.endsWith(`${name}.jobs.ts`),
+  )
+    ? [
+        {
+          kind: "line",
+          path: "src/jobs.ts",
+          contains: `/features/${name}/${name}.jobs"`,
+        },
+        {
+          kind: "line",
+          path: "src/jobs.ts",
+          contains: `...create${pascalFromKebab(name)}Jobs()`,
+        },
+      ]
+    : [];
 
   return {
     kind: "feature",
     description: `feature ${name} (${String(files.length)} files)`,
     deleteFiles: files,
     removeDirectories: [dir],
-    edits: [...artifacts.edits, ...zoneEdits],
+    edits: [...artifacts.edits, ...zoneEdits, ...jobImportEdits],
     returnOperations: artifacts.operations,
     coveragePath: COVERAGE_PATH,
     nextSteps: [

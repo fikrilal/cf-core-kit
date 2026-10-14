@@ -173,10 +173,130 @@ function crossFeatureZoneEdits(
   ];
 }
 
+export const FEATURE_TIERS: readonly string[] = ["simple", "clean"];
+/** The one line `scaffold feature --with-queue` inserts after, so the job is never orphaned. */
+export const JOB_FACTORY_ANCHOR = "// cfkit:job-factories";
+/** `scaffold endpoint` inserts a capability registrar before this anchor in a clean-tier composition root. */
+export const CAPABILITIES_ANCHOR = "// cfkit:capabilities";
+
+export type FeatureTier = "simple" | "clean";
+
 export type FeatureScaffoldOptions = Readonly<{
   exists: (path: string) => boolean;
   existingFeatures?: () => readonly string[];
+  tier?: FeatureTier;
+  withQueue?: boolean;
+  force?: boolean;
 }>;
+
+function featureNextSteps(
+  name: string,
+  base: string,
+  tier: FeatureTier,
+  withQueue: boolean,
+): readonly string[] {
+  const queueStep = `Replace the probe in ${base}/${name}.jobs.ts with real work`;
+  const endpointStep =
+    "Add an endpoint with `cfkit scaffold endpoint <operationId>` once the contract declares one";
+
+  return tier === "clean"
+    ? [
+        `Capabilities live in ${base}/<capability>/ and register in ${base}/${name}.routes.ts`,
+        endpointStep,
+        withQueue
+          ? queueStep
+          : "Add a job with `--with-queue`, or write the module and compose it in src/jobs.ts",
+      ]
+    : [
+        `Replace the TODO marker in ${base}/service.ts with real logic`,
+        withQueue ? queueStep : endpointStep,
+      ];
+}
+
+function cleanTierFiles(
+  name: string,
+  base: string,
+  pascal: string,
+): readonly ScaffoldFile[] {
+  const routes = `import type { Hono } from "hono";
+
+import type { AppEnv } from "../../platform/http/types";
+
+/**
+ * Composition root for the ${name} feature: capabilities register their routes here.
+ * \`cfkit scaffold endpoint\` inserts a registrar before the anchor below.
+ */
+export function register${pascal}Routes(_app: Hono<AppEnv>): void {
+  ${CAPABILITIES_ANCHOR}
+}
+`;
+  const operations = `/**
+ * Operation metadata for the ${name} feature. Capabilities append their own entries here, and the aggregate
+ * is what the feature exports.
+ */
+export const ${camelFromPascal(pascalFromKebab(name))}Operations = [] as const;
+`;
+  const surface = `export { register${pascal}Routes } from "./${name}.routes";
+export { ${camelFromPascal(pascalFromKebab(name))}Operations } from "./${name}.operations";
+`;
+
+  return [
+    { path: `${base}/${name}.routes.ts`, content: routes },
+    { path: `${base}/${name}.operations.ts`, content: operations },
+    { path: `${base}/index.ts`, content: surface },
+  ];
+}
+
+function queueFiles(
+  name: string,
+  base: string,
+  pascal: string,
+): readonly ScaffoldFile[] {
+  const jobs = `import { z } from "zod";
+
+import { defineJob } from "../../platform/queue/registry";
+
+/**
+ * The ${name} feature's first job. Replace the probe with real work: a job that never runs is a job nobody
+ * notices is missing.
+ */
+export const ${camelFromPascal(pascalFromKebab(name))}ProbeJob = defineJob({
+  name: "${name}.probe",
+  payloadSchema: z.object({}),
+  handle: () => Promise.resolve(),
+});
+
+export function create${pascal}Jobs(): readonly (typeof ${camelFromPascal(pascalFromKebab(name))}ProbeJob)[] {
+  return [${camelFromPascal(pascalFromKebab(name))}ProbeJob];
+}
+`;
+
+  return [{ path: `${base}/${name}.jobs.ts`, content: jobs }];
+}
+
+/**
+ * Two edits, so a scaffolded job module can never be orphaned: the import lands at the anchor, and the factory
+ * is spread into the registry array. The `uncomposed_job_module` smell rule checks the import, and lint checks
+ * that the import is used — the pair is what makes both quiet.
+ */
+function jobAnchorEdits(name: string, pascal: string): readonly ScaffoldEdit[] {
+  return [
+    {
+      path: "src/jobs.ts",
+      anchor: JOB_FACTORY_ANCHOR,
+      placement: "line-after",
+      lines: [
+        `import { create${pascal}Jobs } from "./features/${name}/${name}.jobs";`,
+      ],
+    },
+    {
+      path: "src/jobs.ts",
+      anchor: "createJobRegistry([",
+      placement: "line-after",
+      lines: [`      ...create${pascal}Jobs(),`],
+    },
+  ];
+}
 
 export function buildFeatureScaffold(
   rawName: string,
@@ -184,9 +304,19 @@ export function buildFeatureScaffold(
 ): ScaffoldPlan {
   const name = normalizeFeatureName(rawName);
   const base = `src/features/${name}`;
+  const tier: FeatureTier = options.tier ?? "simple";
+  const pascal = pascalFromKebab(name);
 
-  if (options.exists(base)) {
-    throw new Error(`Feature directory already exists: ${base}`);
+  if (!FEATURE_TIERS.includes(tier)) {
+    throw new Error(
+      `Unknown tier "${String(options.tier)}" (expected ${FEATURE_TIERS.join("|")})`,
+    );
+  }
+
+  if (options.exists(base) && options.force !== true) {
+    throw new Error(
+      `Feature directory already exists: ${base} (pass --force to scaffold into it)`,
+    );
   }
 
   const service = `export type FeatureDescriptor = Readonly<{ name: string }>;
@@ -215,21 +345,30 @@ describe("${name} service", () => {
       : (options.existingFeatures?.() ?? []).filter(
           (feature) => feature !== name,
         );
+  const files =
+    tier === "clean"
+      ? cleanTierFiles(name, base, pascal)
+      : [
+          { path: `${base}/service.ts`, content: service },
+          { path: `${base}/service.spec.ts`, content: spec },
+          { path: `${base}/index.ts`, content: barrel },
+        ];
+  const withQueue = options.withQueue === true;
+  const allFiles = withQueue
+    ? [...queueFiles(name, base, pascal), ...files]
+    : files;
+  const edits = [
+    ...crossFeatureZoneEdits(name, existingFeatures),
+    ...(withQueue ? jobAnchorEdits(name, pascal) : []),
+  ];
 
   return {
     kind: "feature",
-    description: `capability slice ${name}`,
-    files: [
-      { path: `${base}/service.ts`, content: service },
-      { path: `${base}/service.spec.ts`, content: spec },
-      { path: `${base}/index.ts`, content: barrel },
-    ],
-    edits: crossFeatureZoneEdits(name, existingFeatures),
+    description: `capability slice ${name} (${tier}${withQueue ? ", with queue" : ""})`,
+    files: allFiles,
+    edits,
     moveOperation: undefined,
-    nextSteps: [
-      `Replace the TODO marker in ${base}/service.ts with real logic`,
-      "Add an endpoint with `cfkit scaffold endpoint <operationId>` once the contract declares one",
-    ],
+    nextSteps: featureNextSteps(name, base, tier, withQueue),
   };
 }
 

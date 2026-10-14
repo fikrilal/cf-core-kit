@@ -4,6 +4,7 @@ import {
   GENERATED_MARKER,
   camelFromPascal,
   coverageWithOperationMoved,
+  CAPABILITIES_ANCHOR,
   featureFromOperationId,
   isRecord,
   operationSlug,
@@ -243,6 +244,8 @@ export type EndpointScaffoldInput = Readonly<{
   knownErrorCodes: ReadonlySet<string>;
   knownTags: ReadonlySet<string>;
   featureExists: (feature: string) => boolean;
+  /** Optional: when supplied, a clean-tier composition root is detected and refused. */
+  fileExists?: (path: string) => boolean;
 }>;
 
 function assertAnchor(source: string, anchor: string, what: string): void {
@@ -337,6 +340,14 @@ export function buildEndpointScaffold(
 ): ScaffoldPlan {
   const operation = findOperation(input.snapshotYaml, input.operationId);
   const feature = featureFromOperationId(input.operationId);
+
+  const compositionRoot = `src/features/${feature}/${feature}.routes.ts`;
+
+  if (input.fileExists?.(compositionRoot) === true) {
+    throw new Error(
+      `Feature "${feature}" uses the clean tier: add the capability under src/features/${feature}/<capability>/ and register it in ${compositionRoot} at the ${CAPABILITIES_ANCHOR} anchor`,
+    );
+  }
 
   if (!input.featureExists(feature)) {
     throw new Error(

@@ -12,8 +12,10 @@ import { readCoverageManifest } from "../../tools/cfkit/scaffold.ts";
 
 const ROOT = process.cwd();
 const FEATURE = `smoke-slice-${randomUUID().slice(0, 8)}`;
+const DRY_FEATURE = `smoke-dry-${randomUUID().slice(0, 8)}`;
 const TOUCHED = [
   "src/app.ts",
+  "src/jobs.ts",
   "tools/contract/emit.entry.ts",
   "tools/parity/coverage.json",
   "eslint.config.mjs",
@@ -143,7 +145,37 @@ export function main() {
   const before = captureBytes();
 
   try {
-    if (cfkit(["scaffold", "feature", FEATURE]) !== 0) {
+    // Dry runs first: they must print a plan and touch nothing, including the new flags.
+    const dryRuns = [
+      ["scaffold", "feature", DRY_FEATURE, "--dry-run"],
+      [
+        "scaffold",
+        "feature",
+        DRY_FEATURE,
+        "--tier",
+        "clean",
+        "--with-queue",
+        "--dry-run",
+      ],
+    ];
+
+    for (const args of dryRuns) {
+      if (cfkit(args) !== 0) {
+        return fail(`dry run failed: cfkit ${args.join(" ")}`);
+      }
+    }
+
+    const untouched = TOUCHED.every(
+      (path) => readFileSync(join(ROOT, path), "utf8") === before.get(path),
+    );
+
+    if (!untouched) {
+      return fail("a scaffold dry run wrote to the tree");
+    }
+
+    console.log("[scaffold-smoke] dry runs wrote nothing");
+
+    if (cfkit(["scaffold", "feature", FEATURE, "--with-queue"]) !== 0) {
       return fail("feature scaffold failed");
     }
 

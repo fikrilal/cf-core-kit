@@ -404,16 +404,20 @@
       "area": "doctor and scaffolding",
       "family": "tools/backendkit/doctor/harness-doctor.ts",
       "target": "identity, ignored state, policy and state schema checks",
-      "status": "declared-only",
-      "plan": 18
+      "status": "present",
+      "plan": 18,
+      "evidencePath": "tools/cfkit/doctor.ts",
+      "note": "twelve checks: git, canonical root, dependencies, private state ignored, wrangler config, policy schemas (plans/oracles/ledger validators), task and workspace state, budget script as hard failures; node drift, wrangler toolchain, missing migrations and quiet tasks as warnings; a superseded state schema warns because it is migrated on read"
     },
     {
       "id": "scaffold.tiers",
       "area": "doctor and scaffolding",
       "family": "feature-scaffold tiers + removal pruning",
       "target": "tier/queue/dry-run flags, baseline pruning, smoke coverage",
-      "status": "declared-only",
-      "plan": 18
+      "status": "present",
+      "plan": 18,
+      "evidencePath": "tools/cfkit/scaffold.ts",
+      "note": "feature tiers simple|clean (clean = composition root with the capabilities anchor, operations aggregate, index surface), --with-queue emitting the job module plus both src/jobs.ts edits, --dry-run, --force; the endpoint scaffolder refuses clean-tier features with an actionable message; removal recognizes every scaffolded shape and prunes the baselines it touched"
     },
     {
       "id": "docs.engineering-set",

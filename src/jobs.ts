@@ -1,3 +1,4 @@
+// cfkit:job-factories — `cfkit scaffold feature --with-queue` inserts its import after this line.
 import { createSendVerificationEmailJob } from "./features/auth/email-verification/email-verification.jobs";
 import { createAuthSweepJobs } from "./features/auth/sessions/sweep.jobs";
 import { createAccountDeletionJobs } from "./features/users/account-deletion/account-deletion.jobs";

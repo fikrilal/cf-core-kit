@@ -5,7 +5,12 @@ import { assertFlags } from "./cli-args.ts";
 import { formatPaths } from "./format.ts";
 import { applyScaffoldPlan } from "./scaffold-apply.ts";
 import { buildEndpointScaffold } from "./scaffold-endpoint.ts";
-import { buildFeatureScaffold, type ScaffoldPlan } from "./scaffold.ts";
+import {
+  buildFeatureScaffold,
+  FEATURE_TIERS,
+  type FeatureTier,
+  type ScaffoldPlan,
+} from "./scaffold.ts";
 import { spawnSync } from "node:child_process";
 
 import { UsageError } from "./usage-error.ts";
@@ -43,10 +48,58 @@ function printPlan(plan: ScaffoldPlan): void {
   }
 }
 
+export function readFlag(
+  flags: ReadonlySet<string>,
+  name: string,
+): string | undefined {
+  const prefix = `${name}=`;
+  const inline = [...flags].find((flag) => flag.startsWith(prefix));
+
+  return inline?.slice(prefix.length);
+}
+
+/**
+ * The flags as a set. Both spellings work: `--tier clean` is kept as `--tier=clean`, so `readFlag` has one
+ * shape to read and the positional scan is untouched.
+ */
+export function flagSet(args: readonly string[]): ReadonlySet<string> {
+  const flags = new Set<string>();
+  const rest = args.slice(1);
+
+  for (const [index, arg] of rest.entries()) {
+    if (!arg.startsWith("--")) continue;
+
+    flags.add(arg);
+
+    if (arg === "--tier") {
+      const value = rest[index + 1];
+
+      if (value !== undefined && !value.startsWith("--")) {
+        flags.add(`--tier=${value}`);
+      }
+    }
+  }
+
+  return flags;
+}
+
+function tierFromFlags(flags: ReadonlySet<string>): FeatureTier {
+  const raw = readFlag(flags, "--tier") ?? "simple";
+
+  if (!FEATURE_TIERS.includes(raw)) {
+    throw new UsageError(
+      `unknown --tier "${raw}" (expected ${FEATURE_TIERS.join("|")})`,
+    );
+  }
+
+  return raw as FeatureTier;
+}
+
 function buildScaffoldPlan(
   subcommand: string,
   args: readonly string[],
   root: string,
+  flags: ReadonlySet<string>,
 ): ScaffoldPlan {
   if (subcommand !== "feature" && subcommand !== "endpoint") {
     throw new UsageError(
@@ -69,6 +122,9 @@ function buildScaffoldPlan(
         readdirSync(join(root, "src/features"), { withFileTypes: true })
           .filter((entry) => entry.isDirectory())
           .map((entry) => entry.name),
+      tier: tierFromFlags(flags),
+      withQueue: flags.has("--with-queue"),
+      force: flags.has("--force"),
     });
   }
 
@@ -90,19 +146,38 @@ function buildScaffoldPlan(
     knownErrorCodes: readKnownErrorCodes(root),
     knownTags: readKnownTags(root),
     featureExists: (feature) => existsSync(join(root, "src/features", feature)),
+    fileExists: (path) => existsSync(join(root, path)),
   });
 }
 
 export function runScaffold(args: readonly string[]): number {
   const subcommand = args[0];
   const root = process.cwd();
+  const flags = flagSet(args);
+  const dryRun = flags.has("--dry-run");
 
   try {
-    assertFlags(args.slice(1), {}, { maxPositionals: 1 });
+    assertFlags(
+      args.slice(1),
+      {
+        "--tier": "value",
+        "--with-queue": "boolean",
+        "--dry-run": "boolean",
+        "--force": "boolean",
+      },
+      { maxPositionals: 1 },
+    );
 
-    const plan = buildScaffoldPlan(subcommand ?? "", args, root);
+    const plan = buildScaffoldPlan(subcommand ?? "", args, root, flags);
 
     printPlan(plan);
+
+    if (dryRun) {
+      console.log("[cfkit] dry run: nothing was written");
+
+      return 0;
+    }
+
     applyScaffoldPlan(root, plan, { format: formatPaths });
 
     const emitted = spawnSync("node", ["scripts/contract/emit.mjs"], {
