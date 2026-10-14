@@ -1,0 +1,18 @@
+version: 2
+updates:
+  # Grouped weekly: one pull request for the runtime and toolchain bumps the harness already gates.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      npm-minor-and-patch:
+        applies-to: version-updates
+        update-types: [minor, patch]
+  # The workflow actions are pinned by commit; this keeps the pins fresh.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3

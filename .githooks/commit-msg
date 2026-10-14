@@ -1,0 +1,3 @@
+#!/bin/sh
+# Local-only Convention Commits check (CI does not run it): see docs/guide/commit-conventions.md.
+npx --no-install commitlint --edit "$1"

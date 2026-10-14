@@ -364,33 +364,40 @@
       "area": "CI and workflow",
       "family": ".github/workflows/ci.yml (risk/full/runtime/governance/required)",
       "target": "five lanes with a stable branch-protection aggregate",
-      "status": "declared-only",
+      "status": "present",
       "plan": 17,
-      "note": "the risk lane runs `cfkit ci classify`, which uses a merge-base diff: the job needs fetch-depth: 0"
+      "note": "ci.yml risk/full/runtime/governance/required jobs; the runtime lane is conditional on the classifier output; the workflow fixture parses the YAML and asserts the wiring, the pins, persist-credentials: false and that no lane inlines profile internals",
+      "evidencePath": ".github/workflows/ci.yml"
     },
     {
       "id": "ci.governance",
       "area": "CI and workflow",
       "family": "CI Governance job",
       "target": "dependency review, secret scanning action, dependabot",
-      "status": "declared-only",
-      "plan": 17
+      "status": "present",
+      "plan": 17,
+      "note": "dependency review (fail-on-severity high) plus gitleaks history/diff scan on pull requests, with the tracked-file scan and the production audit in the same lane; the gitleaks licence condition is documented",
+      "evidencePath": ".github/workflows/ci.yml"
     },
     {
       "id": "workflow.commit-conventions",
       "area": "CI and workflow",
       "family": "commitlint + .githooks + scope enum",
       "target": "local commitlint hook and documented scopes",
-      "status": "declared-only",
-      "plan": 17
+      "status": "present",
+      "plan": 17,
+      "note": ".githooks/commit-msg running commitlint with a 16-scope enum, setup:hooks script, and docs/guide/commit-conventions.md; CI deliberately does not run it",
+      "evidencePath": "commitlint.config.mjs"
     },
     {
       "id": "workflow.pr-template",
       "area": "CI and workflow",
       "family": ".github/pull_request_template.md",
       "target": "risk/impact/runtime-evidence/checks-not-run template",
-      "status": "declared-only",
-      "plan": 17
+      "status": "present",
+      "plan": 17,
+      "note": ".github/pull_request_template.md: risk class and lane, the eight impact areas, contract/parity impact, runtime evidence pointer, and \"checks not run, and why\"",
+      "evidencePath": ".github/pull_request_template.md"
     },
     {
       "id": "doctor.checklist",

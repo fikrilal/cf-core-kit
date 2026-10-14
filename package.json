@@ -51,10 +51,14 @@
     "plans:check": "node tools/cfkit/cli.ts plans check",
     "evidence:check": "node tools/cfkit/cli.ts evidence check",
     "events:run": "node tools/cfkit/cli.ts events run --once",
-    "maintenance:run": "node tools/cfkit/cli.ts maintenance run --once"
+    "maintenance:run": "node tools/cfkit/cli.ts maintenance run --once",
+    "setup:hooks": "git config core.hooksPath .githooks",
+    "commitlint": "commitlint --edit"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.4.0",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
     "@eslint/js": "^10.0.1",
     "@stoplight/spectral-cli": "^6.17.0",
     "@types/node": "^26.6.5",

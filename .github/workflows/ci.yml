@@ -12,19 +12,51 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
+  # The classifier decides which lanes are load-bearing for this diff; the other jobs read its outputs.
+  risk:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
+    outputs:
+      effective_risk: ${{ steps.classify.outputs.effective_risk }}
+      runtime_required: ${{ steps.classify.outputs.runtime_required }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .nvmrc
           cache: npm
       - name: Install dependencies
         run: npm ci --include=dev
-      - name: Verify
-        run: npm run verify:ci
+      - name: Classify the diff
+        id: classify
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="$(git rev-parse HEAD^ 2>/dev/null || git rev-parse HEAD)"
+          fi
+          npm run ci:classify -- --base "$BASE" --head "${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+  # The full profile: every static gate plus coverage. No runtime or smoke steps here — they are their own
+  # lane, so `runtime_required` is load-bearing rather than decorative.
+  full:
+    needs: risk
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --include=dev
+      - name: Full profile
+        run: npm run cfkit -- verify --profile full
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -33,3 +65,77 @@ jobs:
           path: coverage/
           retention-days: 7
           if-no-files-found: ignore
+
+  # Runtime and scaffold smoke only when the classifier says the diff can change runtime behaviour.
+  runtime:
+    needs: risk
+    if: needs.risk.outputs.runtime_required == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --include=dev
+      - name: Runtime profile
+        run: npm run cfkit -- verify --profile runtime
+      - name: Scaffold smoke
+        run: npm run cfkit -- verify --profile smoke
+
+  # Pull-request governance: dependency review, a history/diff secret scan, the tracked-file scan and the
+  # production dependency audit. gitleaks-action is free for public repositories; an organisation needs a
+  # GITLEAKS_LICENSE secret, and when it is unavailable the tracked-file scan remains the gate.
+  governance:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Dependency review
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+      - name: Secret scan (history and diff)
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --include=dev
+      - name: Tracked-file secret scan
+        run: npm run secrets:check
+      - name: Production dependency audit
+        run: npm run audit:prod
+
+  # One status name for branch protection. A conditional lane that did not have to run is `skipped`, which is
+  # acceptable; anything that failed or was cancelled is not.
+  required:
+    if: always()
+    needs: [risk, full, runtime, governance]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Aggregate the lanes
+        run: |
+          echo "risk=${{ needs.risk.result }} full=${{ needs.full.result }} runtime=${{ needs.runtime.result }} governance=${{ needs.governance.result }}"
+          for result in "${{ needs.risk.result }}" "${{ needs.full.result }}"; do
+            if [ "$result" != "success" ]; then exit 1; fi
+          done
+          for result in "${{ needs.runtime.result }}" "${{ needs.governance.result }}"; do
+            case "$result" in
+              success|skipped) ;;
+              *) exit 1 ;;
+            esac
+          done
