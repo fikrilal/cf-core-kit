@@ -37,7 +37,10 @@ jobs:
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
             BASE="$(git rev-parse HEAD^ 2>/dev/null || git rev-parse HEAD)"
           fi
-          npm run ci:classify -- --base "$BASE" --head "${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          # --silent drops npm's "> cf-core-kit@0.0.0 ci:classify" banner, and the grep keeps only the
+          # contract lines: `$GITHUB_OUTPUT` rejects anything that is not `key=value`.
+          npm run --silent ci:classify -- --base "$BASE" --head "${{ github.sha }}" \
+            | grep -E '^(effective_risk|runtime_required)=' >> "$GITHUB_OUTPUT"
 
   # The full profile: every static gate plus coverage. No runtime or smoke steps here — they are their own
   # lane, so `runtime_required` is load-bearing rather than decorative.

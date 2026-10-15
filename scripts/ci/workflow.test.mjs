@@ -89,9 +89,15 @@ test("ci workflow: the classifier resolves a base revision and emits its outputs
   assert.match(classify.run ?? "", /0{40}/);
   assert.match(classify.run ?? "", /git rev-parse HEAD\^/);
   assert.match(classify.run ?? "", />> "\$GITHUB_OUTPUT"/);
+  // `$GITHUB_OUTPUT` rejects anything that is not `key=value`, so the step must silence npm's banner and
+  // filter to the contract lines — the first CI run failed on exactly this.
   assert.match(
     classify.run ?? "",
-    /npm run ci:classify -- --base "\$BASE" --head/,
+    /npm run --silent ci:classify -- --base "\$BASE" --head/,
+  );
+  assert.match(
+    classify.run ?? "",
+    /grep -E '\^\(effective_risk\|runtime_required\)='/,
   );
 });
 

@@ -10,6 +10,11 @@ updates:
       npm-minor-and-patch:
         applies-to: version-updates
         update-types: [minor, patch]
+    ignore:
+      # typescript-eslint@8 peers typescript ">=4.8.4 <6.1.0"; a TypeScript major bump cannot install until
+      # that range moves, so the bot should not propose it (it failed CI with ERESOLVE on 2026-10-15).
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
   # The workflow actions are pinned by commit; this keeps the pins fresh.
   - package-ecosystem: github-actions
     directory: /
