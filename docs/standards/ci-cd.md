@@ -51,6 +51,14 @@ free for public repositories but needs a `GITLEAKS_LICENSE` secret for an organi
 remains the gate without it), and `@scarf/scarf` arrives as a transitive dependency of commitlint whose
 postinstall is deliberately **not** allowed by the repository's install-script gate, so no telemetry runs.
 
+## Baseline governance
+
+Two baselines are review artifacts, not escape hatches: the architecture-smell baseline
+(`tools/smells-baseline.json`) can only be written with `SMELLS_BASELINE_APPROVED=true` set deliberately, and
+every entry carries the rule, the file and the review date; the duplication allowlists name **both** files in a
+pair with a reason. `remove feature` prunes entries whose paths are gone, so a baseline cannot silently outlive
+the code it excused, and `verify:gates` proves the gates that read them still bite.
+
 ## Contract changes and the changelog expectation
 
 A change that alters the wire contract — an operation, a DTO, an error code, a header — must, in the same pull

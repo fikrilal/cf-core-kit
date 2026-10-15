@@ -24,3 +24,23 @@ and key table live in `docs/guide/config.md`, with the zod schema as the machine
 `family` — the wire-contract behavior is owned by backend-core-kit's standards, this kit
 mirrors it, and the mirroring is enforced by `contract:check`, the parity manifest, Spectral,
 and the dialect suite rather than by prose here.
+
+## Family-owned topics (status: family)
+
+The reference family owns these standards; this repository follows the contract and does not restate them. Where
+we enforce a rule, it is listed with the gate in `docs/engineering/guardrails.md` rather than duplicated here.
+
+| Topic                                     | Family document                | What we enforce locally                                                               |
+| ----------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------- |
+| API response envelope and problem details | `api-response-standard`        | the contract suite (`test/contract/dialect.spec.ts`) and the emitted OpenAPI document |
+| Error codes                               | `error-codes`                  | `src/shared/error-codes.ts` as the only source of codes; raw literals are a smell     |
+| Authentication                            | `authentication`               | sessions, refresh rotation and OIDC notes under `docs/engineering/auth/`              |
+| Authorization / RBAC                      | `authorization-rbac`           | not implemented beyond roles in the access token (v1 surface)                         |
+| Configuration                             | `configuration`                | `config:check` (wrangler vars ↔ schema ↔ documented secrets)                          |
+| Code quality                              | `code-quality`                 | eslint, prettier, the duplication harness, the smell scanner                          |
+| Pagination, filtering, sorting            | `pagination-filtering-sorting` | `src/shared/list-query/` and the contract suite's list dialect                        |
+| Reliability                               | `reliability`                  | idempotent writes, queue retries, the free-tier budget gates                          |
+| Security                                  | `security`                     | the secrets scan, the rate limiter, the crypto allowlist (ADR-0006)                   |
+
+A topic becomes **normative** here when we own a rule the family does not state; until then, this table is the
+pointer and the local enforcement row is the proof.

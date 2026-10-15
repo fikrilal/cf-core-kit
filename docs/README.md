@@ -21,6 +21,11 @@ These docs are the source of truth for architecture, standards, and workflow; co
   - `docs/exec-plans/README.md`
   - `docs/exec-plans/roadmap.md` — high-level phases and task tracking
 - Engineering (harness contracts)
+  - `docs/engineering/README.md` — the index: the harness documents, the workflow documents and the feature notes
+  - `docs/engineering/cfkit.md` — every command, flag, exit code and delegation
+  - `docs/engineering/guardrails.md` — which gate owns which rule, the escalation ladder, the suppression policy
+  - `docs/engineering/runtime-evidence.md` — the artifacts a runtime change owes, and the redaction table
+  - `docs/engineering/duplication-harness.md` — both jscpd profiles, categories and the `--fatal-found` policy
   - `docs/engineering/operating-evidence.md` — what the ledger records, and what it may never contain
     (`docs/engineering/operating-evidence-ledger.json`, checked by `npm run evidence:check`)
 - Contract

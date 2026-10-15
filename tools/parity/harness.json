@@ -424,16 +424,20 @@
       "area": "documentation",
       "family": "docs/engineering/**",
       "target": "cfkit reference, guardrails, runtime-evidence, ledgers, workflow docs",
-      "status": "declared-only",
-      "plan": 19
+      "status": "present",
+      "plan": 19,
+      "evidencePath": "docs/engineering/README.md",
+      "note": "the engineering set: the index, cfkit.md (every command, flag, exit code and delegation), guardrails.md (rule homes, the escalation ladder, the suppression policy), runtime-evidence.md (required artifacts per risk class plus the redaction table), duplication-harness.md, operating-evidence.md and the four workflow documents, plus eight feature notes; admin/merchantOnboarding notes map to ADR-0013, and the review-skill alignment is listed as the one planned item"
     },
     {
       "id": "docs.standards-additions",
       "area": "documentation",
       "family": "docs/standards/** (15 files)",
       "target": "the missing standards (response, errors, configuration, code quality, security, ...)",
-      "status": "declared-only",
-      "plan": 19
+      "status": "present",
+      "plan": 19,
+      "evidencePath": "docs/standards/README.md",
+      "note": "the family-owned topics are indexed with status family and the local enforcement for each (contract suite, error codes, config:check, list-query, idempotency and budget, secrets/limiter/crypto); a topic becomes normative here only when we own a rule the family does not state"
     },
     {
       "id": "parity.tree-check",
