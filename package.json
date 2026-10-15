@@ -64,7 +64,7 @@
     "@eslint/js": "^10.0.1",
     "@stoplight/spectral-cli": "^6.17.0",
     "@types/node": "^26.6.5",
-    "@vitest/coverage-v8": "^5.0.3",
+    "@vitest/coverage-v8": "^5.0.4",
     "drizzle-kit": "^0.31.11",
     "esbuild": "^0.28.2",
     "eslint": "^10.12.0",
@@ -89,6 +89,6 @@
     "aws4fetch": "^1.0.20",
     "drizzle-orm": "^0.45.4",
     "hono": "^4.13.13",
-    "zod": "^4.6.5"
+    "zod": "^4.6.6"
   }
 }
