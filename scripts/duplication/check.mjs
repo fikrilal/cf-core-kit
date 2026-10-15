@@ -1,5 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -11,6 +17,18 @@ export const CORE_ALLOWLIST_PATH = "tools/duplication-allowlist.json";
 export const SMALL_HELPER_ALLOWLIST_PATH =
   "tools/small-helper-duplication-allowlist.json";
 export const REPORT_PATH = "_WIP/duplication-report.md";
+
+/**
+ * The local jscpd binary, resolved from the repository rather than through `npx`.
+ *
+ * The scan runs with `cwd` set to the tree under test, which in the fixtures is a temp directory: `npx
+ * --no-install` there finds nothing on a clean runner (it passed locally only because npx's cache had the
+ * package from earlier runs). Resolving the binary explicitly makes the runner independent of where the scan
+ * points.
+ */
+export function jscpdBinary(root = process.cwd()) {
+  return join(root, "node_modules", ".bin", "jscpd");
+}
 
 export const DUPLICATION_IGNORES = [
   "**/node_modules/**",
@@ -141,11 +159,15 @@ export function runDuplication(root, options = {}) {
   );
 
   try {
+    const binary = jscpdBinary();
+
+    if (!existsSync(binary)) {
+      throw new Error(`jscpd is not installed at ${binary}; run npm install`);
+    }
+
     execFileSync(
-      "npx",
+      binary,
       [
-        "--no-install",
-        "jscpd",
         "--min-tokens",
         String(profile.minTokens),
         "--min-lines",
