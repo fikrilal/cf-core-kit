@@ -1,0 +1,237 @@
+{
+  "recordedOn": "2026-10-14",
+  "familyRoot": "/home/fikrilal/workspace/devs/core/backend-core-kit",
+  "note": "The family artifact each manifest row was ported from, recorded by reading the family checkout on the date above. `npm run parity:tree -- --family <path>` re-validates every path live; without the checkout the map is validated against our own manifest. A null familyPath is a recorded deviation with its reason.",
+  "entries": [
+    {
+      "id": "core.parity-manifest",
+      "familyPath": "tools/backendkit/verification",
+      "kind": "dir"
+    },
+    {
+      "id": "core.process-runner",
+      "familyPath": "tools/backendkit/process-runner.ts",
+      "kind": "file"
+    },
+    {
+      "id": "core.failure-taxonomy",
+      "familyPath": "tools/backendkit/verification",
+      "kind": "dir"
+    },
+    {
+      "id": "core.exit-codes",
+      "familyPath": "tools/backendkit/cli.ts",
+      "kind": "file"
+    },
+    {
+      "id": "core.profile-invariants",
+      "familyPath": "tools/backendkit/verification",
+      "kind": "dir"
+    },
+    {
+      "id": "core.duration-policy",
+      "familyPath": "tools/backendkit/verification",
+      "kind": "dir"
+    },
+    {
+      "id": "core.profile-registry",
+      "familyPath": "tools/backendkit/verification",
+      "kind": "dir"
+    },
+    {
+      "id": "handoff.bound-approvals",
+      "familyPath": "tools/backendkit/handoff",
+      "kind": "dir"
+    },
+    {
+      "id": "sensors.contract-parity",
+      "familyPath": "scripts/openapi-check.ts",
+      "kind": "file"
+    },
+    {
+      "id": "sensors.duplication-core",
+      "familyPath": "scripts/filter-duplication-report.ts",
+      "kind": "file"
+    },
+    {
+      "id": "sensors.budget",
+      "familyPath": "tools/backendkit/policy",
+      "kind": "dir"
+    },
+    {
+      "id": "sensors.secrets-scan",
+      "familyPath": "tools/backendkit/policy",
+      "kind": "dir"
+    },
+    {
+      "id": "gates.workflow-invariants",
+      "familyPath": ".github/workflows/ci.yml",
+      "kind": "file"
+    },
+    {
+      "id": "risk.lane-classifier",
+      "familyPath": "tools/backendkit/policy",
+      "kind": "dir"
+    },
+    {
+      "id": "risk.ci-classify",
+      "familyPath": "tools/backendkit/ci",
+      "kind": "dir"
+    },
+    {
+      "id": "sensors.config-drift",
+      "familyPath": "scripts/verify-env-example.ts",
+      "kind": "file"
+    },
+    {
+      "id": "sensors.dependency-audit",
+      "familyPath": "package.json",
+      "kind": "file"
+    },
+    {
+      "id": "sensors.repo-hygiene",
+      "familyPath": "scripts/install-git-hooks.cjs",
+      "kind": "file"
+    },
+    {
+      "id": "sensors.smells",
+      "familyPath": "scripts/architecture-smells.ts",
+      "kind": "file"
+    },
+    {
+      "id": "sensors.duplication-small-helpers",
+      "familyPath": "tools/small-helper-duplication-allowlist.json",
+      "kind": "file"
+    },
+    {
+      "id": "gates.honesty-meta",
+      "familyPath": "scripts/gates-honesty.ts",
+      "kind": "file"
+    },
+    {
+      "id": "test.tiers",
+      "familyPath": "jest.config.cjs",
+      "kind": "file"
+    },
+    {
+      "id": "test.assertions",
+      "familyPath": null,
+      "note": "the family keeps its assertion helpers under libs/testing/, outside the ported surface; ours live in test/support"
+    },
+    {
+      "id": "test.env-isolation",
+      "familyPath": null,
+      "note": "the family's env isolation is a jest setup file outside the ported surface; ours is test/support/env-isolation.spec.ts"
+    },
+    {
+      "id": "test.coverage-reporters",
+      "familyPath": "jest.config.cjs",
+      "kind": "file"
+    },
+    {
+      "id": "test.oracles",
+      "familyPath": "tools/backendkit/oracles",
+      "kind": "dir"
+    },
+    {
+      "id": "test.mutation-pilot",
+      "familyPath": "stryker.config.mjs",
+      "kind": "file"
+    },
+    {
+      "id": "knowledge.plan-contract",
+      "familyPath": "tools/backendkit/knowledge",
+      "kind": "dir"
+    },
+    {
+      "id": "evidence.episodes",
+      "familyPath": "tools/backendkit/evidence",
+      "kind": "dir"
+    },
+    {
+      "id": "evidence.operating-ledger",
+      "familyPath": "docs/engineering/operating-evidence-ledger.json",
+      "kind": "file"
+    },
+    {
+      "id": "evidence.improvement-gating",
+      "familyPath": "tools/backendkit/improvement",
+      "kind": "dir"
+    },
+    {
+      "id": "events.intake",
+      "familyPath": "tools/backendkit/events",
+      "kind": "dir"
+    },
+    {
+      "id": "maintenance.registry",
+      "familyPath": "tools/backendkit/maintenance",
+      "kind": "dir"
+    },
+    {
+      "id": "task.state-machine",
+      "familyPath": "tools/backendkit/task",
+      "kind": "dir"
+    },
+    {
+      "id": "task.preflight",
+      "familyPath": "tools/backendkit/task",
+      "kind": "dir"
+    },
+    {
+      "id": "task.workspace-lock",
+      "familyPath": "tools/backendkit/workspace",
+      "kind": "dir"
+    },
+    {
+      "id": "handoff.workspace-binding",
+      "familyPath": "tools/backendkit/handoff",
+      "kind": "dir"
+    },
+    {
+      "id": "ci.lanes",
+      "familyPath": ".github/workflows/ci.yml",
+      "kind": "file"
+    },
+    {
+      "id": "ci.governance",
+      "familyPath": ".github/workflows/ci.yml",
+      "kind": "file"
+    },
+    {
+      "id": "workflow.commit-conventions",
+      "familyPath": "commitlint.config.cjs",
+      "kind": "file"
+    },
+    {
+      "id": "workflow.pr-template",
+      "familyPath": ".github/pull_request_template.md",
+      "kind": "file"
+    },
+    {
+      "id": "doctor.checklist",
+      "familyPath": "tools/backendkit/doctor",
+      "kind": "dir"
+    },
+    {
+      "id": "scaffold.tiers",
+      "familyPath": "tools/backendkit/feature",
+      "kind": "dir"
+    },
+    {
+      "id": "docs.engineering-set",
+      "familyPath": "docs/engineering",
+      "kind": "dir"
+    },
+    {
+      "id": "docs.standards-additions",
+      "familyPath": "docs",
+      "kind": "dir"
+    },
+    {
+      "id": "parity.tree-check",
+      "familyPath": null,
+      "note": "ours: A1 created the manifest from the family tree, F20 added this comparison"
+    }
+  ]
+}

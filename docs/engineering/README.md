@@ -12,6 +12,7 @@ reference family owns; we follow the contract and do not restate it).
 | `runtime-evidence.md` (written)    | the artifacts a runtime-affecting change owes, and the redaction table          |
 | `duplication-harness.md` (written) | both jscpd profiles, the categories, the allowlists, the `--fatal-found` policy |
 | `operating-evidence.md` (written)  | what the ledger records, and what it may never contain                          |
+| `improvements.md` (written)        | the improvement programme's gate, invariants, surface and shadow windows        |
 
 ## How the machinery is used
 

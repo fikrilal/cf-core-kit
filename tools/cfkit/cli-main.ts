@@ -20,6 +20,12 @@ import {
   validateLedger,
 } from "./evidence.ts";
 import { formatIntakeReport, runIntake } from "./events.ts";
+import {
+  formatImprovementReport,
+  improvementEligibility,
+  readImprovementLedger,
+  validateImprovementLedger,
+} from "./improvements.ts";
 import { formatMaintenanceReport, runMaintenance } from "./maintenance.ts";
 import { formatOracleReport, ORACLES, validateOracles } from "./oracles.ts";
 import { formatPlanReport, listPlans, validatePlans } from "./plans.ts";
@@ -41,6 +47,7 @@ Commands:
   evidence check                 Validate the operating-evidence ledger
   events run --once [--dry-run]  Promote one queued plan into active/ (single-flight, receipts)
   maintenance run --once         Run the read-only maintenance steps under the repository lock
+  improve check|analyze|shadow   The improvement programme: check the ledger, or report ineligibility
   ci classify --base <sha> --head <sha>
                                  Print effective_risk and runtime_required for a diff
   doctor                         Read-only repository readiness check
@@ -173,6 +180,49 @@ const COMMAND_HANDLERS: Readonly<Record<string, CommandHandler>> = {
     assertFlags(args, {}, { maxPositionals: 0 });
 
     return runScript("scripts/parity/harness.mjs");
+  },
+  improve: (args) => {
+    const [subcommand, ...rest] = args;
+    const root = process.cwd();
+
+    if (
+      subcommand !== "check" &&
+      subcommand !== "analyze" &&
+      subcommand !== "shadow"
+    ) {
+      throw new UsageError(
+        `unknown improve subcommand "${subcommand ?? ""}" (expected check|analyze|shadow)`,
+      );
+    }
+
+    assertFlags(rest, {}, { maxPositionals: 0 });
+
+    const ledger = readImprovementLedger(root);
+    const eligibility = improvementEligibility(root);
+
+    console.log(formatImprovementReport(ledger, eligibility));
+
+    if (subcommand !== "check") {
+      // The gate, not a bug: the programme runs only on reviewed operating evidence.
+      console.log(
+        `[improve] ${subcommand} is disabled until the programme is eligible`,
+      );
+
+      return eligibility.eligible ? 0 : 1;
+    }
+
+    const problems = validateImprovementLedger(ledger);
+
+    if (problems.length > 0) {
+      console.error("[improve] violations:");
+      for (const problem of problems) console.error(`  x ${problem}`);
+
+      return 1;
+    }
+
+    console.log("[improve] all checks passed");
+
+    return 0;
   },
   events: (args) => {
     const [subcommand, ...rest] = args;

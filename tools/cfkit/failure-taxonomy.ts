@@ -117,6 +117,18 @@ const DESCRIPTORS: Readonly<Record<string, FailureDescriptor>> = {
       "Fix the reported plan: status must match the folder, ids must be unique kebab-case, active plans need the full metadata block, and completed plans need every step checked (docs/exec-plans/README.md).",
     repairable: true,
   },
+  "parity:tree": {
+    code: "verify.parity-tree",
+    remediation:
+      "Fix the family map: every entry must name a manifest row, a family path and its kind (tools/parity/family-map.json). Pass --family <path> for the live comparison.",
+    repairable: true,
+  },
+  "improve:check": {
+    code: "verify.programme",
+    remediation:
+      "Fix the improvement ledger: statuses, the approver-differs-from-owner rule, the invariants and the surface paths (docs/engineering/improvements.md).",
+    repairable: true,
+  },
   "evidence:check": {
     code: "verify.evidence",
     remediation:

@@ -296,8 +296,10 @@
       "area": "knowledge and evidence",
       "family": "tools/backendkit/improvement/*",
       "target": "improvement ledger and shadow evaluation, disabled until eligible",
-      "status": "declared-only",
-      "plan": 12
+      "status": "present",
+      "plan": 12,
+      "evidenceCommand": "improve:check",
+      "note": "the improvement programme ported with its gating: an empty ledger (schema 1), the five invariants, approver-differs-from-owner, the harness-only edit surface, authority exactly edit,verify; analyze and shadow answer ineligible with the operating-evidence shortfall"
     },
     {
       "id": "events.intake",
@@ -444,8 +446,10 @@
       "area": "verification core",
       "family": "no family equivalent (our falsifiability device)",
       "target": "harness:parity compares this manifest with the live tree",
-      "status": "declared-only",
-      "plan": 20
+      "status": "present",
+      "plan": 20,
+      "evidenceCommand": "parity:tree",
+      "note": "tools/parity/family-map.json records the family artifact each of the 46 rows was ported from (nulls carry a reason); npm run parity:tree validates the map against our manifest offline and, with --family <path>, every recorded path against the real family checkout \u2014 the live run verified all 43 recorded paths"
     }
   ]
 }
