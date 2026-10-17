@@ -71,7 +71,7 @@
       "vars": {
         "APP_ENV": "dev",
         "LOG_LEVEL": "info",
-        "R2_ACCOUNT_ID": "00000000000000000000000000000000",
+        "R2_ACCOUNT_ID": "64cebf25319fc1d66d9a3f2ae510658e",
         "R2_BUCKET": "cf-core-kit-dev",
       },
       "durable_objects": {
@@ -92,7 +92,7 @@
         {
           "binding": "DB",
           "database_name": "cf-core-kit-dev",
-          "database_id": "00000000-0000-0000-0000-000000000000",
+          "database_id": "a59bcaa8-9cc4-4926-a9a7-b86a33c13a00",
           "migrations_dir": "db/migrations",
         },
       ],
