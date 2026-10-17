@@ -59,6 +59,7 @@ scripts/duplication/ jscpd gate with a reviewed allowlist (both files per entry)
 scripts/scaffold/   scaffold smoke: scaffold -> verify -> remove -> byte-identical restore
 test/               integration and contract suites
 tools/cfkit/        cfkit CLI: verify profiles (fast/full/runtime/smoke/ci), doctor, scaffold/remove, task lifecycle, handoff approvals, budget + contract delegates
+bin/clone.mjs       generate a new project from the kit (strip list, sanitisers, fresh history)
 tools/contract/     OpenAPI emit entry (contract:emit / contract:check)
 tools/contract/     OpenAPI emit entry (contract:emit / contract:check)
 tools/parity/       parity manifest (implemented / pending / descoped)
