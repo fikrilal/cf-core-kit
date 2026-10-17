@@ -55,3 +55,8 @@ Auth endpoints are rate-limited per client address by a memory-first Durable Obj
 - Architecture: `docs/core/project-architecture.md`
 - Stack: `docs/core/project-stack.md`
 - ADRs: `docs/adr/README.md`
+
+## License
+
+MIT — see [LICENSE](./LICENSE). The wire contract is pinned from the reference family (ADR-0002); the license
+covers this repository's code and documentation.

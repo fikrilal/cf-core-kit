@@ -90,5 +90,11 @@
     "drizzle-orm": "^0.45.4",
     "hono": "^4.13.13",
     "zod": "^4.6.7"
+  },
+  "license": "MIT",
+  "description": "Cloudflare Workers core kit: auth and users at wire-contract parity, with a self-verifying harness",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fikrilal/cf-core-kit.git"
   }
 }
