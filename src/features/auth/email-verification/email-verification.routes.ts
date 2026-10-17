@@ -26,6 +26,10 @@ import { verifyEmailRequestSchema } from "../../../shared/contract/auth";
 import { ErrorCode } from "../../../shared/error-codes";
 import { createSendVerificationEmailProducer } from "./email-verification.jobs";
 import {
+  emailVerificationTokenExpired,
+  emailVerificationTokenInvalid,
+} from "../shared/auth.errors";
+import {
   consumeEmailVerificationToken,
   findUserById,
 } from "../shared/repository";
@@ -97,22 +101,21 @@ export function createVerifyEmailHandler(
       now: clock.now(),
     });
 
-    if (outcome === "token_invalid") {
-      throw new AppError({
-        status: 400,
-        code: ErrorCode.AUTH_EMAIL_VERIFICATION_TOKEN_INVALID,
-        message: "Email verification token is invalid",
-      });
+    switch (outcome) {
+      case "ok":
+      case "already_verified":
+        return noContent();
+      case "token_invalid":
+        throw emailVerificationTokenInvalid();
+      case "token_expired":
+        throw emailVerificationTokenExpired();
+      default: {
+        const unreachable: never = outcome;
+        throw new Error(
+          `Unexpected email verification outcome: ${String(unreachable)}`,
+        );
+      }
     }
-    if (outcome === "token_expired") {
-      throw new AppError({
-        status: 400,
-        code: ErrorCode.AUTH_EMAIL_VERIFICATION_TOKEN_EXPIRED,
-        message: "Email verification token expired",
-      });
-    }
-
-    return noContent();
   };
 }
 

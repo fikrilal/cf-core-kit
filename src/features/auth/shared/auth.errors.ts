@@ -89,6 +89,22 @@ export function sessionRevoked(): AppError {
   });
 }
 
+export function emailVerificationTokenInvalid(): AppError {
+  return new AppError({
+    status: 400,
+    code: ErrorCode.AUTH_EMAIL_VERIFICATION_TOKEN_INVALID,
+    message: "Email verification token is invalid",
+  });
+}
+
+export function emailVerificationTokenExpired(): AppError {
+  return new AppError({
+    status: 400,
+    code: ErrorCode.AUTH_EMAIL_VERIFICATION_TOKEN_EXPIRED,
+    message: "Email verification token expired",
+  });
+}
+
 export function internalError(): AppError {
   return new AppError({
     status: 500,
