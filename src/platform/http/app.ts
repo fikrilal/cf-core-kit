@@ -9,6 +9,9 @@ import type { AppEnv } from "./types";
 export function createApp(): OpenAPIHono<AppEnv> {
   const app = new OpenAPIHono<AppEnv>({ defaultHook: openApiValidationHook });
 
+  // Request id, not-found, and onError live here. src/app.ts registers
+  // request logging after this returns. Auth, idempotency, and raw-body
+  // capture stay on the route. Registration order is the pipeline order.
   app.use(requestIdMiddleware);
 
   app.notFound((context) => notFoundResponse(getRequestId(context)));

@@ -10,12 +10,7 @@ export function fieldOf(value: unknown, key: string): unknown {
     return undefined;
   }
 
-  const record: Record<string, unknown> = {};
-  for (const [entryKey, entryValue] of Object.entries(value)) {
-    record[entryKey] = entryValue;
-  }
-
-  return record[key];
+  return (value as Record<string, unknown>)[key];
 }
 
 export function rejectUnknownKeys(
