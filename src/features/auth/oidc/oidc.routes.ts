@@ -13,7 +13,7 @@ import { databaseFrom } from "../../../platform/db/request";
 import { idempotent } from "../../../platform/http/idempotency";
 import type { OperationMetadata } from "../../../platform/http/openapi";
 import { captureRawJson, rawJsonOf } from "../../../platform/http/raw-body";
-import { noContent } from "../../../platform/http/envelope";
+import { dataPayload, noContent } from "../../../platform/http/envelope";
 import type { AppEnv } from "../../../platform/http/types";
 import { rejectUnknownKeys } from "../../../platform/http/validation";
 import {
@@ -130,6 +130,7 @@ function createExchangeHandler(
         verifier,
       },
       {
+        provider: body.provider,
         idToken: body.idToken,
         device: { id: body.deviceId, name: body.deviceName },
         ip: context.req.header("CF-Connecting-IP"),
@@ -137,7 +138,7 @@ function createExchangeHandler(
       },
     );
 
-    return context.json({ data: result }, 200);
+    return context.json(dataPayload(result), 200);
   };
 }
 
@@ -157,7 +158,11 @@ function createConnectHandler(
         clock,
         verifier,
       },
-      { idToken: body.idToken, userId: principal.userId },
+      {
+        provider: body.provider,
+        idToken: body.idToken,
+        userId: principal.userId,
+      },
     );
 
     return noContent();
@@ -175,16 +180,15 @@ export function registerOidcRoutes(
 ): void {
   app.use("/v1/auth/oidc/exchange", captureRawJson());
   app.use("/v1/auth/oidc/connect", captureRawJson());
-
-  app.openapi(
-    exchangeRoute,
-    createExchangeHandler(dependencies.verifier, dependencies.clock),
-  );
-
   app.use("/v1/auth/oidc/connect", requireAuth(dependencies.clock));
   app.use(
     "/v1/auth/oidc/connect",
     idempotent({ scopeKey: "auth.oidc.connect" }),
+  );
+
+  app.openapi(
+    exchangeRoute,
+    createExchangeHandler(dependencies.verifier, dependencies.clock),
   );
   app.openapi(
     connectRoute,

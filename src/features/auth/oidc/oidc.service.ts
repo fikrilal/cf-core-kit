@@ -3,7 +3,11 @@ import type { AppConfig } from "../../../platform/config/config";
 import { getKeyRing } from "../../../platform/auth/keys";
 import { runBatch } from "../../../platform/db/db";
 import type { Database } from "../../../platform/db/db";
-import { oidcIdentities, users } from "../../../platform/db/schema";
+import {
+  oidcIdentities,
+  users,
+  type OidcProvider,
+} from "../../../platform/db/schema";
 import { loadMe, toMePayload } from "../../users/index";
 import type { Me } from "../../../shared/contract/users";
 import {
@@ -36,6 +40,7 @@ export type AuthServiceDependencies = Readonly<{
 }>;
 
 export type ExchangeInput = Readonly<{
+  provider: OidcProvider;
   idToken: string;
   device: Readonly<{ id?: string; name?: string }>;
   ip: string | undefined;
@@ -48,6 +53,14 @@ export type ExchangeResult = Readonly<{
   refreshToken: string;
 }>;
 
+const supportedProviders: Record<OidcProvider, "GOOGLE"> = {
+  GOOGLE: "GOOGLE",
+};
+
+function supportedProvider(provider: OidcProvider): "GOOGLE" {
+  return supportedProviders[provider];
+}
+
 async function verifyIdToken(
   deps: AuthServiceDependencies,
   idToken: string,
@@ -58,9 +71,18 @@ async function verifyIdToken(
   });
 
   if (!verification.ok) {
-    throw verification.reason === "not_configured"
-      ? oidcNotConfigured()
-      : oidcTokenInvalid();
+    switch (verification.reason) {
+      case "not_configured":
+        throw oidcNotConfigured();
+      case "invalid":
+        throw oidcTokenInvalid();
+      default: {
+        const unreachable: never = verification.reason;
+        throw new Error(
+          `Unexpected id token verification: ${String(unreachable)}`,
+        );
+      }
+    }
   }
 
   if (!verification.claims.emailVerified) throw oidcEmailNotVerified();
@@ -76,6 +98,7 @@ function assertActive(user: UserRow): void {
 async function createUserWithIdentity(
   deps: AuthServiceDependencies,
   claims: GoogleClaims,
+  provider: "GOOGLE",
 ): Promise<UserRow> {
   const now = deps.clock.now();
   const userId = crypto.randomUUID();
@@ -95,7 +118,7 @@ async function createUserWithIdentity(
       deps.db.insert(oidcIdentities).values({
         id: crypto.randomUUID(),
         userId,
-        provider: "GOOGLE",
+        provider,
         subject: claims.subject,
         email: claims.email,
         createdAt: now,
@@ -103,7 +126,7 @@ async function createUserWithIdentity(
       }),
     ]);
   } catch (error) {
-    const racedIdentity = await findIdentity(deps.db, "GOOGLE", claims.subject);
+    const racedIdentity = await findIdentity(deps.db, provider, claims.subject);
 
     if (racedIdentity !== undefined) {
       const racedUser = await findUserById(deps.db, racedIdentity.userId);
@@ -131,10 +154,11 @@ export async function exchangeOidc(
   deps: AuthServiceDependencies,
   input: ExchangeInput,
 ): Promise<ExchangeResult> {
+  const provider = supportedProvider(input.provider);
   const claims = await verifyIdToken(deps, input.idToken);
   const existingIdentity = await findIdentity(
     deps.db,
-    "GOOGLE",
+    provider,
     claims.subject,
   );
 
@@ -151,7 +175,7 @@ export async function exchangeOidc(
       throw oidcLinkRequired();
     }
 
-    user = await createUserWithIdentity(deps, claims);
+    user = await createUserWithIdentity(deps, claims, provider);
   }
 
   const keyRing = await getKeyRing(deps.config);
@@ -180,26 +204,31 @@ export async function exchangeOidc(
   };
 }
 
-export type ConnectInput = Readonly<{ idToken: string; userId: string }>;
+export type ConnectInput = Readonly<{
+  provider: OidcProvider;
+  idToken: string;
+  userId: string;
+}>;
 
 async function insertIdentitySafely(
   deps: AuthServiceDependencies,
   input: ConnectInput,
   claims: GoogleClaims,
   now: Date,
+  provider: "GOOGLE",
 ): Promise<void> {
   try {
     await insertIdentity(deps.db, {
       id: crypto.randomUUID(),
       userId: input.userId,
-      provider: "GOOGLE",
+      provider,
       subject: claims.subject,
       email: claims.email,
       createdAt: now,
       updatedAt: now,
     });
   } catch (error) {
-    await resolveInsertConflict(deps, input, claims, error);
+    await resolveInsertConflict(deps, input, claims, error, provider);
   }
 }
 
@@ -208,8 +237,9 @@ async function resolveInsertConflict(
   input: ConnectInput,
   claims: GoogleClaims,
   error: unknown,
+  provider: "GOOGLE",
 ): Promise<void> {
-  const raced = await findIdentity(deps.db, "GOOGLE", claims.subject);
+  const raced = await findIdentity(deps.db, provider, claims.subject);
 
   if (raced !== undefined) {
     if (raced.userId !== input.userId) throw oidcIdentityAlreadyLinked();
@@ -220,7 +250,7 @@ async function resolveInsertConflict(
   const ownProvider = await findIdentityByUserProvider(
     deps.db,
     input.userId,
-    "GOOGLE",
+    provider,
   );
   if (ownProvider !== undefined) throw oidcProviderAlreadyLinked();
 
@@ -248,8 +278,9 @@ export async function connectOidc(
   deps: AuthServiceDependencies,
   input: ConnectInput,
 ): Promise<void> {
+  const provider = supportedProvider(input.provider);
   const claims = await verifyIdToken(deps, input.idToken);
-  const existing = await findIdentity(deps.db, "GOOGLE", claims.subject);
+  const existing = await findIdentity(deps.db, provider, claims.subject);
 
   if (existing !== undefined) {
     if (existing.userId !== input.userId) throw oidcIdentityAlreadyLinked();
@@ -260,12 +291,12 @@ export async function connectOidc(
   const ownProvider = await findIdentityByUserProvider(
     deps.db,
     input.userId,
-    "GOOGLE",
+    provider,
   );
   if (ownProvider !== undefined) throw oidcProviderAlreadyLinked();
 
   const now = deps.clock.now();
 
-  await insertIdentitySafely(deps, input, claims, now);
+  await insertIdentitySafely(deps, input, claims, now, provider);
   await backfillVerifiedEmail(deps, input.userId, claims, now);
 }
