@@ -1,6 +1,6 @@
 # cf-core-kit — Harness Parity Proposal (1:1 with backend-core-kit)
 
-**Status:** draft for review (2026-10-12)
+**Status:** accepted (2026-10-15) — graduated into ADRs 0014-0021, `tools/parity/harness.json` (46 of 46 rows present) and the engineering docs under `docs/engineering/`
 **Date:** 2026-10-12
 **Revision:** r1 — initial 1:1 mapping of the family harness system
 **Scope:** the harness system: verification profiles and lanes, gate sensors, the test harness, CI lanes and governance, knowledge/evidence/ledger machinery, task–workspace–handoff orchestration, doctor and scaffolding, and the harness documentation set
