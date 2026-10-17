@@ -21,3 +21,11 @@ ADRs record durable decisions. Proposals in `_WIP/` are input; once accepted, de
 | [0011](./0011-strict-quality-baseline-and-gate-honesty.md)       | Strict quality baseline and gate honesty             | Accepted |
 | [0012](./0012-auth-rate-limiting-via-durable-object-counters.md) | Auth rate limiting via Durable Object counters       | Accepted |
 | [0013](./0013-in-scope-surface-auth-and-users.md)                | In-scope surface is auth and users                   | Accepted |
+| [0014](./0014-canonical-harness-with-a-parity-manifest.md)       | Canonical harness with a parity manifest             | Accepted |
+| [0015](./0015-structured-task-authority.md)                      | Structured task authority                            | Accepted |
+| [0016](./0016-risk-aware-verification-and-repair.md)             | Risk-aware verification and bounded repair           | Accepted |
+| [0017](./0017-isolated-task-workspaces.md)                       | Isolated task workspaces                             | Accepted |
+| [0018](./0018-queued-plan-intake.md)                             | Queued-plan intake                                   | Accepted |
+| [0019](./0019-verified-handoff.md)                               | Verified handoff                                     | Accepted |
+| [0020](./0020-oracles-and-operating-evidence.md)                 | Test oracles and operating evidence                  | Accepted |
+| [0021](./0021-gated-improvement-and-hill-climbing.md)            | Gated improvement and hill climbing                  | Accepted |
