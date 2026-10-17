@@ -1,6 +1,6 @@
 # Section note: `src/features/users/profile-image`
 
-- Status: Accepted. The five edits below are applied. The two bugs are not.
+- Status: Accepted. The five edits below are applied. The two bugs are fixed.
 - Date: 2026-10-15
 - Scope: upload, complete, clear, the read URL, the service, the repository, and the two cleanup jobs. `requireLiveUser` in `src/features/users/shared/guards.ts` is used as it stands. Account deletion's cleanup call is a later note.
 - Ruler: `_WIP/2026-10-15_cf-core-kit-readability-proposal.md`
@@ -12,7 +12,7 @@ This is the copy target for a capability that earns a service. ADR-0001 allows o
 
 Two spots are hard to read. `registerProfileImageRoutes` hides six `app.use` calls inside a loop. `completeUpload` returns six named kinds, and the handler walks them with `if` and lets `"noop"` and `"attached"` fall through.
 
-Two bugs, neither is a taste edit. Complete calls `rejectUnknownKeys` without `captureRawJson` on that path, so the check never runs. The handler also enqueues a delete when `previousFileId` is the file just attached. Backend suppresses that case.
+Two bugs were fixed after the taste edit. Complete now mounts `captureRawJson` before `requireAuth`, so an extra field returns 400 `VALIDATION_FAILED`. `attachProfileImageFile` returns `previousFileId` as null when the stored id is missing or equal to the file just attached, and the handler still enqueues only when that value is non-null.
 
 ## What was read
 
@@ -132,9 +132,13 @@ Applied. `clearProfileImage` no longer selects `objectKey` or returns it. The ha
 
 ## Bugs
 
-Complete's unknown-key check is dead. The handler calls `rejectUnknownKeys(rawJsonOf(context), ["fileId"])`. `registerProfileImageRoutes` never calls `captureRawJson` on `/v1/me/profile-image/complete`. `rawJsonOf` is then `undefined`, and `rejectUnknownKeys` returns on a non-object. Zod strips the extra field, so the request still completes. Upload rejects an extra field because that path does capture the body. Note 01 made `rejectUnknownKeys` the unknown-key policy. The fix is the missing `app.use` on the complete path. Extra fields then return 400 `VALIDATION_FAILED`. That is a status change, so it is not in the taste list.
+Complete's unknown-key check was dead. The handler calls `rejectUnknownKeys(rawJsonOf(context), ["fileId"])`. `registerProfileImageRoutes` did not call `captureRawJson` on `/v1/me/profile-image/complete`. `rawJsonOf` was then `undefined`, and `rejectUnknownKeys` returns on a non-object. Zod strips the extra field, so the request completed. Upload already rejected an extra field because that path captures the body. Note 01 made `rejectUnknownKeys` the unknown-key policy.
 
-The delete enqueue does not compare the previous id with the file just attached. Backend `completeUpload` returns null when `previousFileId` is missing or equal to `input.fileId`, and the controller only then enqueues. This handler enqueues for every non-null previous id. The sampled noop test never reaches that line: an active current file returns `"noop"` first. The equal-id path is the one the backend still guards. A bug note should skip the enqueue when the ids match. The tested 204 stays. The change is which job is sent, so it is not a taste edit.
+Fixed. `app.use("/v1/me/profile-image/complete", captureRawJson())` sits before `requireAuth`. Extra fields return 400 `VALIDATION_FAILED`. That status change stayed out of the taste list.
+
+The delete enqueue did not compare the previous id with the file just attached. Backend `completeUpload` returns null when `previousFileId` is missing or equal to `input.fileId`, and the controller only then enqueues. This handler enqueued for every non-null previous id. The sampled noop test never reaches that line: an active current file returns `"noop"` first. The equal-id path is an `UPLOADING` file the user already points at.
+
+Fixed in `attachProfileImageFile`. The returned `previousFileId` is null when the column is null or equals `input.fileId`, and that same value decides the retire batch. The handler condition stays `previousFileId !== null`. 204 stays. `profile-image-complete.spec.ts` locks the extra field as 400 `VALIDATION_FAILED` with the row still `UPLOADING`, and the equal-id complete as 204 with no queue message and the file `ACTIVE`. A different previous id still enqueues one delete.
 
 ## Design question
 
@@ -158,6 +162,8 @@ No change to status codes, error codes, the batch statements, or the job skip ru
 
 20 tests passed. `npx eslint` and `npx prettier --check` on `profile-image.routes.ts`, `profile-image.handlers.ts`, `profile-image.service.ts`, and `profile-image.repository.ts` passed. `npx tsc --noEmit` exited 0.
 
+Bug fix: `npx vitest run src/features/users/profile-image/profile-image-complete.spec.ts src/features/users/profile-image/profile-image.spec.ts` — 13 passed. `npx eslint` and `npx prettier --check` on `profile-image.routes.ts`, `profile-image.repository.ts`, and `profile-image-complete.spec.ts` passed. `npx tsc --noEmit` exited 0.
+
 ## Next
 
-`_WIP/readability/10-features-users-account-deletion.md`. It already calls the profile-image cleanup producer. It must not reshape that producer. The complete raw-body bug and the equal-id enqueue stay out of that note.
+`_WIP/readability/10-features-users-account-deletion.md`. It already calls the profile-image cleanup producer. It must not reshape that producer. The complete raw-body bug and the equal-id enqueue were fixed in this note after the taste edit.

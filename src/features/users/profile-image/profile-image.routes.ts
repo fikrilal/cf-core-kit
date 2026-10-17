@@ -171,6 +171,7 @@ export function registerProfileImageRoutes(
 ): void {
   app.use("/v1/me/profile-image/upload", captureRawJson());
   app.use("/v1/me/profile-image/upload", requireAuth(dependencies.clock));
+  app.use("/v1/me/profile-image/complete", captureRawJson());
   app.use("/v1/me/profile-image/complete", requireAuth(dependencies.clock));
   app.use("/v1/me/profile-image", requireAuth(dependencies.clock));
   app.use("/v1/me/profile-image/url", requireAuth(dependencies.clock));

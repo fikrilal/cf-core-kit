@@ -149,9 +149,13 @@ export async function attachProfileImageFile(
     .update(users)
     .set({ profileImageFileId: input.fileId, updatedAt: input.now })
     .where(eq(users.id, input.userId));
-  const previousFileId = user.profileImageFileId;
+  // Equal ids are the file just attached, not a file to retire.
+  const previousFileId =
+    user.profileImageFileId !== null && user.profileImageFileId !== input.fileId
+      ? user.profileImageFileId
+      : null;
 
-  if (previousFileId !== null && previousFileId !== input.fileId) {
+  if (previousFileId !== null) {
     const retirePrevious = db
       .update(storedFiles)
       .set({ status: "DELETED", deletedAt: input.now, updatedAt: input.now })

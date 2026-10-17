@@ -112,4 +112,4 @@ No change to job names, payloads, the cron expression, or the consumer.
 
 ## Next
 
-This is the last section in the readability order. Its edit is applied. The correctness program and any standards promotion stay out of this pass. The deleted-user connect bug, the profile-image complete raw-body bug, and the equal-id delete enqueue stay out of this note.
+This is the last section in the readability order. Its edit is applied. The correctness program and any standards promotion stay out of this pass. The deleted-user connect bug, the profile-image complete raw-body bug, and the equal-id delete enqueue were fixed after this note. See the bug sections in notes 06 and 09.

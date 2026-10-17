@@ -73,6 +73,20 @@ describe("users.me.profileImage.complete", () => {
     });
   });
 
+  it("does not delete the file when the user already points at it", async () => {
+    const userId = await seedImageUser();
+    const fileId = await seedFile(userId);
+    await pointUserAt(userId, fileId);
+    const { queue, sent } = fakeQueue();
+    stubSignedFetch(() => headOk(4, "image/webp"));
+
+    const response = await complete(userId, { fileId }, queue);
+
+    expect(response.status).toBe(204);
+    expect(sent).toHaveLength(0);
+    expect((await fileRow(fileId)).status).toBe("ACTIVE");
+  });
+
   it("is a no-op when the file is already attached", async () => {
     const userId = await seedImageUser();
     const fileId = await seedFile(userId, {
@@ -96,6 +110,21 @@ describe("users.me.profileImage.complete rejections", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it("rejects unknown fields", async () => {
+    const userId = await seedImageUser();
+    const fileId = await seedFile(userId);
+    stubSignedFetch(() => headOk(4, "image/webp"));
+
+    const response = await complete(userId, { fileId, extra: true });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "VALIDATION_FAILED",
+      errors: [{ field: "extra" }],
+    });
+    expect((await fileRow(fileId)).status).toBe("UPLOADING");
   });
 
   it("answers 404 for unknown and foreign files", async () => {
