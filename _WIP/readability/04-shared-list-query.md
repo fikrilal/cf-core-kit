@@ -18,19 +18,19 @@ No bug. No edit in this section.
 
 Production:
 
-| File | Lines | Role |
-| --- | --- | --- |
-| `list-query.ts` | 159 | `parseListQuery` |
-| `sort.ts` | 114 | tokens, default, tie-breaker |
-| `filter.ts` | 153 | allowlist, operators |
-| `cursor.ts` | 153 | base64url cursor v1 |
-| `cursor-after.ts` | 65 | keyset OR of ANDs |
-| `where.ts` | 79 | builder factory, date and string cursor values |
-| `scalars.ts` | 91 | string, uuid, datetime, number, boolean, enum |
-| `types.ts` | 56 | the result and the allowlists |
-| `errors.ts` | 15 | `ListQueryValidationError` |
-| `object.ts` | 12 | `isPlainObject`, `hasOwnField` |
-| `index.ts` | 10 | re-exports |
+| File              | Lines | Role                                           |
+| ----------------- | ----- | ---------------------------------------------- |
+| `list-query.ts`   | 159   | `parseListQuery`                               |
+| `sort.ts`         | 114   | tokens, default, tie-breaker                   |
+| `filter.ts`       | 153   | allowlist, operators                           |
+| `cursor.ts`       | 153   | base64url cursor v1                            |
+| `cursor-after.ts` | 65    | keyset OR of ANDs                              |
+| `where.ts`        | 79    | builder factory, date and string cursor values |
+| `scalars.ts`      | 91    | string, uuid, datetime, number, boolean, enum  |
+| `types.ts`        | 56    | the result and the allowlists                  |
+| `errors.ts`       | 15    | `ListQueryValidationError`                     |
+| `object.ts`       | 12    | `isPlainObject`, `hasOwnField`                 |
+| `index.ts`        | 10    | re-exports                                     |
 
 Specs were sampled for the claims below: `list-query.spec.ts`, `sort.spec.ts`, `filter.spec.ts`, `cursor.spec.ts`, `cursor-after.spec.ts`, `where.spec.ts`.
 

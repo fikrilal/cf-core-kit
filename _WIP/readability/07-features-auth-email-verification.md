@@ -16,12 +16,12 @@ No client-facing bug. The consume order, the resend guards, and the job skips ma
 
 ## What was read
 
-| File | Lines | Role |
-| --- | --- | --- |
-| `email-verification.routes.ts` | 216 | verify and resend |
-| `email-verification.jobs.ts` | 204 | producer and `auth.sendVerificationEmail` |
-| `shared/repository.ts` | 316 | `consumeEmailVerificationToken` only; the file is shared |
-| `shared/auth.errors.ts` | 97 | auth error table; email codes are absent |
+| File                           | Lines | Role                                                     |
+| ------------------------------ | ----- | -------------------------------------------------------- |
+| `email-verification.routes.ts` | 216   | verify and resend                                        |
+| `email-verification.jobs.ts`   | 204   | producer and `auth.sendVerificationEmail`                |
+| `shared/repository.ts`         | 316   | `consumeEmailVerificationToken` only; the file is shared |
+| `shared/auth.errors.ts`        | 97    | auth error table; email codes are absent                 |
 
 Specs sampled by case name: `email-verification.spec.ts` (257), `email-verification-resend.spec.ts` (322), `email-verification.jobs.spec.ts` (246). Backend `verifyEmailByTokenHash`, `AuthEmailVerificationService.verifyEmail`, and the resend method on `email-verification.controller.ts` were read for outcome order and status checks.
 

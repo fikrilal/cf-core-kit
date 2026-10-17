@@ -14,12 +14,12 @@ The miss is the success envelope on OpenAPI JSON routes. `data()`, `list()`, and
 
 The dialect this note freezes:
 
-| Response | Return |
-| --- | --- |
-| Contract object, HTTP 200 | `context.json(dataPayload(value), 200)` |
-| Contract list, HTTP 200 | `context.json(listPayload(value), 200)` |
-| Empty 204 | `noContent()` |
-| Document that is not the contract envelope (health, JWKS) | `context.json(document, status)` |
+| Response                                                  | Return                                  |
+| --------------------------------------------------------- | --------------------------------------- |
+| Contract object, HTTP 200                                 | `context.json(dataPayload(value), 200)` |
+| Contract list, HTTP 200                                   | `context.json(listPayload(value), 200)` |
+| Empty 204                                                 | `noContent()`                           |
+| Document that is not the contract envelope (health, JWKS) | `context.json(document, status)`        |
 
 `dataPayload` lands with the `users/me` note, next to the first two call sites. It does not land in this section's edit. An export with only a unit test is a speculative helper. `jsonData(context, value)` stays unbuilt. It would hide the `context.json` return that the route type requires, and this note did not prove a wrapper still typechecks.
 
@@ -31,18 +31,18 @@ No bug in this slice.
 
 Production, judged:
 
-| File | Lines | Role |
-| --- | --- | --- |
-| `app.ts` | 22 | `OpenAPIHono`, request id, not-found, onError |
-| `envelope.ts` | 48 | `data`, `listPayload`, `list`, `created`, `noContent` |
-| `problem.ts` | 118 | RFC7807 response |
-| `validation.ts` | 84 | unknown keys, zod issues, `decode`, `readJson` |
-| `request-id.ts` | 41 | inbound id normalization and echo |
-| `request-logging.ts` | 90 | one access line, one error line |
-| `raw-body.ts` | 20 | raw JSON capture for unknown keys |
-| `openapi.ts` | 124 | operation metadata, emit mutations, validation hook |
-| `list-query.ts` | 123 | Hono query string to `parseListQuery` |
-| `types.ts` | 13 | `AppEnv` |
+| File                 | Lines | Role                                                  |
+| -------------------- | ----- | ----------------------------------------------------- |
+| `app.ts`             | 22    | `OpenAPIHono`, request id, not-found, onError         |
+| `envelope.ts`        | 48    | `data`, `listPayload`, `list`, `created`, `noContent` |
+| `problem.ts`         | 118   | RFC7807 response                                      |
+| `validation.ts`      | 84    | unknown keys, zod issues, `decode`, `readJson`        |
+| `request-id.ts`      | 41    | inbound id normalization and echo                     |
+| `request-logging.ts` | 90    | one access line, one error line                       |
+| `raw-body.ts`        | 20    | raw JSON capture for unknown keys                     |
+| `openapi.ts`         | 124   | operation metadata, emit mutations, validation hook   |
+| `list-query.ts`      | 123   | Hono query string to `parseListQuery`                 |
+| `types.ts`           | 13    | `AppEnv`                                              |
 
 Tests read for behavior, not taste: `app.spec.ts`, `envelope.spec.ts`, `problem.spec.ts`, `validation.spec.ts`, `request-id.spec.ts`, `request-logging.spec.ts`, `observability.spec.ts`, `list-query.spec.ts`.
 

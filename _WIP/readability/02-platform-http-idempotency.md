@@ -18,15 +18,15 @@ No bug.
 
 ## What was read
 
-| File | Lines | Role |
-| --- | --- | --- |
-| `idempotency.ts` | 164 | `idempotent` middleware |
-| `idempotency.core.ts` | 249 | hash canonicalizer, record parse, record builders |
-| `idempotency.service.ts` | 292 | D1 acquire, replay, wait, complete, release, sweep delete |
-| `idempotency.jobs.ts` | 41 | `http.purgeExpiredIdempotencyRecords` |
-| `idempotency.spec.ts` | 338 | middleware outcomes |
-| `idempotency.core.spec.ts` | 104 | hash and parse |
-| `idempotency.jobs.spec.ts` | 116 | sweep |
+| File                       | Lines | Role                                                      |
+| -------------------------- | ----- | --------------------------------------------------------- |
+| `idempotency.ts`           | 164   | `idempotent` middleware                                   |
+| `idempotency.core.ts`      | 249   | hash canonicalizer, record parse, record builders         |
+| `idempotency.service.ts`   | 292   | D1 acquire, replay, wait, complete, release, sweep delete |
+| `idempotency.jobs.ts`      | 41    | `http.purgeExpiredIdempotencyRecords`                     |
+| `idempotency.spec.ts`      | 338   | middleware outcomes                                       |
+| `idempotency.core.spec.ts` | 104   | hash and parse                                            |
+| `idempotency.jobs.spec.ts` | 116   | sweep                                                     |
 
 Compared with backend `idempotency.service.ts` and `idempotency.interceptor.ts`. The CF service replaces Redis `SET NX` with `INSERT ... ON CONFLICT DO NOTHING` and replaces key expiry with an `expires_at` column. The outcomes match.
 

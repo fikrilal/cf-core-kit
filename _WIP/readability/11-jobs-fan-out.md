@@ -16,14 +16,14 @@ No tested response is wrong. The worker spec locks the three names, the job id `
 
 ## What was read
 
-| File | Lines | Role |
-| --- | --- | --- |
-| `src/jobs.ts` | 60 | registry and the cron list |
-| `src/worker.ts` | 80 | `queue` and `scheduled` |
-| `platform/queue/registry.ts` | 90 | `defineJob`, duplicate-name check |
-| `platform/queue/consumer.ts` | 217 | ack, retry, dead letter |
-| `platform/queue/producer.ts` | 155 | `enqueue` returns boolean |
-| `platform/queue/job.ts` | 54 | envelope and `SchedulePayload` |
+| File                         | Lines | Role                              |
+| ---------------------------- | ----- | --------------------------------- |
+| `src/jobs.ts`                | 60    | registry and the cron list        |
+| `src/worker.ts`              | 80    | `queue` and `scheduled`           |
+| `platform/queue/registry.ts` | 90    | `defineJob`, duplicate-name check |
+| `platform/queue/consumer.ts` | 217   | ack, retry, dead letter           |
+| `platform/queue/producer.ts` | 155   | `enqueue` returns boolean         |
+| `platform/queue/job.ts`      | 54    | envelope and `SchedulePayload`    |
 
 `src/worker.spec.ts` (287) locks the fan-out. `wrangler.jsonc` has one cron, `0 * * * *`, on the root and on each environment. The budget check enforces that per scope. Feature handlers were not reopened.
 

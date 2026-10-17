@@ -62,15 +62,15 @@ Here the platform modules in `src/platform` are that core. A feature function sh
 
 ## 4. Where the same jobs live today
 
-| Mobile habit | Mobile home | cf-core-kit home |
-| --- | --- | --- |
-| Shared response and failure machinery | `lib/core/infra/network` | `src/platform/http` (`envelope`, `problem`, `validation`, idempotency, list query) |
-| Shared small primitives | `lib/core/foundation`, `lib/core/platform` | `src/platform/config`, `clock`, `logging`, `crypto`, `cache` |
-| Token issue, verify, guard | session core plus feature adapter | `src/platform/auth` |
-| Persistence sequence | repository over a remote datasource | feature repository over `src/platform/db` (D1 + Drizzle) |
-| Thin policy | `domain/usecase` | optional feature service, or the handler when ADR-0001 says there is no policy |
-| Side effects that outlive the request | not the datasource method | `src/platform/queue`, feature `*.jobs.ts`, the one cron in `src/jobs.ts` |
-| Process entry | `lib/core/di` | `src/app.ts`, `src/worker.ts` |
+| Mobile habit                          | Mobile home                                | cf-core-kit home                                                                   |
+| ------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------- |
+| Shared response and failure machinery | `lib/core/infra/network`                   | `src/platform/http` (`envelope`, `problem`, `validation`, idempotency, list query) |
+| Shared small primitives               | `lib/core/foundation`, `lib/core/platform` | `src/platform/config`, `clock`, `logging`, `crypto`, `cache`                       |
+| Token issue, verify, guard            | session core plus feature adapter          | `src/platform/auth`                                                                |
+| Persistence sequence                  | repository over a remote datasource        | feature repository over `src/platform/db` (D1 + Drizzle)                           |
+| Thin policy                           | `domain/usecase`                           | optional feature service, or the handler when ADR-0001 says there is no policy     |
+| Side effects that outlive the request | not the datasource method                  | `src/platform/queue`, feature `*.jobs.ts`, the one cron in `src/jobs.ts`           |
+| Process entry                         | `lib/core/di`                              | `src/app.ts`, `src/worker.ts`                                                      |
 
 This table names owners. It is not a score. The Cloudflare side has not been reviewed yet.
 
@@ -78,14 +78,14 @@ This table names owners. It is not a score. The Cloudflare side has not been rev
 
 Folder depth may graduate. These shapes may not. A reader who has learned one example of a shape should find the next example in the same place, with the same steps.
 
-| Shape | What one example contains | What varies |
-| --- | --- | --- |
-| Route module | OpenAPI route, operation metadata, handler factory, `register*` function | path, schema, error codes |
-| Handler | read principal and body, reject unknown keys, call one function, write through the platform success helper | the one function it calls |
-| Service | the product rule only, returned as data or a `kind` | present only when ADR-0001 says the rule is worth isolating |
-| Repository function | one read, or one batch inside the write budget, then a view or a `kind` | the statement |
-| Error table | named builders for the feature's problem details, beside the caller | the codes |
-| Job | one payload, one sequence, platform retry left alone | the sequence |
+| Shape               | What one example contains                                                                                  | What varies                                                 |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Route module        | OpenAPI route, operation metadata, handler factory, `register*` function                                   | path, schema, error codes                                   |
+| Handler             | read principal and body, reject unknown keys, call one function, write through the platform success helper | the one function it calls                                   |
+| Service             | the product rule only, returned as data or a `kind`                                                        | present only when ADR-0001 says the rule is worth isolating |
+| Repository function | one read, or one batch inside the write budget, then a view or a `kind`                                    | the statement                                               |
+| Error table         | named builders for the feature's problem details, beside the caller                                        | the codes                                                   |
+| Job                 | one payload, one sequence, platform retry left alone                                                       | the sequence                                                |
 
 `src/features/users/me` is the copy target for the handler and repository shapes, after the platform HTTP note has settled the success helper. Later feature notes copy that settled shape. They do not invent a third one.
 

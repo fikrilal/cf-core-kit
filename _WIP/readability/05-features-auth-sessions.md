@@ -19,17 +19,17 @@ No client-facing bug. The D1 batch cannot roll back a 0-row update. The caller r
 
 ## What was read
 
-| File | Lines | Role |
-| --- | --- | --- |
-| `session.routes.ts` | 141 | `auth.refresh`, `auth.logout` |
-| `session.service.ts` | 230 | `issueSession`, `refreshSession`, `logoutSession` |
-| `sessions.routes.ts` | 194 | list and revoke |
-| `sessions.service.ts` | 169 | page query and revoke |
-| `jwks.routes.ts` | 47 | public keys |
-| `sweep.jobs.ts` | 44 | `auth.purgeExpiredSessions` |
-| `shared/repository.ts` | 316 | session, identity, and email sequences |
-| `shared/auth.errors.ts` | 97 | named `AppError` builders |
-| `shared/auth.rate-limits.ts` | 57 | exchange, connect, refresh, logout policies |
+| File                         | Lines | Role                                              |
+| ---------------------------- | ----- | ------------------------------------------------- |
+| `session.routes.ts`          | 141   | `auth.refresh`, `auth.logout`                     |
+| `session.service.ts`         | 230   | `issueSession`, `refreshSession`, `logoutSession` |
+| `sessions.routes.ts`         | 194   | list and revoke                                   |
+| `sessions.service.ts`        | 169   | page query and revoke                             |
+| `jwks.routes.ts`             | 47    | public keys                                       |
+| `sweep.jobs.ts`              | 44    | `auth.purgeExpiredSessions`                       |
+| `shared/repository.ts`       | 316   | session, identity, and email sequences            |
+| `shared/auth.errors.ts`      | 97    | named `AppError` builders                         |
+| `shared/auth.rate-limits.ts` | 57    | exchange, connect, refresh, logout policies       |
 
 Specs sampled: `refresh.spec.ts`, `logout.spec.ts`, `sessions.spec.ts`, `jwks.spec.ts`, `sweep.jobs.spec.ts`. Backend `session-lifecycle.service.ts` and `rotateRefreshToken` in `prisma-auth.repository.refresh-tokens.ts` were read for the rotation race only.
 
@@ -95,7 +95,7 @@ Applied. `session.routes.ts` returns `context.json(dataPayload(result), 200)`. N
 - `createSessionWithToken` revokes the previous active device session in the same batch as the insert, and that revoke clears the push token columns. One device key, one active session. Leave the batch.
 - `issueSession` signs, then `createSessionWithToken`. A failed batch returns no token to the client. OIDC depends on this order. Do not reverse it.
 - `shared/repository.ts` also holds `findIdentity`, `insertIdentity`, `markEmailVerified`, and `consumeEmailVerificationToken`. Email verification returns a string union, not a `kind` object. The email-verification note owns that function. Do not split the file in this pass.
-- `TRUE = sql\`1 = 1\`` is the empty clause. `mergeWhereClauses` uses reference equality against that value. Leave the sentinel. A structural SQL compare would be a different predicate.
+- `TRUE = sql\`1 = 1\``is the empty clause.`mergeWhereClauses` uses reference equality against that value. Leave the sentinel. A structural SQL compare would be a different predicate.
 - The sweep deletes expired sessions through `purgeExpiredSessions`. Clock comes from the job dependencies. Leave it.
 
 ## Bugs

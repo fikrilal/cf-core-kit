@@ -16,14 +16,14 @@ Two habits are not finished. The success return still builds `{ data }` by hand,
 
 ## What was read
 
-| File | Lines | Role |
-| --- | --- | --- |
-| `me.routes.ts` | 191 | routes, metadata, `sanitizeProfile`, handlers, register |
-| `me.ts` | 93 | `loadMe`, `updateMeProfile` |
-| `payload.ts` | 32 | `toMePayload`, `toAuthUserPayload` |
-| `users.routes.ts` | 36 | mounts this slice with the app clock |
-| `index.ts` | 11 | the feature surface auth is allowed to import |
-| `me.spec.ts` | 330 | envelope, deleted user, trim, null clear, unknown keys, idempotency |
+| File              | Lines | Role                                                                |
+| ----------------- | ----- | ------------------------------------------------------------------- |
+| `me.routes.ts`    | 191   | routes, metadata, `sanitizeProfile`, handlers, register             |
+| `me.ts`           | 93    | `loadMe`, `updateMeProfile`                                         |
+| `payload.ts`      | 32    | `toMePayload`, `toAuthUserPayload`                                  |
+| `users.routes.ts` | 36    | mounts this slice with the app clock                                |
+| `index.ts`        | 11    | the feature surface auth is allowed to import                       |
+| `me.spec.ts`      | 330   | envelope, deleted user, trim, null clear, unknown keys, idempotency |
 
 `OidcProvider` is only `"GOOGLE"` (`src/platform/db/schema.ts`). Account-deletion writes `deletionRequestedAt` and `deletionScheduledFor` together. Those two facts bound the findings below.
 

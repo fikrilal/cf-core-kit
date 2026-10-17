@@ -16,14 +16,14 @@ Two bugs were fixed after the taste edit. Complete now mounts `captureRawJson` b
 
 ## What was read
 
-| File | Lines | Role |
-| --- | --- | --- |
-| `profile-image.routes.ts` | 213 | four routes and registration |
-| `profile-image.handlers.ts` | 234 | HTTP map, limiter, enqueue |
-| `profile-image.service.ts` | 156 | plan and complete policy |
-| `profile-image.repository.ts` | 206 | stored-file sequence |
-| `profile-image.jobs.ts` | 206 | expire and delete jobs |
-| `shared/guards.ts` | 23 | `requireLiveUser` |
+| File                          | Lines | Role                         |
+| ----------------------------- | ----- | ---------------------------- |
+| `profile-image.routes.ts`     | 213   | four routes and registration |
+| `profile-image.handlers.ts`   | 234   | HTTP map, limiter, enqueue   |
+| `profile-image.service.ts`    | 156   | plan and complete policy     |
+| `profile-image.repository.ts` | 206   | stored-file sequence         |
+| `profile-image.jobs.ts`       | 206   | expire and delete jobs       |
+| `shared/guards.ts`            | 23    | `requireLiveUser`            |
 
 Specs sampled by case name: `profile-image.spec.ts` (338), `profile-image-complete.spec.ts` (171), `profile-image-clear-url.spec.ts` (130), `profile-image.jobs.spec.ts` (220). Backend `profile-image.service.ts` `completeUpload`, `attachProfileImageFile`, and the controller were read for the previous-file rule and the unknown-key path.
 
@@ -84,9 +84,7 @@ switch (result.kind) {
     });
   default: {
     const unreachable: never = result;
-    throw new Error(
-      `Unexpected profile image outcome: ${String(unreachable)}`,
-    );
+    throw new Error(`Unexpected profile image outcome: ${String(unreachable)}`);
   }
 }
 ```
@@ -103,8 +101,7 @@ Applied, same 401 for `"not_found"`. The upload handler switches. `default` assi
 
 ```ts
 type UploadPlanResult =
-  | Readonly<{ kind: "ok"; plan: UploadPlan }>
-  | Readonly<{ kind: "not_found" }>;
+  Readonly<{ kind: "ok"; plan: UploadPlan }> | Readonly<{ kind: "not_found" }>;
 ```
 
 The handler switches. `default` assigns `never`.

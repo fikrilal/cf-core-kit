@@ -17,11 +17,11 @@ No client-facing bug. The disabled-provider gate, the deleted-user gate, the liv
 
 ## What was read
 
-| File | Lines | Role |
-| --- | --- | --- |
-| `push-token.routes.ts` | 157 | upsert and revoke |
-| `push-token.repository.ts` | 90 | the batch and the clear |
-| `shared/repository.ts` | 316 | `readChangeCount` only; the file is shared |
+| File                       | Lines | Role                                       |
+| -------------------------- | ----- | ------------------------------------------ |
+| `push-token.routes.ts`     | 157   | upsert and revoke                          |
+| `push-token.repository.ts` | 90    | the batch and the clear                    |
+| `shared/repository.ts`     | 316   | `readChangeCount` only; the file is shared |
 
 Specs sampled by case name: `push-token.spec.ts` (375), `push-token.repository.spec.ts` (109). Backend `MePushTokenController`, `AuthPushTokensService`, and `upsertSessionPushToken` in `prisma-auth.repository.sessions.ts` were read for the gate order and the live-session rule.
 

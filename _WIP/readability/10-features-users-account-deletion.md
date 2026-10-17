@@ -17,12 +17,12 @@ No tested response is wrong.
 
 ## What was read
 
-| File | Lines | Role |
-| --- | --- | --- |
-| `account-deletion.routes.ts` | 155 | request, cancel, registration |
-| `account-deletion.repository.ts` | 394 | grace, last admin, cascade |
-| `account-deletion.jobs.ts` | 183 | one-user finalize and the due sweep |
-| `src/jobs.ts` | 60 | where the sweep is registered; the jobs note owns this file |
+| File                             | Lines | Role                                                        |
+| -------------------------------- | ----- | ----------------------------------------------------------- |
+| `account-deletion.routes.ts`     | 155   | request, cancel, registration                               |
+| `account-deletion.repository.ts` | 394   | grace, last admin, cascade                                  |
+| `account-deletion.jobs.ts`       | 183   | one-user finalize and the due sweep                         |
+| `src/jobs.ts`                    | 60    | where the sweep is registered; the jobs note owns this file |
 
 Specs sampled by case name: `account-deletion.spec.ts` (268), `account-deletion.jobs.spec.ts` (344). Backend `account-deletion.service.ts` and `runFinalizeAccountDeletionTx` were read for the scheduler and the last-admin rule. `docs/standards/queues-jobs.md` and `docs/standards/database.md` were read for the sweep and the row budget.
 

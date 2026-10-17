@@ -17,13 +17,13 @@ One client-facing bug was fixed after the taste edit. `connectOidc` loads the ca
 
 ## What was read
 
-| File | Lines | Role |
-| --- | --- | --- |
-| `oidc.routes.ts` | 193 | exchange and connect routes, handlers, registration |
-| `oidc.service.ts` | 271 | `exchangeOidc`, `connectOidc` |
-| `oidc.ts` | 249 | Google verifier, claims, JWKS cache |
-| `auth.routes.ts` | 84 | passes the verifier and clock into `registerOidcRoutes` |
-| `src/platform/auth/guard.ts` | 51 | bearer check only; opened to see whether connect reloads the user |
+| File                         | Lines | Role                                                              |
+| ---------------------------- | ----- | ----------------------------------------------------------------- |
+| `oidc.routes.ts`             | 193   | exchange and connect routes, handlers, registration               |
+| `oidc.service.ts`            | 271   | `exchangeOidc`, `connectOidc`                                     |
+| `oidc.ts`                    | 249   | Google verifier, claims, JWKS cache                               |
+| `auth.routes.ts`             | 84    | passes the verifier and clock into `registerOidcRoutes`           |
+| `src/platform/auth/guard.ts` | 51    | bearer check only; opened to see whether connect reloads the user |
 
 Specs sampled by case name: `exchange.spec.ts` (361), `connect.spec.ts` (320), `oidc.spec.ts` (205). Backend `oidc-auth.service.ts` `connectOidc`, `requireExistingNonDeletedUser`, and `oidc-auth.service.deleted-user.spec.ts` were read for the deleted-user check and the provider argument. The connect error-code list on `oidc.controller.ts` was compared with `oidcOperations`.
 
