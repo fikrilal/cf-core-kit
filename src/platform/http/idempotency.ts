@@ -56,6 +56,7 @@ async function readResponseBody(response: Response): Promise<unknown> {
 
 function replayResponse(record: CompletedRecord): Response {
   const headers = new Headers(record.headers);
+  // Family replay downgrades 201 to 200.
   const status = record.status === 201 ? 200 : record.status;
 
   headers.set("Idempotency-Replayed", "true");
@@ -115,50 +116,55 @@ export function idempotent(
       beginParams(context, method, options, requestHash),
     );
 
-    if (begin.kind === "skip") {
-      await next();
-      return;
-    }
+    switch (begin.kind) {
+      case "skip":
+        await next();
+        return;
+      case "replay":
+        return replayResponse(begin.record);
+      case "in_progress": {
+        const completed = await waitForIdempotencyCompletion(
+          db,
+          begin.key,
+          begin.requestHash,
+          begin.waitMs,
+        );
 
-    if (begin.kind === "replay") {
-      return replayResponse(begin.record);
-    }
+        if (completed !== undefined) {
+          return replayResponse(completed);
+        }
 
-    if (begin.kind === "in_progress") {
-      const completed = await waitForIdempotencyCompletion(
-        db,
-        begin.key,
-        begin.requestHash,
-        begin.waitMs,
-      );
-
-      if (completed !== undefined) {
-        return replayResponse(completed);
+        throw new AppError({
+          status: 409,
+          code: ErrorCode.IDEMPOTENCY_IN_PROGRESS,
+          message: "An identical request is already in progress",
+          retryAfterSeconds: 1,
+        });
       }
+      case "acquired":
+        try {
+          await next();
+        } catch (error) {
+          await releaseIdempotency(db, begin.key, begin.requestHash);
+          throw error;
+        }
 
-      throw new AppError({
-        status: 409,
-        code: ErrorCode.IDEMPOTENCY_IN_PROGRESS,
-        message: "An identical request is already in progress",
-        retryAfterSeconds: 1,
-      });
+        await completeIdempotency(
+          db,
+          begin.key,
+          begin.requestHash,
+          context.res.status,
+          await readResponseBody(context.res),
+          replayHeaders(context.res),
+          begin.ttlSeconds,
+        );
+        return;
+      default: {
+        const unreachable: never = begin;
+        throw new Error(
+          `Unexpected idempotency outcome: ${String(unreachable)}`,
+        );
+      }
     }
-
-    try {
-      await next();
-    } catch (error) {
-      await releaseIdempotency(db, begin.key, begin.requestHash);
-      throw error;
-    }
-
-    await completeIdempotency(
-      db,
-      begin.key,
-      begin.requestHash,
-      context.res.status,
-      await readResponseBody(context.res),
-      replayHeaders(context.res),
-      begin.ttlSeconds,
-    );
   };
 }

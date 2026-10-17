@@ -113,7 +113,7 @@ async function resolveConflict(
   params: IdempotencyBeginParams,
   serialized: string,
   now: number,
-): Promise<IdempotencyBeginResult | undefined> {
+): Promise<IdempotencyBeginResult> {
   const row = await readRow(db, key);
 
   if (row === undefined) {
@@ -146,7 +146,12 @@ async function resolveConflict(
   if (existing.state === "completed")
     return { kind: "replay", record: existing };
 
-  return undefined;
+  return {
+    kind: "in_progress",
+    key,
+    requestHash: params.requestHash,
+    waitMs: params.waitMs,
+  };
 }
 
 export async function beginIdempotency(
@@ -186,15 +191,7 @@ export async function beginIdempotency(
     return acquiredResult(key, params);
   }
 
-  const resolved = await resolveConflict(db, key, params, serialized, now);
-  if (resolved !== undefined) return resolved;
-
-  return {
-    kind: "in_progress",
-    key,
-    requestHash: params.requestHash,
-    waitMs: params.waitMs,
-  };
+  return resolveConflict(db, key, params, serialized, now);
 }
 
 export async function waitForIdempotencyCompletion(
