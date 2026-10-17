@@ -41,20 +41,20 @@ export function createWorkerJobs(
   const profileImage = createProfileImageJobs(dependencies);
   const accountDeletion = createAccountDeletionJobs(dependencies);
 
+  const scheduled = [
+    authSweeps.purgeExpiredSessions,
+    idempotencySweeps.purgeExpiredIdempotencyRecords,
+    accountDeletion.finalizeDueAccountDeletions,
+  ] as const;
+
   return {
     registry: createJobRegistry([
-      authSweeps.purgeExpiredSessions,
-      idempotencySweeps.purgeExpiredIdempotencyRecords,
+      ...scheduled,
       sendVerificationEmail,
       profileImage.deleteStoredFile,
       profileImage.expireUpload,
       accountDeletion.finalizeAccountDeletion,
-      accountDeletion.finalizeDueAccountDeletions,
     ]),
-    scheduled: [
-      authSweeps.purgeExpiredSessions,
-      idempotencySweeps.purgeExpiredIdempotencyRecords,
-      accountDeletion.finalizeDueAccountDeletions,
-    ],
+    scheduled,
   };
 }
