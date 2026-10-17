@@ -33,6 +33,8 @@ export async function upsertSessionPushToken(
       ),
   );
 
+  // The clear stays in this batch. A dead caller must not clear another
+  // session, and the live-session check must not become its own await.
   const results = await runBatch(db, [
     db
       .update(sessions)

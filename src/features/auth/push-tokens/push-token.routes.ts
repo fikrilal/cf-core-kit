@@ -120,11 +120,18 @@ export function createPushTokenUpsertHandler(
       now: dependencies.clock.now(),
     });
 
-    if (outcome === "session_not_found") {
-      throw new AppError({ status: 401, code: ErrorCode.UNAUTHORIZED });
+    switch (outcome) {
+      case "ok":
+        return noContent();
+      case "session_not_found":
+        throw new AppError({ status: 401, code: ErrorCode.UNAUTHORIZED });
+      default: {
+        const unreachable: never = outcome;
+        throw new Error(
+          `Unexpected push token outcome: ${String(unreachable)}`,
+        );
+      }
     }
-
-    return noContent();
   };
 }
 
