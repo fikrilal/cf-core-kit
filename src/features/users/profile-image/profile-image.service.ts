@@ -35,6 +35,9 @@ export type UploadPlan = Readonly<{
   expiresAt: string;
 }>;
 
+export type UploadPlanResult =
+  Readonly<{ kind: "ok"; plan: UploadPlan }> | Readonly<{ kind: "not_found" }>;
+
 export async function createUploadPlan(
   dependencies: ProfileImageServiceDependencies,
   input: Readonly<{
@@ -43,7 +46,7 @@ export async function createUploadPlan(
     sizeBytes: number;
     traceId: string | undefined;
   }>,
-): Promise<UploadPlan | "not_found"> {
+): Promise<UploadPlanResult> {
   const now = dependencies.clock.now();
   const fileId = crypto.randomUUID();
   const objectKey = `users/${input.userId}/profile-images/${fileId}`;
@@ -63,18 +66,21 @@ export async function createUploadPlan(
     now,
   });
 
-  if (created === "not_found") return "not_found";
+  if (created === "not_found") return { kind: "not_found" };
 
   return {
-    fileId,
-    upload: {
-      method: "PUT",
-      url: presigned.url,
-      headers: presigned.headers,
+    kind: "ok",
+    plan: {
+      fileId,
+      upload: {
+        method: "PUT",
+        url: presigned.url,
+        headers: presigned.headers,
+      },
+      expiresAt: new Date(
+        now.getTime() + PROFILE_IMAGE_PRESIGN_TTL_SECONDS * 1000,
+      ).toISOString(),
     },
-    expiresAt: new Date(
-      now.getTime() + PROFILE_IMAGE_PRESIGN_TTL_SECONDS * 1000,
-    ).toISOString(),
   };
 }
 

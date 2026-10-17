@@ -1,4 +1,3 @@
-import type { MiddlewareHandler } from "hono";
 import { createRoute, type OpenAPIHono } from "@hono/zod-openapi";
 import { z } from "zod";
 
@@ -21,6 +20,7 @@ import {
   createUploadProfileImageHandler,
   type ProfileImageRouteDependencies,
 } from "./profile-image.handlers";
+import { PROFILE_IMAGE_PRESIGN_TTL_SECONDS } from "./profile-image.service";
 
 export type { ProfileImageRouteDependencies };
 
@@ -165,37 +165,22 @@ export const profileImageOperations: readonly OperationMetadata[] = [
   },
 ];
 
-const PROFILE_IMAGE_PATHS = {
-  upload: "/v1/me/profile-image/upload",
-  complete: "/v1/me/profile-image/complete",
-  clear: "/v1/me/profile-image",
-  url: "/v1/me/profile-image/url",
-} as const;
-
-function guarded(
-  middleware: MiddlewareHandler<AppEnv>,
-  path: string,
-): readonly [string, MiddlewareHandler<AppEnv>] {
-  return [path, middleware];
-}
-
 export function registerProfileImageRoutes(
   app: OpenAPIHono<AppEnv>,
   dependencies: ProfileImageRouteDependencies,
 ): void {
-  for (const [path, middleware] of [
-    guarded(captureRawJson(), PROFILE_IMAGE_PATHS.upload),
-    guarded(requireAuth(dependencies.clock), PROFILE_IMAGE_PATHS.upload),
-    guarded(requireAuth(dependencies.clock), PROFILE_IMAGE_PATHS.complete),
-    guarded(requireAuth(dependencies.clock), PROFILE_IMAGE_PATHS.clear),
-    guarded(requireAuth(dependencies.clock), PROFILE_IMAGE_PATHS.url),
-    guarded(
-      idempotent({ scopeKey: "users.me.profileImage.upload", ttlSeconds: 600 }),
-      PROFILE_IMAGE_PATHS.upload,
-    ),
-  ]) {
-    app.use(path, middleware);
-  }
+  app.use("/v1/me/profile-image/upload", captureRawJson());
+  app.use("/v1/me/profile-image/upload", requireAuth(dependencies.clock));
+  app.use("/v1/me/profile-image/complete", requireAuth(dependencies.clock));
+  app.use("/v1/me/profile-image", requireAuth(dependencies.clock));
+  app.use("/v1/me/profile-image/url", requireAuth(dependencies.clock));
+  app.use(
+    "/v1/me/profile-image/upload",
+    idempotent({
+      scopeKey: "users.me.profileImage.upload",
+      ttlSeconds: PROFILE_IMAGE_PRESIGN_TTL_SECONDS,
+    }),
+  );
 
   app.openapi(
     uploadProfileImageRoute,

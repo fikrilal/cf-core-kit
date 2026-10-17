@@ -3,7 +3,7 @@ import { type RouteHandler } from "@hono/zod-openapi";
 import type { Clock } from "../../../platform/clock/clock";
 import { configFrom } from "../../../platform/config/request";
 import { databaseFrom } from "../../../platform/db/request";
-import { noContent } from "../../../platform/http/envelope";
+import { dataPayload, noContent } from "../../../platform/http/envelope";
 import { logRequestError } from "../../../platform/http/request-logging";
 import type { AppEnv } from "../../../platform/http/types";
 import { rawJsonOf } from "../../../platform/http/raw-body";
@@ -75,7 +75,7 @@ export function createUploadProfileImageHandler(
     }
 
     const handle = objectStorageFrom(context);
-    const plan = await createUploadPlan(
+    const planned = await createUploadPlan(
       {
         db: databaseFrom(context),
         clock: dependencies.clock,
@@ -90,9 +90,20 @@ export function createUploadProfileImageHandler(
       },
     );
 
-    if (plan === "not_found") {
-      throw new AppError({ status: 401, code: ErrorCode.UNAUTHORIZED });
+    switch (planned.kind) {
+      case "not_found":
+        throw new AppError({ status: 401, code: ErrorCode.UNAUTHORIZED });
+      case "ok":
+        break;
+      default: {
+        const unreachable: never = planned;
+        throw new Error(
+          `Unexpected upload plan outcome: ${String(unreachable)}`,
+        );
+      }
     }
+
+    const plan = planned.plan;
 
     const config = configFrom(context);
     const cleanup = createProfileImageCleanupProducer({
@@ -113,7 +124,7 @@ export function createUploadProfileImageHandler(
       );
     }
 
-    return context.json({ data: plan }, 200);
+    return context.json(dataPayload(plan), 200);
   };
 }
 
@@ -137,42 +148,47 @@ export function createCompleteProfileImageHandler(
       { userId: principal.userId, fileId: body.fileId },
     );
 
-    if (result.kind === "not_found") {
-      throw new AppError({ status: 404, code: ErrorCode.NOT_FOUND });
+    switch (result.kind) {
+      case "noop":
+        return noContent();
+      case "attached":
+        if (result.previousFileId !== null) {
+          const cleanup = createProfileImageCleanupProducer({
+            queue: dependencies.queue ?? queueFrom(context),
+            clock: dependencies.clock,
+            logger: createLogger(configFrom(context)),
+          });
+          await cleanup.enqueueDeleteStoredFile({
+            userId: principal.userId,
+            fileId: result.previousFileId,
+          });
+        }
+        return noContent();
+      case "not_found":
+        throw new AppError({ status: 404, code: ErrorCode.NOT_FOUND });
+      case "not_uploaded":
+        throw new AppError({
+          status: 409,
+          code: ErrorCode.USERS_PROFILE_IMAGE_NOT_UPLOADED,
+          message: "Upload is not available",
+        });
+      case "size_mismatch":
+        throw new AppError({
+          status: 409,
+          code: ErrorCode.USERS_PROFILE_IMAGE_SIZE_MISMATCH,
+        });
+      case "content_type_mismatch":
+        throw new AppError({
+          status: 409,
+          code: ErrorCode.USERS_PROFILE_IMAGE_CONTENT_TYPE_MISMATCH,
+        });
+      default: {
+        const unreachable: never = result;
+        throw new Error(
+          `Unexpected profile image outcome: ${String(unreachable)}`,
+        );
+      }
     }
-    if (result.kind === "not_uploaded") {
-      throw new AppError({
-        status: 409,
-        code: ErrorCode.USERS_PROFILE_IMAGE_NOT_UPLOADED,
-        message: "Upload is not available",
-      });
-    }
-    if (result.kind === "size_mismatch") {
-      throw new AppError({
-        status: 409,
-        code: ErrorCode.USERS_PROFILE_IMAGE_SIZE_MISMATCH,
-      });
-    }
-    if (result.kind === "content_type_mismatch") {
-      throw new AppError({
-        status: 409,
-        code: ErrorCode.USERS_PROFILE_IMAGE_CONTENT_TYPE_MISMATCH,
-      });
-    }
-
-    if (result.kind === "attached" && result.previousFileId !== null) {
-      const cleanup = createProfileImageCleanupProducer({
-        queue: dependencies.queue ?? queueFrom(context),
-        clock: dependencies.clock,
-        logger: createLogger(configFrom(context)),
-      });
-      await cleanup.enqueueDeleteStoredFile({
-        userId: principal.userId,
-        fileId: result.previousFileId,
-      });
-    }
-
-    return noContent();
   };
 }
 
@@ -229,6 +245,6 @@ export function createProfileImageUrlHandler(
         PROFILE_IMAGE_GET_URL_TTL_SECONDS * 1000,
     ).toISOString();
 
-    return context.json({ data: { url, expiresAt } }, 200);
+    return context.json(dataPayload({ url, expiresAt }), 200);
   };
 }

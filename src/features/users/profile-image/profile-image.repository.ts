@@ -167,7 +167,6 @@ export async function attachProfileImageFile(
 
 export type ClearProfileImageResult = Readonly<{
   clearedFileId: string | null;
-  objectKey: string | null;
 }>;
 
 export async function clearProfileImage(
@@ -181,13 +180,7 @@ export async function clearProfileImage(
     .get();
   const fileId = user?.profileImageFileId ?? null;
 
-  if (fileId === null) return { clearedFileId: null, objectKey: null };
-
-  const file = await db
-    .select({ objectKey: storedFiles.objectKey })
-    .from(storedFiles)
-    .where(eq(storedFiles.id, fileId))
-    .get();
+  if (fileId === null) return { clearedFileId: null };
 
   await runBatch(db, [
     db
@@ -202,5 +195,5 @@ export async function clearProfileImage(
       ),
   ]);
 
-  return { clearedFileId: fileId, objectKey: file?.objectKey ?? null };
+  return { clearedFileId: fileId };
 }
