@@ -86,7 +86,8 @@ async function countActiveAdmins(db: Database): Promise<number> {
   const rows = await db
     .select({ id: users.id })
     .from(users)
-    .where(and(eq(users.role, "ADMIN"), eq(users.status, "ACTIVE")));
+    .where(and(eq(users.role, "ADMIN"), eq(users.status, "ACTIVE")))
+    .limit(2);
 
   return rows.length;
 }

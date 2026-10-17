@@ -1,5 +1,8 @@
-import type { Context, MiddlewareHandler } from "hono";
-import { createRoute, type OpenAPIHono } from "@hono/zod-openapi";
+import {
+  createRoute,
+  type OpenAPIHono,
+  type RouteHandler,
+} from "@hono/zod-openapi";
 
 import { requireAuth } from "../../../platform/auth/guard";
 import { requirePrincipal } from "../../../platform/auth/principal";
@@ -87,69 +90,91 @@ export type AccountDeletionRouteDependencies = Readonly<{
   clock: Clock;
 }>;
 
-type DeletionAction = "request" | "cancel";
-
-async function runDeletionAction(
-  context: Context<AppEnv>,
+function createRequestAccountDeletionHandler(
   dependencies: AccountDeletionRouteDependencies,
-  action: DeletionAction,
-): Promise<void> {
-  const principal = requirePrincipal(context);
-  await requireLiveUser(context, principal.userId);
-
-  const input = {
-    userId: principal.userId,
-    sessionId: principal.sessionId,
-    traceId: context.get("requestId"),
-    now: dependencies.clock.now(),
-  };
-  const result =
-    action === "request"
-      ? await requestAccountDeletion(databaseFrom(context), input)
-      : await cancelAccountDeletion(databaseFrom(context), input);
-
-  if (result.kind === "not_found") {
-    throw new AppError({ status: 401, code: ErrorCode.UNAUTHORIZED });
-  }
-  if (result.kind === "last_admin") {
-    throw new AppError({
-      status: 409,
-      code: ErrorCode.USERS_CANNOT_DELETE_LAST_ADMIN,
-      message: "Cannot delete the last admin",
+): RouteHandler<typeof requestAccountDeletionRoute, AppEnv> {
+  return async (context) => {
+    const principal = requirePrincipal(context);
+    await requireLiveUser(context, principal.userId);
+    const result = await requestAccountDeletion(databaseFrom(context), {
+      userId: principal.userId,
+      sessionId: principal.sessionId,
+      traceId: context.get("requestId"),
+      now: dependencies.clock.now(),
     });
-  }
+
+    switch (result.kind) {
+      case "ok":
+      case "already_requested":
+        return noContent();
+      case "not_found":
+        throw new AppError({ status: 401, code: ErrorCode.UNAUTHORIZED });
+      case "last_admin":
+        throw new AppError({
+          status: 409,
+          code: ErrorCode.USERS_CANNOT_DELETE_LAST_ADMIN,
+          message: "Cannot delete the last admin",
+        });
+      default: {
+        const unreachable: never = result;
+        throw new Error(
+          `Unexpected account deletion request: ${String(unreachable)}`,
+        );
+      }
+    }
+  };
+}
+
+function createCancelAccountDeletionHandler(
+  dependencies: AccountDeletionRouteDependencies,
+): RouteHandler<typeof cancelAccountDeletionRoute, AppEnv> {
+  return async (context) => {
+    const principal = requirePrincipal(context);
+    await requireLiveUser(context, principal.userId);
+    const result = await cancelAccountDeletion(databaseFrom(context), {
+      userId: principal.userId,
+      sessionId: principal.sessionId,
+      traceId: context.get("requestId"),
+      now: dependencies.clock.now(),
+    });
+
+    switch (result.kind) {
+      case "ok":
+      case "not_requested":
+        return noContent();
+      case "not_found":
+        throw new AppError({ status: 401, code: ErrorCode.UNAUTHORIZED });
+      default: {
+        const unreachable: never = result;
+        throw new Error(
+          `Unexpected account deletion cancel: ${String(unreachable)}`,
+        );
+      }
+    }
+  };
 }
 
 export function registerAccountDeletionRoutes(
   app: OpenAPIHono<AppEnv>,
   dependencies: AccountDeletionRouteDependencies,
 ): void {
-  const guards: readonly (readonly [string, MiddlewareHandler<AppEnv>])[] = [
-    [REQUEST_ACCOUNT_DELETION_PATH, requireAuth(dependencies.clock)],
-    [
-      REQUEST_ACCOUNT_DELETION_PATH,
-      idempotent({ scopeKey: "users.me.accountDeletion.request" }),
-    ],
-    [CANCEL_ACCOUNT_DELETION_PATH, requireAuth(dependencies.clock)],
-    [
-      CANCEL_ACCOUNT_DELETION_PATH,
-      idempotent({ scopeKey: "users.me.accountDeletion.cancel" }),
-    ],
-  ];
+  app.use(REQUEST_ACCOUNT_DELETION_PATH, requireAuth(dependencies.clock));
+  app.use(
+    REQUEST_ACCOUNT_DELETION_PATH,
+    idempotent({ scopeKey: "users.me.accountDeletion.request" }),
+  );
+  app.use(CANCEL_ACCOUNT_DELETION_PATH, requireAuth(dependencies.clock));
+  app.use(
+    CANCEL_ACCOUNT_DELETION_PATH,
+    idempotent({ scopeKey: "users.me.accountDeletion.cancel" }),
+  );
 
-  for (const [path, middleware] of guards) {
-    app.use(path, middleware);
-  }
-
-  app.openapi(requestAccountDeletionRoute, async (context) => {
-    await runDeletionAction(context, dependencies, "request");
-
-    return noContent();
-  });
-
-  app.openapi(cancelAccountDeletionRoute, async (context) => {
-    await runDeletionAction(context, dependencies, "cancel");
-
-    return noContent();
-  });
+  app.openapi(
+    requestAccountDeletionRoute,
+    createRequestAccountDeletionHandler(dependencies),
+  );
+  app.openapi(
+    cancelAccountDeletionRoute,
+    createCancelAccountDeletionHandler(dependencies),
+  );
 }

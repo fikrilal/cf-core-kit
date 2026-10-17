@@ -78,36 +78,54 @@ function createFinalizeAccountDeletionJob(
         traceId: context.traceId,
       });
 
-      if (result.kind === "finalized") {
-        await enqueueStoredFileCleanup(
-          profileImageCleanup,
-          dependencies,
-          context,
-          { userId: payload.userId, fileIds: result.clearedFileIds },
-        );
+      switch (result.kind) {
+        case "finalized":
+          await enqueueStoredFileCleanup(
+            profileImageCleanup,
+            dependencies,
+            context,
+            { userId: payload.userId, fileIds: result.clearedFileIds },
+          );
+          dependencies.logger.info("account deletion finalized", {
+            jobId: context.jobId,
+            traceId: context.traceId,
+            userId: payload.userId,
+            outcome: result.kind,
+          });
+          return;
+        case "blocked_last_admin":
+          dependencies.logger.warn("account deletion blocked", {
+            jobId: context.jobId,
+            traceId: context.traceId,
+            userId: payload.userId,
+            reason: "last_admin",
+          });
+          return;
+        case "skipped":
+          dependencies.logger.info("account deletion finalized", {
+            jobId: context.jobId,
+            traceId: context.traceId,
+            userId: payload.userId,
+            outcome: result.kind,
+            reason: result.reason,
+          });
+          return;
+        case "not_due":
+          dependencies.logger.info("account deletion finalized", {
+            jobId: context.jobId,
+            traceId: context.traceId,
+            userId: payload.userId,
+            outcome: result.kind,
+            scheduledFor: result.scheduledFor.toISOString(),
+          });
+          return;
+        default: {
+          const unreachable: never = result;
+          throw new Error(
+            `Unexpected account deletion outcome: ${String(unreachable)}`,
+          );
+        }
       }
-
-      if (result.kind === "blocked_last_admin") {
-        dependencies.logger.warn("account deletion blocked", {
-          jobId: context.jobId,
-          traceId: context.traceId,
-          userId: payload.userId,
-          reason: "last_admin",
-        });
-
-        return;
-      }
-
-      dependencies.logger.info("account deletion finalized", {
-        jobId: context.jobId,
-        traceId: context.traceId,
-        userId: payload.userId,
-        outcome: result.kind,
-        ...(result.kind === "skipped" ? { reason: result.reason } : {}),
-        ...(result.kind === "not_due"
-          ? { scheduledFor: result.scheduledFor.toISOString() }
-          : {}),
-      });
     },
   });
 }
