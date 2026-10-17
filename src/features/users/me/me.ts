@@ -1,7 +1,11 @@
 import { and, eq, ne } from "drizzle-orm";
 
 import type { Database } from "../../../platform/db/db";
-import { oidcIdentities, users } from "../../../platform/db/schema";
+import {
+  oidcIdentities,
+  users,
+  type OidcProvider,
+} from "../../../platform/db/schema";
 import type { AuthMethod } from "../../../shared/contract/users";
 
 export type MeView = Readonly<{
@@ -39,9 +43,13 @@ export async function loadMe(
     .from(oidcIdentities)
     .where(eq(oidcIdentities.userId, userId));
 
+  const authMethodByProvider: Record<OidcProvider, AuthMethod> = {
+    GOOGLE: "GOOGLE",
+  };
   const authMethods: AuthMethod[] = [];
-  if (identities.length > 0) {
-    authMethods.push("GOOGLE");
+
+  for (const identity of identities) {
+    authMethods.push(authMethodByProvider[identity.provider]);
   }
 
   return {

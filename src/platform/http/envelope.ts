@@ -9,6 +9,10 @@ export function data(payload: unknown, init?: ResponseInit): Response {
   return Response.json({ data: payload }, init);
 }
 
+export function dataPayload<T>(payload: T): { data: T } {
+  return { data: payload };
+}
+
 export function listPayload<T>(payload: ListPayload<T>): {
   data: T[];
   meta: { limit: number; hasMore: boolean; nextCursor?: string };

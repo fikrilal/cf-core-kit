@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { created, data, list, noContent } from "./envelope";
+import { created, data, dataPayload, list, noContent } from "./envelope";
 
 describe("data", () => {
   it("wraps a payload in the envelope", async () => {
@@ -8,6 +8,12 @@ describe("data", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ data: { id: "1" } });
+  });
+});
+
+describe("dataPayload", () => {
+  it("wraps a payload in the object envelope", () => {
+    expect(dataPayload({ id: "1" })).toEqual({ data: { id: "1" } });
   });
 });
 

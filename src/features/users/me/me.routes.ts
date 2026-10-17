@@ -11,6 +11,7 @@ import { requirePrincipal } from "../../../platform/auth/principal";
 import { systemClock, type Clock } from "../../../platform/clock/clock";
 import { databaseFrom } from "../../../platform/db/request";
 import { AppError } from "../../../platform/errors/app-error";
+import { dataPayload } from "../../../platform/http/envelope";
 import { idempotent } from "../../../platform/http/idempotency";
 import type { OperationMetadata } from "../../../platform/http/openapi";
 import { captureRawJson, rawJsonOf } from "../../../platform/http/raw-body";
@@ -142,7 +143,7 @@ const meHandler: RouteHandler<typeof meRoute, AppEnv> = async (context) => {
     throw new AppError({ status: 401, code: ErrorCode.UNAUTHORIZED });
   }
 
-  return context.json({ data: toMePayload(me) }, 200);
+  return context.json(dataPayload(toMePayload(me)), 200);
 };
 
 function createPatchMeHandler(
@@ -167,7 +168,7 @@ function createPatchMeHandler(
       throw new AppError({ status: 401, code: ErrorCode.UNAUTHORIZED });
     }
 
-    return context.json({ data: toMePayload(me) }, 200);
+    return context.json(dataPayload(toMePayload(me)), 200);
   };
 }
 
@@ -179,7 +180,7 @@ export function registerMeRoutes(
 ): void {
   const clock = dependencies.clock ?? systemClock;
 
-  app.use("/v1/me", captureRawJson());
+  app.use("/v1/me", onlyMethod("PATCH", captureRawJson()));
   app.use("/v1/me", requireAuth(clock));
   app.use(
     "/v1/me",
