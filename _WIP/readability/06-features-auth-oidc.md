@@ -1,6 +1,6 @@
 # Section note: `src/features/auth/oidc`
 
-- Status: Accepted. The four edits below are applied. The deleted-user bug is not.
+- Status: Accepted. The four edits below are applied. The deleted-user bug is fixed.
 - Date: 2026-10-15
 - Scope: `POST /v1/auth/oidc/exchange`, `POST /v1/auth/oidc/connect`, the Google verifier and JWKS cache in `oidc.ts`, and `registerOidcRoutes`. Identity SQL stays in `shared/repository.ts`. `issueSession` and `auth.errors.ts` stay where note 05 left them.
 - Ruler: `_WIP/2026-10-15_cf-core-kit-readability-proposal.md`
@@ -13,7 +13,7 @@ The handlers already match the `users/me` steps. Each one reads the validated bo
 
 Three spots are hard to read. `registerOidcRoutes` splits the connect pipeline around the exchange registration. `verifyIdToken` turns any future failure reason into "invalid". The body `provider` is validated and then ignored, while seven call sites repeat the literal `"GOOGLE"`.
 
-One client-facing bug. `connectOidc` does not load the caller. A missing or `DELETED` user with a still-valid access token can link an identity and receive 204. Backend connect rejects that caller with 401 `UNAUTHORIZED` before it verifies the id token. `SUSPENDED` is allowed on both kits. Do not point connect at exchange's `assertActive`.
+One client-facing bug was fixed after the taste edit. `connectOidc` loads the caller before `verifyIdToken`. A missing or `DELETED` user receives 401 `UNAUTHORIZED`, and the verifier is not called. `SUSPENDED` still links. `assertActive` stays on exchange only.
 
 ## What was read
 
@@ -126,7 +126,9 @@ On this kit that caller falls through. A new subject is inserted and the handler
 
 `SUSPENDED` is not this bug. Backend connect does not call `assertUserIsNotSuspended`. The connect error list on both kits omits `AUTH_USER_SUSPENDED`. `assertActive` maps `DELETED` to `AUTH_OIDC_TOKEN_INVALID` and `SUSPENDED` to `AUTH_USER_SUSPENDED`. Sharing it would change the deleted code and would start rejecting suspended users.
 
-Not a taste edit. The status changes from 204 to 401. When a bug note is written: load the user before either identity branch and before backfill. Missing or `DELETED` throws `new AppError({ status: 401, code: ErrorCode.UNAUTHORIZED })`, the same shape `requireAuth` uses. There is no named builder. Leave `SUSPENDED`. Match the backend order: the user row first, then the id token.
+Not a taste edit. The status changes from 204 to 401. The fix loads the user before either identity branch, before backfill, and before the id token. Missing or `DELETED` throws `new AppError({ status: 401, code: ErrorCode.UNAUTHORIZED })`, the same shape `requireAuth` uses. There is no named builder. `SUSPENDED` stays allowed.
+
+Fixed. `connect.spec.ts` locks the missing user, the deleted user, and the suspended link. The two rejections count zero verifier calls and insert no identity.
 
 No other response in the sampled specs is wrong.
 
@@ -151,6 +153,8 @@ No change to status codes, error codes, the race `catch` blocks, JWKS timings, o
 
 33 tests passed. `npx eslint` and `npx prettier --check` on `oidc.service.ts` and `oidc.routes.ts` passed. `npx tsc --noEmit` reported no errors.
 
+Bug fix: `npx vitest run src/features/auth/oidc/connect.spec.ts` — 16 passed. `npx eslint` and `npx prettier --check` on `oidc.service.ts` and `connect.spec.ts` passed. `npx tsc --noEmit` exited 0.
+
 ## Next
 
-`_WIP/readability/07-features-auth-email-verification.md`. It owns `consumeEmailVerificationToken`. The deleted-user connect bug stays out of that note.
+`_WIP/readability/07-features-auth-email-verification.md`. It owns `consumeEmailVerificationToken`. The deleted-user connect bug was fixed in this note after the taste edit.

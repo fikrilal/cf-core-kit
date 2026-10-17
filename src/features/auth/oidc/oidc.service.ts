@@ -8,8 +8,10 @@ import {
   users,
   type OidcProvider,
 } from "../../../platform/db/schema";
+import { AppError } from "../../../platform/errors/app-error";
 import { loadMe, toMePayload } from "../../users/index";
 import type { Me } from "../../../shared/contract/users";
+import { ErrorCode } from "../../../shared/error-codes";
 import {
   internalError,
   oidcEmailNotVerified,
@@ -278,6 +280,11 @@ export async function connectOidc(
   deps: AuthServiceDependencies,
   input: ConnectInput,
 ): Promise<void> {
+  const user = await findUserById(deps.db, input.userId);
+  if (user === undefined || user.status === "DELETED") {
+    throw new AppError({ status: 401, code: ErrorCode.UNAUTHORIZED });
+  }
+
   const provider = supportedProvider(input.provider);
   const claims = await verifyIdToken(deps, input.idToken);
   const existing = await findIdentity(deps.db, provider, claims.subject);

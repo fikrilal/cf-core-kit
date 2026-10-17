@@ -211,6 +211,66 @@ describe("connect: linking behavior", () => {
   });
 });
 
+describe("connect: caller status", () => {
+  beforeEach(async () => {
+    await cleanAuthTables(db());
+  });
+
+  it("rejects a missing user before verifying the id token", async () => {
+    let calls = 0;
+    const verifier: IdTokenVerifier = () => {
+      calls += 1;
+      return Promise.resolve({ ok: false, reason: "invalid" });
+    };
+
+    const response = await connectRequest({
+      token: await testAccessToken(crypto.randomUUID()),
+      verifier,
+    });
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+    expect(calls).toBe(0);
+    await expect(db().$count(oidcIdentities)).resolves.toBe(0);
+  });
+
+  it("rejects a deleted user before verifying the id token", async () => {
+    const userId = await seedUser({ status: "DELETED" });
+    let calls = 0;
+    const verifier: IdTokenVerifier = () => {
+      calls += 1;
+      return Promise.resolve({ ok: false, reason: "invalid" });
+    };
+
+    const response = await connectRequest({
+      token: await testAccessToken(userId),
+      verifier,
+    });
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+    expect(calls).toBe(0);
+    await expect(db().$count(oidcIdentities)).resolves.toBe(0);
+  });
+
+  it("links an identity for a suspended user", async () => {
+    const userId = await seedUser({ status: "SUSPENDED" });
+
+    const response = await connectRequest({
+      token: await testAccessToken(userId),
+    });
+
+    expect(response.status).toBe(204);
+    const identityRows = await db().select().from(oidcIdentities);
+    expect(identityRows).toHaveLength(1);
+    expect(identityRows[0]?.userId).toBe(userId);
+  });
+});
+
 describe("connect: conflict rules", () => {
   beforeEach(async () => {
     await cleanAuthTables(db());
