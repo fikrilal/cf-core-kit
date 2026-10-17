@@ -128,26 +128,34 @@ export type RefreshSessionInput = Readonly<{
   userAgent: string | undefined;
 }>;
 
+type RefreshDecision =
+  | Readonly<{ kind: "ok" }>
+  | Readonly<{ kind: "reused" }>
+  | Readonly<{ kind: "invalid" }>
+  | Readonly<{ kind: "suspended" }>
+  | Readonly<{ kind: "revoked" }>
+  | Readonly<{ kind: "expired" }>;
+
 function classifyRefresh(
   current: RefreshTokenRow,
   session: SessionRow,
   user: UserRow,
   now: Date,
-): "ok" | "reused" {
-  if (user.status === "DELETED") throw refreshTokenInvalid();
-  if (user.status === "SUSPENDED") throw userSuspended();
-  if (session.revokedAt !== null) throw sessionRevoked();
+): RefreshDecision {
+  if (user.status === "DELETED") return { kind: "invalid" };
+  if (user.status === "SUSPENDED") return { kind: "suspended" };
+  if (session.revokedAt !== null) return { kind: "revoked" };
 
   const expired =
     current.expiresAt.getTime() <= now.getTime() ||
     session.expiresAt.getTime() <= now.getTime();
-  if (expired) throw refreshTokenExpired();
+  if (expired) return { kind: "expired" };
 
   if (current.revokedAt !== null || current.replacedById !== null) {
-    return "reused";
+    return { kind: "reused" };
   }
 
-  return "ok";
+  return { kind: "ok" };
 }
 
 export async function refreshSession(
@@ -164,12 +172,29 @@ export async function refreshSession(
   const user = await findUserById(input.db, session.userId);
   if (user === undefined) throw internalError();
 
-  if (classifyRefresh(current, session, user, now) === "reused") {
-    await revokeSessionAndTokens(input.db, session.id, now);
-
-    throw refreshTokenReused();
+  const decision = classifyRefresh(current, session, user, now);
+  switch (decision.kind) {
+    case "invalid":
+      throw refreshTokenInvalid();
+    case "suspended":
+      throw userSuspended();
+    case "revoked":
+      throw sessionRevoked();
+    case "expired":
+      throw refreshTokenExpired();
+    case "reused":
+      await revokeSessionAndTokens(input.db, session.id, now);
+      throw refreshTokenReused();
+    case "ok":
+      break;
+    default: {
+      const unreachable: never = decision;
+      throw new Error(`Unexpected refresh outcome: ${String(unreachable)}`);
+    }
   }
 
+  // Signed before the batch. A thrown batch rolls back, so the caller's
+  // refresh token stays usable.
   const accessToken = await issueAccessToken({
     keyRing: input.keyRing,
     now,
@@ -183,7 +208,7 @@ export async function refreshSession(
   });
 
   const nextToken = randomBase64Url(REFRESH_TOKEN_BYTES);
-  const rotated = await rotateRefreshToken(input.db, {
+  const rotation = await rotateRefreshToken(input.db, {
     currentTokenId: current.id,
     replacement: {
       id: crypto.randomUUID(),
@@ -202,9 +227,8 @@ export async function refreshSession(
         : input.userAgent.slice(0, MAX_USER_AGENT_LENGTH),
   });
 
-  if (!rotated) {
+  if (rotation === "lost") {
     await revokeSessionAndTokens(input.db, session.id, now);
-
     throw refreshTokenReused();
   }
 

@@ -11,7 +11,11 @@ import {
   createCursorAfterBuilders,
   mergeWhereClauses,
 } from "../../../shared/list-query/where";
-import type { ListQuery, Scalar } from "../../../shared/list-query/types";
+import type {
+  ListQuery,
+  Scalar,
+  SortSpec,
+} from "../../../shared/list-query/types";
 import { findSessionById, revokeSessionAndTokens } from "../shared/repository";
 
 export type SessionSortField = "createdAt" | "id";
@@ -85,6 +89,30 @@ function toSessionDto(
   };
 }
 
+function cursorAfter(
+  row: typeof sessions.$inferSelect,
+  sort: readonly SortSpec<SessionSortField>[],
+): Partial<Record<SessionSortField, string>> {
+  const after: Partial<Record<SessionSortField, string>> = {};
+
+  for (const spec of sort) {
+    switch (spec.field) {
+      case "createdAt":
+        after.createdAt = row.createdAt.toISOString();
+        break;
+      case "id":
+        after.id = row.id;
+        break;
+      default: {
+        const unexpected: never = spec.field;
+        throw new Error(`Unexpected session sort: ${String(unexpected)}`);
+      }
+    }
+  }
+
+  return after;
+}
+
 export async function listUserSessions(
   input: ListUserSessionsInput,
 ): Promise<SessionListPage> {
@@ -140,10 +168,7 @@ export async function listUserSessions(
           nextCursor: encodeCursorV1({
             v: 1,
             sort: query.normalizedSort,
-            after: {
-              createdAt: last.createdAt.toISOString(),
-              id: last.id,
-            },
+            after: cursorAfter(last, query.sort),
           }),
         }
       : {}),

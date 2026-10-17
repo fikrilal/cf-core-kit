@@ -173,7 +173,7 @@ export type RotateRefreshTokenInput = Readonly<{
 export async function rotateRefreshToken(
   db: Database,
   input: RotateRefreshTokenInput,
-): Promise<boolean> {
+): Promise<"rotated" | "lost"> {
   const sessionUpdate: Partial<typeof sessions.$inferInsert> = {
     lastSeenAt: input.now,
     updatedAt: input.now,
@@ -181,6 +181,7 @@ export async function rotateRefreshToken(
   if (input.ip !== undefined) sessionUpdate.ip = input.ip;
   if (input.userAgent !== undefined) sessionUpdate.userAgent = input.userAgent;
 
+  // "lost" may already have inserted the replacement. The caller must revoke.
   const results = await runBatch(db, [
     db
       .update(refreshTokens)
@@ -203,7 +204,7 @@ export async function rotateRefreshToken(
       .where(eq(sessions.id, input.sessionId)),
   ]);
 
-  return readChangeCount(results[0]) === 1;
+  return readChangeCount(results[0]) === 1 ? "rotated" : "lost";
 }
 
 export async function revokeSessionAndTokens(

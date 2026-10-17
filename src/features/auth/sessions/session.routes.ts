@@ -7,7 +7,7 @@ import {
 import type { Clock } from "../../../platform/clock/clock";
 import { configFrom } from "../../../platform/config/request";
 import { databaseFrom } from "../../../platform/db/request";
-import { noContent } from "../../../platform/http/envelope";
+import { dataPayload, noContent } from "../../../platform/http/envelope";
 import type { OperationMetadata } from "../../../platform/http/openapi";
 import { captureRawJson, rawJsonOf } from "../../../platform/http/raw-body";
 import type { AppEnv } from "../../../platform/http/types";
@@ -106,7 +106,7 @@ function createRefreshHandler(
       userAgent: context.req.header("User-Agent"),
     });
 
-    return context.json({ data: result }, 200);
+    return context.json(dataPayload(result), 200);
   };
 }
 
